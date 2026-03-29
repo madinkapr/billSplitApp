@@ -1,0 +1,195 @@
+import React, { useState } from 'react'
+import { motion } from 'framer-motion'
+import { Copy, Check, RotateCcw, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+import { calculateSplits, fmt } from '../utils/math'
+
+function PersonCard({ result, index }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className="card overflow-hidden"
+    >
+      <button
+        onClick={() => setOpen((p) => !p)}
+        className="w-full flex items-center gap-3 px-4 py-4 text-left"
+      >
+        <div className="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
+          {result.name.charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-900">{result.name}{result.isMe ? ' (You)' : ''}</p>
+          <p className="text-xs text-gray-400">Food subtotal: {fmt(result.subtotal)}</p>
+        </div>
+        <div className="text-right flex-shrink-0 flex items-center gap-2">
+          <p className="text-xl font-bold text-indigo-600">{fmt(result.finalTotal)}</p>
+          {open ? <ChevronUp size={14} className="text-gray-300" /> : <ChevronDown size={14} className="text-gray-300" />}
+        </div>
+      </button>
+      {open && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          className="border-t border-gray-50 px-4 py-3 bg-gray-50"
+        >
+          <p className="text-xs text-gray-400">
+            Food share {fmt(result.subtotal)} × ratio = {fmt(result.finalTotal)} total
+          </p>
+        </motion.div>
+      )}
+    </motion.div>
+  )
+}
+
+export default function Report({ bill, onReset, onNewWithSameCrew }) {
+  const [copied, setCopied] = useState(false)
+
+  if (!bill) return null
+
+  const allMembers = bill._adhocMembers || []
+  const activeMembers = allMembers.filter((m) => bill.activeMembers.includes(m.id))
+
+  const results = calculateSplits({
+    items: bill.items || [],
+    members: activeMembers,
+    grandTotal: bill.grandTotal || 0,
+  })
+
+  const grandTotal = bill.grandTotal || 0
+  const tipAmount = bill.tipAmount || 0
+  const foodTotal = grandTotal - tipAmount
+  const tipLabel = bill.tipMode === 'amount' ? 'Tip' : `Tip (${bill.tipPercent ?? 0}%)`
+  const verificationSum = results.reduce((s, r) => s + r.finalTotal, 0)
+  const sumCheck = Math.abs(verificationSum - grandTotal) < 0.015
+
+  function buildTextSummary() {
+    const lines = []
+    lines.push(`💸 TabUp Bill Split — ${bill.crewEmoji || ''} ${bill.crewName || 'Lunch'}`)
+    lines.push('─'.repeat(32))
+    lines.push(`Grand Total: ${fmt(grandTotal)}`)
+    lines.push(`  ${tipLabel}: ${fmt(tipAmount)}`)
+    lines.push(`  Food: ${fmt(foodTotal)}`)
+    lines.push('─'.repeat(32))
+    results.forEach((r) => {
+      lines.push(`${r.name}${r.isMe ? ' (You)' : ''}: ${fmt(r.finalTotal)}`)
+    })
+    lines.push('─'.repeat(32))
+    lines.push(`Verification: ${fmt(verificationSum)} / ${fmt(grandTotal)} ${sumCheck ? '✓' : '⚠️'}`)
+    lines.push('Split by TabUp 💸')
+    return lines.join('\n')
+  }
+
+  async function copyToClipboard() {
+    try {
+      await navigator.clipboard.writeText(buildTextSummary())
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // fallback
+      const ta = document.createElement('textarea')
+      ta.value = buildTextSummary()
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen pb-8">
+      {/* Header */}
+      <div className="bg-indigo-600 px-5 pt-14 pb-6 text-white">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xl">{bill.crewEmoji || '🍽️'}</span>
+          <h1 className="text-xl font-bold">{bill.crewName || 'Bill Split'}</h1>
+        </div>
+        <p className="text-indigo-200 text-sm">Grand Total: {fmt(grandTotal)}</p>
+      </div>
+
+      <div className="px-5 pt-5 flex flex-col gap-4">
+        {/* Bill summary bar */}
+        <div className="card p-4 grid grid-cols-2 divide-x divide-gray-100 text-center">
+          <div>
+            <p className="text-xs text-gray-400 mb-0.5">Food</p>
+            <p className="font-bold text-gray-800 text-sm">{fmt(foodTotal)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 mb-0.5">{tipLabel}</p>
+            <p className="font-bold text-gray-800 text-sm">{fmt(tipAmount)}</p>
+          </div>
+        </div>
+
+        {/* Person cards */}
+        <div className="flex flex-col gap-3">
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Each Person Owes</h2>
+          {results.map((r, i) => (
+            <PersonCard key={r.id} result={r} index={i} />
+          ))}
+        </div>
+
+        {/* Verification */}
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium ${sumCheck ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+          <span>{sumCheck ? '✓' : '⚠️'}</span>
+          <span>{sumCheck ? `Totals verified: ${fmt(verificationSum)} = ${fmt(grandTotal)}` : `Rounding diff: ${fmt(Math.abs(verificationSum - grandTotal))}`}</span>
+        </div>
+
+        {/* Items breakdown */}
+        {bill.items && bill.items.length > 0 && (
+          <div>
+            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Items</h2>
+            <div className="card divide-y divide-gray-50">
+              {bill.items.map((item) => {
+                const assignedNames = activeMembers
+                  .filter((m) => item.assignees?.includes(m.id))
+                  .map((m) => m.name)
+                return (
+                  <div key={item.id} className="flex items-center justify-between px-4 py-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800">{item.name || 'Item'}</p>
+                      <p className="text-xs text-gray-400 truncate">{assignedNames.length > 0 ? assignedNames.join(', ') : 'Everyone (split equally)'}</p>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-700 flex-shrink-0 ml-3">{fmt(item.price)}</p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={copyToClipboard}
+          className={`btn-primary w-full text-base transition-colors ${copied ? 'bg-green-500 hover:bg-green-600' : ''}`}
+        >
+          {copied ? <><Check size={18} /> Copied!</> : <><Copy size={18} /> Copy Summary</>}
+        </motion.button>
+
+        <div className="grid grid-cols-2 gap-3">
+          {bill.crewId && (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={onNewWithSameCrew}
+              className="btn-secondary flex-1"
+            >
+              <RefreshCw size={16} /> Same Crew
+            </motion.button>
+          )}
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={onReset}
+            className={`btn-secondary ${bill.crewId ? 'flex-1' : 'w-full'}`}
+          >
+            <RotateCcw size={16} /> Home
+          </motion.button>
+        </div>
+      </div>
+    </div>
+  )
+}

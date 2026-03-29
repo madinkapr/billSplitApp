@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-gray-100 text-gray-900;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  }
+}
+
+@layer utilities {
+  .touch-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100;
+  }
+  .input-field {
+    @apply w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white;
+  }
+  .btn-primary {
+    @apply bg-indigo-600 text-white rounded-xl font-semibold px-5 py-3 touch-btn flex items-center justify-center gap-2 active:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-gray-100 text-gray-700 rounded-xl font-semibold px-5 py-3 touch-btn flex items-center justify-center gap-2 active:bg-gray-200 transition-colors;
+  }
+  .btn-ghost {
+    @apply text-indigo-600 rounded-xl font-semibold px-4 py-2 touch-btn flex items-center justify-center gap-1 active:bg-indigo-50 transition-colors text-sm;
+  }
+}
