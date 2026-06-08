@@ -37,7 +37,7 @@ docker compose up --build -d
 docker compose down
 ```
 
-Open [http://localhost:8080](http://localhost:8080).
+Open [http://localhost:8890](http://localhost:8890).
 
 ---
 
