@@ -2,5 +2,5 @@ services:
   tabup:
     build: .
     ports:
-      - "8080:80"
+      - "8890:80"
     restart: unless-stopped
