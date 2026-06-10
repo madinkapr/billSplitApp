@@ -28,3 +28,6 @@ Thumbs.db
 
 # graphify generated output
 graphify-out/
+
+# Receipt uploads (ML training data — not tracked in git)
+apps/backend/uploads/

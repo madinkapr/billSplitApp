@@ -212,7 +212,20 @@ function ItemRow({ item, activePersons, onUpdate, onRemove }) {
 }
 
 export default function Itemizer({ bill, onBack, onNext, onChange }) {
-  const [items, setItems] = useState(bill.items || [])
+  const [items, setItems] = useState(() => {
+    if (bill.items?.length > 0) return bill.items
+    if (bill._ocrItems?.length > 0) {
+      return bill._ocrItems.map((i) => ({
+        id: generateId(),
+        name: i.name,
+        price: i.price,
+        quantity: i.quantity || 1,
+        unitPrice: i.unitPrice || i.price,
+        shares: {},
+      }))
+    }
+    return []
+  })
   const [newName, setNewName] = useState('')
   const [newPrice, setNewPrice] = useState('')
   const nameRef = useRef(null)

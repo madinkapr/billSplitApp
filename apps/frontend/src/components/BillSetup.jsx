@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ArrowRight, UserPlus, Trash2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, UserPlus, Trash2, ScanLine, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
 import { generateId } from '../utils/math'
+import { useOcr } from '../hooks/useOcr'
+import OcrReviewModal from './OcrReviewModal'
 
 const TIP_PRESETS = [15, 18, 20]
-// tipMode: 'percent' | 'amount'
 
 function MemberToggle({ member, active, onToggle }) {
   return (
@@ -25,8 +26,89 @@ function MemberToggle({ member, active, onToggle }) {
   )
 }
 
+// scanState: 'idle' | 'scanning' | 'success' | 'error'
+function ScanBanner({ scanState, errorMessage, onScan, onRetry, onRescan }) {
+  const fileRef = useRef(null)
+
+  function handleFileChange(e) {
+    const file = e.target.files?.[0]
+    if (file) onScan(file)
+    e.target.value = ''
+  }
+
+  if (scanState === 'idle') {
+    return (
+      <motion.button
+        whileTap={{ scale: 0.98 }}
+        onClick={() => fileRef.current?.click()}
+        className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl bg-indigo-500 text-white shadow-md shadow-indigo-200"
+      >
+        <div className="flex items-center gap-3">
+          <ScanLine size={20} />
+          <div className="text-left">
+            <p className="text-sm font-semibold">Scan Receipt</p>
+            <p className="text-xs text-indigo-200">Auto-fill totals and items</p>
+          </div>
+        </div>
+        <ArrowRight size={16} className="opacity-70" />
+        <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
+      </motion.button>
+    )
+  }
+
+  if (scanState === 'scanning') {
+    return (
+      <div className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl bg-indigo-50 border-2 border-indigo-200">
+        <Loader2 size={20} className="text-indigo-500 animate-spin flex-shrink-0" />
+        <div>
+          <p className="text-sm font-semibold text-indigo-700">Scanning receipt…</p>
+          <p className="text-xs text-indigo-400">This may take a few seconds</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (scanState === 'success') {
+    return (
+      <div className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl bg-green-50 border-2 border-green-200">
+        <div className="flex items-center gap-3">
+          <CheckCircle2 size={20} className="text-green-500 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-green-700">Receipt scanned</p>
+            <p className="text-xs text-green-500">Fields auto-filled below</p>
+          </div>
+        </div>
+        <button
+          onClick={onRescan}
+          className="flex items-center gap-1 text-xs text-green-600 font-semibold hover:text-green-700"
+        >
+          <RefreshCw size={13} /> Rescan
+        </button>
+      </div>
+    )
+  }
+
+  // error state
+  return (
+    <div className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl bg-red-50 border-2 border-red-200">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <AlertCircle size={20} className="text-red-400 flex-shrink-0" />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-red-700">Scan failed</p>
+          <p className="text-xs text-red-400 truncate">{errorMessage}</p>
+        </div>
+      </div>
+      <button
+        onClick={onRetry}
+        className="flex items-center gap-1 text-xs text-red-600 font-semibold hover:text-red-700 flex-shrink-0"
+      >
+        <RefreshCw size={13} /> Try again
+      </button>
+    </div>
+  )
+}
+
 export default function BillSetup({ bill, crews, onBack, onNext }) {
-  // Determine the crew's full member list
   const crewMembers = (() => {
     if (bill.crewId) {
       const crew = crews?.find((c) => c.id === bill.crewId)
@@ -44,14 +126,59 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
   const [tipAmountInput, setTipAmountInput] = useState(bill.tipAmount?.toString() || '')
   const [newMemberName, setNewMemberName] = useState('')
   const [adhocMembers, setAdhocMembers] = useState(crewMembers)
+  const [ocrItems, setOcrItems] = useState([])
+
+  const [scanState, setScanState] = useState('idle')
+  const [ocrData, setOcrData] = useState(null)
+
+  const { scanReceipt, retry, error: ocrError } = useOcr()
 
   const grandNum = parseFloat(grandTotal) || 0
-  // Grand total already includes tip, so:
-  // percent mode: food = grandTotal / (1 + tip%), tip = grandTotal - food
-  // amount mode:  tip entered directly
   const tipAmount = tipMode === 'percent'
     ? (tipPercent != null && grandNum > 0 ? grandNum - grandNum / (1 + tipPercent / 100) : 0)
     : (parseFloat(tipAmountInput) || 0)
+
+  async function handleScan(file) {
+    setScanState('scanning')
+    try {
+      const data = await scanReceipt(file)
+      setOcrData(data)
+    } catch {
+      setScanState('error')
+    }
+  }
+
+  async function handleRetry() {
+    setScanState('scanning')
+    try {
+      const data = await retry()
+      setOcrData(data)
+    } catch {
+      setScanState('error')
+    }
+  }
+
+  function handleOcrConfirm(confirmed) {
+    setOcrData(null)
+    setScanState('success')
+
+    if (confirmed.grandTotal) setGrandTotal(confirmed.grandTotal.toFixed(2))
+
+    if (confirmed.tipAmount && confirmed.tipAmount > 0) {
+      setTipMode('amount')
+      setTipAmountInput(confirmed.tipAmount.toFixed(2))
+    } else if (confirmed.tipPercent && confirmed.tipPercent > 0) {
+      setTipMode('percent')
+      setTipPercent(confirmed.tipPercent)
+    }
+
+    setOcrItems(confirmed.items || [])
+  }
+
+  function handleOcrCancel() {
+    setOcrData(null)
+    setScanState('idle')
+  }
 
   function toggleMember(id) {
     setActiveMembers((prev) =>
@@ -84,6 +211,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
       tipMode,
       tipPercent: tipMode === 'percent' ? tipPercent : null,
       tipAmount,
+      _ocrItems: ocrItems,
     })
   }
 
@@ -104,6 +232,15 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
       </div>
 
       <div className="px-5 flex flex-col gap-5">
+        {/* Scan Receipt Banner */}
+        <ScanBanner
+          scanState={scanState}
+          errorMessage={ocrError}
+          onScan={handleScan}
+          onRetry={handleRetry}
+          onRescan={() => setScanState('idle')}
+        />
+
         {/* Totals */}
         <div className="card p-5">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Bill Totals</h2>
@@ -125,7 +262,6 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
               </div>
             </div>
             <div>
-              {/* Tip label + mode toggle */}
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs text-gray-500 font-medium">Tip</label>
                 <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs font-semibold">
@@ -224,7 +360,6 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
             ))}
           </div>
 
-          {/* Add person */}
           <div className="flex gap-2 mt-3">
             <input
               className="input-field flex-1 text-sm"
@@ -253,6 +388,14 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
           Add Items <ArrowRight size={18} />
         </motion.button>
       </div>
+
+      {ocrData && (
+        <OcrReviewModal
+          ocrData={ocrData}
+          onConfirm={handleOcrConfirm}
+          onCancel={handleOcrCancel}
+        />
+      )}
     </div>
   )
 }
