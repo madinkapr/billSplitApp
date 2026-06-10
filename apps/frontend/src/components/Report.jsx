@@ -151,12 +151,22 @@ export default function Report({ bill, onReset, onNewWithSameCrew }) {
                   .filter((m) => shares[m.id] > 0)
                   .map((m) => (allEqual ? m.name : `${m.name} ×${shares[m.id]}`))
                 return (
-                  <div key={item.id} className="flex items-center justify-between px-4 py-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800">{item.name || 'Item'}</p>
-                      <p className="text-xs text-gray-400 truncate">{assignedLabels.length > 0 ? assignedLabels.join(', ') : 'Everyone (split equally)'}</p>
+                  <div key={item.id} className="flex flex-col px-4 py-3 gap-0.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-gray-800 flex-1 min-w-0 truncate">{item.name || 'Item'}</p>
+                      <div className="flex items-center gap-1.5 flex-shrink-0 text-sm font-semibold text-gray-700">
+                        {item.quantity > 1 && item.unitPrice ? (
+                          <>
+                            <span className="text-gray-400 font-normal">{fmt(item.unitPrice)}</span>
+                            <span className="text-gray-300">×</span>
+                            <span className="text-gray-500">{item.quantity}</span>
+                            <span className="text-gray-300">=</span>
+                          </>
+                        ) : null}
+                        <span>{fmt(item.price)}</span>
+                      </div>
                     </div>
-                    <p className="text-sm font-semibold text-gray-700 flex-shrink-0 ml-3">{fmt(item.price)}</p>
+                    <p className="text-xs text-gray-400 truncate">{assignedLabels.length > 0 ? assignedLabels.join(', ') : 'Everyone (split equally)'}</p>
                   </div>
                 )
               })}
