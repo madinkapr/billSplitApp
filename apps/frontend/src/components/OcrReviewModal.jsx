@@ -56,6 +56,7 @@ export default function OcrReviewModal({ ocrData, onConfirm, onCancel }) {
   const [grandTotal, setGrandTotal] = useState(ocrData.grandTotal?.toString() || '')
   const [tipAmount, setTipAmount] = useState(ocrData.tipAmount?.toString() || '')
   const [tipPercent, setTipPercent] = useState(ocrData.tipPercent?.toString() || '')
+  const [discountAmount, setDiscountAmount] = useState(ocrData.discountAmount?.toString() || '')
   const [items, setItems] = useState(
     (ocrData.items || []).map((i) => ({ ...i, id: generateId(), unitPrice: i.unitPrice?.toString() || i.price?.toString() || '' }))
   )
@@ -91,6 +92,7 @@ export default function OcrReviewModal({ ocrData, onConfirm, onCancel }) {
       grandTotal: grandNum,
       tipAmount: parseFloat(tipAmount) || null,
       tipPercent: parseFloat(tipPercent) || null,
+      discountAmount: parseFloat(discountAmount) || null,
       items: validItems,
     })
   }
@@ -101,7 +103,7 @@ export default function OcrReviewModal({ ocrData, onConfirm, onCancel }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4"
+        className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4"
         onClick={(e) => e.target === e.currentTarget && onCancel()}
       >
         <motion.div
@@ -168,6 +170,26 @@ export default function OcrReviewModal({ ocrData, onConfirm, onCancel }) {
                 </div>
               </div>
             </div>
+
+            {/* Discount — faqat OCR aniqlagan bo'lsa ko'rsatiladi */}
+            {ocrData.discountAmount > 0 && (
+              <div>
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Discount</label>
+                <div className="flex items-center border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-red-400 focus-within:border-transparent">
+                  <span className="pl-4 text-red-400 font-medium">-$</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    value={discountAmount}
+                    onChange={(e) => setDiscountAmount(e.target.value)}
+                    className="flex-1 px-2 py-3 text-sm bg-transparent outline-none"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Items */}
             <div>

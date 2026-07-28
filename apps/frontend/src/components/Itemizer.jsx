@@ -237,7 +237,7 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
   })()
 
   const itemsTotal = items.reduce((s, i) => s + i.price, 0)
-  const foodBudget = (bill.grandTotal || 0) - (bill.tipAmount || 0)
+  const foodBudget = (bill.grandTotal || 0) - (bill.tipAmount || 0) + (bill.discountAmount || 0)
   const remaining = Math.round((foodBudget - itemsTotal) * 100) / 100
   const isBalanced = Math.abs(remaining) < 0.005
 

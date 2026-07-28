@@ -37,8 +37,9 @@ Return ONLY valid JSON, no markdown, no explanation:
   "grandTotal": <final total charged or null>,
   "subtotal": <food subtotal before tip/tax or null>,
   "taxAmount": <tax amount or null>,
-  "tipAmount": <tip dollar amount or null>,
-  "tipPercent": <tip percentage number or null>,
+  "tipAmount": <tip/service charge dollar amount or null>,
+  "tipPercent": <tip/service charge percentage number or null>,
+  "discountAmount": <discount/reduction dollar amount as positive number or null>,
   "detectedLanguage": "ru" or "en" or "uz" or "unknown",
   "items": [{ "name": string, "price": number, "quantity": number, "unitPrice": number }]
 }
@@ -53,8 +54,14 @@ Rules:
 - All prices must be numbers, not strings
 - Use null for any field not found on the receipt
 - IMPORTANT: Each line item on the receipt = exactly one entry in items array. A price number on the receipt belongs to the item on the SAME line, never combine numbers from different lines into one price.
-- IMPORTANT: If an item name spans multiple words or lines (e.g. "Pasta di mare Siciliana: Spaghetti"), keep it as ONE item with its own price — do NOT split it into two items.
-- IMPORTANT: quantity must match exactly what is printed on the receipt. If no quantity shown, use 1. Never guess quantity from context.`
+- IMPORTANT: If an item name spans multiple lines but has only ONE price, it is ONE item. Example: "Pasta di mare\nsiciliana:Spaghetti  1.00 198900.00" => ONE item, name="Pasta di mare Siciliana: Spaghetti", quantity=1, unitPrice=198900. NEVER create two items from one price.
+- IMPORTANT: Do NOT translate item names — keep them exactly as written on the receipt. Only translate if the name is a generic word (e.g. "чай" → "tea"). Proper nouns, brand names, dish names (e.g. "Succo di mela", "Caprese", "Te nero") must be kept as-is.
+- IMPORTANT: quantity must match exactly what is printed on the receipt. If no quantity shown, use 1. Never guess quantity from context.
+- discountAmount = any line with a NEGATIVE amount or labeled as discount/reduction/скидка/chegirma (e.g. "10% -98120.00" => discountAmount=98120, "Скидка -50000" => discountAmount=50000). Store as positive number. If no such line, use null.
+- tipAmount = a POSITIVE service/gratuity charge line (e.g. "Обслуживание 15% +147180" => tipAmount=147180). These are opposite signs — do not confuse them.
+- Example: receipt shows "Обслуживание 15%: 147180" and "10%: -98120" => tipAmount=147180, tipPercent=15, discountAmount=98120
+- IMPORTANT: quantity and unitPrice are ALWAYS separate columns. If you see "1.00198900.00" on one line, it means quantity=1, unitPrice=198900 — NEVER merge them into one number like 100198900.
+- IMPORTANT: unitPrice is never larger than grandTotal. If a parsed unitPrice seems larger than grandTotal, you have merged quantity and price — re-read and separate them.`
 
 const ERROR_MAP = {
   INVALID_FILE_TYPE: { status: 400, error: 'Please upload an image file.' },
@@ -84,6 +91,7 @@ function validateAndNormalize(parsed) {
   const grandTotal = parsed.grandTotal != null ? parseFloat(parsed.grandTotal) : null
   const tipAmount = parsed.tipAmount != null ? parseFloat(parsed.tipAmount) : null
   const tipPercent = parsed.tipPercent != null ? parseFloat(parsed.tipPercent) : null
+  const discountAmount = parsed.discountAmount != null ? Math.abs(parseFloat(parsed.discountAmount)) : null
   const subtotal = parsed.subtotal != null ? parseFloat(parsed.subtotal) : null
   const detectedLanguage = parsed.detectedLanguage || 'unknown'
 
@@ -98,7 +106,7 @@ function validateAndNormalize(parsed) {
         }))
     : []
 
-  return { grandTotal, tipAmount, tipPercent, subtotal, detectedLanguage, items }
+  return { grandTotal, tipAmount, tipPercent, discountAmount, subtotal, detectedLanguage, items }
 }
 
 router.post('/scan', (req, res) => {

@@ -126,6 +126,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
   const [tipAmountInput, setTipAmountInput] = useState(bill.tipAmount?.toString() || '')
   const [newMemberName, setNewMemberName] = useState('')
   const [adhocMembers, setAdhocMembers] = useState(crewMembers)
+  const [discountAmount, setDiscountAmount] = useState(bill.discountAmount?.toString() || '')
   const [ocrItems, setOcrItems] = useState([])
 
   const [scanState, setScanState] = useState('idle')
@@ -142,6 +143,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
     setScanState('scanning')
     try {
       const data = await scanReceipt(file)
+      setScanState('success')
       setOcrData(data)
     } catch {
       setScanState('error')
@@ -152,6 +154,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
     setScanState('scanning')
     try {
       const data = await retry()
+      setScanState('success')
       setOcrData(data)
     } catch {
       setScanState('error')
@@ -163,6 +166,8 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
     setScanState('success')
 
     if (confirmed.grandTotal) setGrandTotal(confirmed.grandTotal.toFixed(2))
+
+    if (confirmed.discountAmount) setDiscountAmount(confirmed.discountAmount.toFixed(2))
 
     if (confirmed.tipAmount && confirmed.tipAmount > 0) {
       setTipMode('amount')
@@ -211,6 +216,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
       tipMode,
       tipPercent: tipMode === 'percent' ? tipPercent : null,
       tipAmount,
+      discountAmount: parseFloat(discountAmount) || 0,
       _ocrItems: ocrItems,
     })
   }
@@ -334,6 +340,25 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
                 </p>
               )}
             </div>
+
+            {parseFloat(discountAmount) > 0 && (
+              <div>
+                <label className="text-xs text-gray-500 font-medium mb-1 block">Discount</label>
+                <div className="flex items-center border border-gray-200 rounded-xl bg-white focus-within:ring-2 focus-within:ring-red-400 focus-within:border-transparent">
+                  <span className="pl-4 text-red-400 font-medium select-none">-$</span>
+                  <input
+                    className="flex-1 px-2 py-3 text-sm bg-transparent outline-none"
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={discountAmount}
+                    onChange={(e) => setDiscountAmount(e.target.value)}
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
