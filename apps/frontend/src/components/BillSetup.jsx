@@ -127,6 +127,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
   const [newMemberName, setNewMemberName] = useState('')
   const [adhocMembers, setAdhocMembers] = useState(crewMembers)
   const [discountAmount, setDiscountAmount] = useState(bill.discountAmount?.toString() || '')
+  const [showDiscount, setShowDiscount] = useState(!!bill.discountAmount)
   const [ocrItems, setOcrItems] = useState([])
 
   const [scanState, setScanState] = useState('idle')
@@ -167,7 +168,10 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
 
     if (confirmed.grandTotal) setGrandTotal(confirmed.grandTotal.toFixed(2))
 
-    if (confirmed.discountAmount) setDiscountAmount(confirmed.discountAmount.toFixed(2))
+    if (confirmed.discountAmount) {
+      setDiscountAmount(confirmed.discountAmount.toFixed(2))
+      setShowDiscount(true)
+    }
 
     if (confirmed.tipAmount && confirmed.tipAmount > 0) {
       setTipMode('amount')
@@ -341,9 +345,20 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
               )}
             </div>
 
-            {parseFloat(discountAmount) > 0 && (
+            {showDiscount ? (
               <div>
-                <label className="text-xs text-gray-500 font-medium mb-1 block">Discount</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-gray-500 font-medium">Discount</label>
+                  <button
+                    onClick={() => {
+                      setDiscountAmount('')
+                      setShowDiscount(false)
+                    }}
+                    className="text-xs text-gray-400 font-medium hover:text-gray-600"
+                  >
+                    Remove
+                  </button>
+                </div>
                 <div className="flex items-center border border-gray-200 rounded-xl bg-white focus-within:ring-2 focus-within:ring-red-400 focus-within:border-transparent">
                   <span className="pl-4 text-red-400 font-medium select-none">-$</span>
                   <input
@@ -355,9 +370,17 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
                     onChange={(e) => setDiscountAmount(e.target.value)}
                     min="0"
                     step="0.01"
+                    autoFocus
                   />
                 </div>
               </div>
+            ) : (
+              <button
+                onClick={() => setShowDiscount(true)}
+                className="self-start text-xs text-indigo-500 font-semibold hover:text-indigo-600"
+              >
+                + Add discount
+              </button>
             )}
           </div>
         </div>
