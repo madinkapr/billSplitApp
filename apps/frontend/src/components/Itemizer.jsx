@@ -56,30 +56,22 @@ function ItemRow({ item, activePersons, onUpdate, onRemove }) {
   const totalCount = assignedIds.reduce((s, id) => s + shares[id], 0)
   const unassigned = activePersons.filter((p) => !shares[p.id])
 
-  function setShares(next) {
+  function setShares(next, everyone = false) {
     // Drop zero/negative counts; store as plain object.
     const cleaned = {}
     Object.entries(next).forEach(([id, c]) => { if (c > 0) cleaned[id] = c })
-    onUpdate({ ...item, shares: cleaned })
+    onUpdate({ ...item, shares: cleaned, everyone })
   }
 
   function addAssignee(id) { setShares({ ...shares, [id]: 1 }) }
   function incAssignee(id) { setShares({ ...shares, [id]: (shares[id] || 0) + 1 }) }
 
-  // "Everyone" assigns all active members at qty 1; tapping again when everyone
-  // is already on at qty 1 clears the item back to the split-among-everyone fallback.
-  const everyoneEqual =
-    activePersons.length > 0 &&
-    assignedIds.length === activePersons.length &&
-    activePersons.every((p) => shares[p.id] === 1)
+  // "Everyone" is only active once the user explicitly taps the button —
+  // a freshly added item with no assignments starts unselected, even though
+  // it still falls back to an even split among everyone.
+  const isEveryone = item.everyone === true && assignedIds.length === 0
   function toggleEveryone() {
-    if (everyoneEqual) {
-      setShares({})
-    } else {
-      const next = {}
-      activePersons.forEach((p) => { next[p.id] = 1 })
-      setShares(next)
-    }
+    setShares({}, true)
   }
   function decAssignee(id) {
     const next = { ...shares }
@@ -154,12 +146,12 @@ function ItemRow({ item, activePersons, onUpdate, onRemove }) {
                   whileTap={{ scale: 0.95 }}
                   onClick={toggleEveryone}
                   className={`self-start px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all whitespace-nowrap ${
-                    everyoneEqual
+                    isEveryone
                       ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm shadow-indigo-200'
                       : 'bg-white text-indigo-600 border-indigo-200'
                   }`}
                 >
-                  {everyoneEqual ? '✓ Everyone' : '+ Everyone'}
+                  {isEveryone ? '✓ Everyone' : '+ Everyone'}
                 </motion.button>
               )}
 
@@ -199,8 +191,8 @@ function ItemRow({ item, activePersons, onUpdate, onRemove }) {
               {ratioLabel ? (
                 <p className="text-xs text-gray-400">{ratioLabel}</p>
               ) : (
-                <p className="text-xs text-amber-500 font-medium bg-amber-50 px-2 py-1 rounded-lg self-start">
-                  ⚠ Split among everyone
+                <p className="text-xs text-gray-400">
+                  {fmt(item.price)} split equally among everyone
                 </p>
               )}
             </div>
