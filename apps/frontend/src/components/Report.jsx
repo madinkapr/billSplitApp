@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Copy, Check, RotateCcw, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+import { Copy, Check, RotateCcw, RefreshCw, ChevronDown, ChevronUp, HandCoins } from 'lucide-react'
 import { calculateSplits, fmt, getItemShares } from '../utils/math'
 
 function PersonCard({ result, index }) {
@@ -45,7 +45,7 @@ function PersonCard({ result, index }) {
   )
 }
 
-export default function Report({ bill, onReset, onNewWithSameCrew }) {
+export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew }) {
   const [copied, setCopied] = useState(false)
 
   if (!bill) return null
@@ -189,6 +189,16 @@ export default function Report({ bill, onReset, onNewWithSameCrew }) {
         >
           {copied ? <><Check size={18} /> Copied!</> : <><Copy size={18} /> Copy Summary</>}
         </motion.button>
+
+        {onSettleUp && (
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={onSettleUp}
+            className="btn-secondary w-full text-base"
+          >
+            <HandCoins size={18} /> {bill.settleBillId ? 'View Settle Status' : 'Settle Up'}
+          </motion.button>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           {bill.crewId && (
