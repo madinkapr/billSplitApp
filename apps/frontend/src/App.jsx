@@ -7,8 +7,10 @@ import CrewManager from './components/CrewManager'
 import BillSetup from './components/BillSetup'
 import Itemizer from './components/Itemizer'
 import Report from './components/Report'
+import BillHistory from './components/BillHistory'
+import SettleUp from './components/SettleUp'
 
-const SCREENS = { HOME: 'home', CREWS: 'crews', SETUP: 'setup', ITEMS: 'items', REPORT: 'report' }
+const SCREENS = { HOME: 'home', CREWS: 'crews', SETUP: 'setup', ITEMS: 'items', REPORT: 'report', SETTLE: 'settle', HISTORY: 'history' }
 
 const slide = {
   initial: (dir) => ({ x: dir > 0 ? '100%' : '-100%', opacity: 0 }),
@@ -17,7 +19,7 @@ const slide = {
   transition: { type: 'spring', stiffness: 300, damping: 30 },
 }
 
-const SCREEN_ORDER = [SCREENS.HOME, SCREENS.CREWS, SCREENS.SETUP, SCREENS.ITEMS, SCREENS.REPORT]
+const SCREEN_ORDER = [SCREENS.HOME, SCREENS.CREWS, SCREENS.SETUP, SCREENS.ITEMS, SCREENS.REPORT, SCREENS.SETTLE, SCREENS.HISTORY]
 
 export default function App() {
   const [crews, setCrews] = useLocalStorage('tabup_crews', [])
@@ -52,7 +54,7 @@ export default function App() {
   function saveBillToRecent(finalBill) {
     setRecentBills((prev) => {
       const filtered = prev.filter((b) => b.id !== finalBill.id)
-      return [finalBill, ...filtered].slice(0, 10)
+      return [finalBill, ...filtered].slice(0, 50)
     })
   }
 
@@ -68,6 +70,17 @@ export default function App() {
                 onStartNewBill={() => navigate(SCREENS.SETUP, { id: generateId(), crewId: null, crewName: '', crewEmoji: '🍽️', activeMembers: [], grandTotal: '', taxAmount: '', tipPercent: 18, items: [] })}
                 onSelectCrew={startNewBillWithCrew}
                 onManageCrews={() => navigate(SCREENS.CREWS)}
+                onViewBill={(bill) => navigate(SCREENS.REPORT, bill)}
+                onViewAllBills={() => navigate(SCREENS.HISTORY)}
+              />
+            </motion.div>
+          )}
+
+          {screen === SCREENS.HISTORY && (
+            <motion.div key="history" custom={direction} {...slide} className="absolute inset-0 overflow-y-auto">
+              <BillHistory
+                recentBills={recentBills}
+                onBack={() => navigate(SCREENS.HOME)}
                 onViewBill={(bill) => navigate(SCREENS.REPORT, bill)}
               />
             </motion.div>
@@ -114,6 +127,7 @@ export default function App() {
               <Report
                 bill={bill}
                 onReset={() => navigate(SCREENS.HOME)}
+                onSettleUp={() => navigate(SCREENS.SETTLE, bill)}
                 onNewWithSameCrew={() => {
                   if (bill) {
                     const crew = crews.find((c) => c.id === bill.crewId)
@@ -122,6 +136,19 @@ export default function App() {
                   } else {
                     navigate(SCREENS.HOME)
                   }
+                }}
+              />
+            </motion.div>
+          )}
+
+          {screen === SCREENS.SETTLE && (
+            <motion.div key="settle" custom={direction} {...slide} className="absolute inset-0 overflow-y-auto">
+              <SettleUp
+                bill={bill}
+                onBack={() => navigate(SCREENS.REPORT, bill)}
+                onChange={(updatedBill) => {
+                  setBill(updatedBill)
+                  saveBillToRecent(updatedBill)
                 }}
               />
             </motion.div>

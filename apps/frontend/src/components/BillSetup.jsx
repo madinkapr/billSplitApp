@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ArrowRight, UserPlus, Trash2, ScanLine, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
+import { ArrowLeft, ArrowRight, UserPlus, Trash2, ScanLine, Image, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
 import { generateId } from '../utils/math'
 import { useOcr } from '../hooks/useOcr'
 import OcrReviewModal from './OcrReviewModal'
@@ -28,7 +28,8 @@ function MemberToggle({ member, active, onToggle }) {
 
 // scanState: 'idle' | 'scanning' | 'success' | 'error'
 function ScanBanner({ scanState, errorMessage, onScan, onRetry, onRescan }) {
-  const fileRef = useRef(null)
+  const cameraRef = useRef(null)
+  const galleryRef = useRef(null)
 
   function handleFileChange(e) {
     const file = e.target.files?.[0]
@@ -38,21 +39,33 @@ function ScanBanner({ scanState, errorMessage, onScan, onRetry, onRescan }) {
 
   if (scanState === 'idle') {
     return (
-      <motion.button
-        whileTap={{ scale: 0.98 }}
-        onClick={() => fileRef.current?.click()}
-        className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl bg-indigo-500 text-white shadow-md shadow-indigo-200"
-      >
-        <div className="flex items-center gap-3">
-          <ScanLine size={20} />
-          <div className="text-left">
-            <p className="text-sm font-semibold">Scan Receipt</p>
-            <p className="text-xs text-indigo-200">Auto-fill totals and items</p>
+      <div className="flex flex-col gap-2">
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={() => cameraRef.current?.click()}
+          className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl bg-indigo-500 text-white shadow-md shadow-indigo-200"
+        >
+          <div className="flex items-center gap-3">
+            <ScanLine size={20} />
+            <div className="text-left">
+              <p className="text-sm font-semibold">Scan Receipt</p>
+              <p className="text-xs text-indigo-200">Auto-fill totals and items</p>
+            </div>
           </div>
-        </div>
-        <ArrowRight size={16} className="opacity-70" />
-        <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
-      </motion.button>
+          <ArrowRight size={16} className="opacity-70" />
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
+        </motion.button>
+
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={() => galleryRef.current?.click()}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-indigo-500 text-sm font-medium"
+        >
+          <Image size={16} />
+          Choose from gallery
+          <input ref={galleryRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+        </motion.button>
+      </div>
     )
   }
 
@@ -126,6 +139,8 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
   const [tipAmountInput, setTipAmountInput] = useState(bill.tipAmount?.toString() || '')
   const [newMemberName, setNewMemberName] = useState('')
   const [adhocMembers, setAdhocMembers] = useState(crewMembers)
+  const [discountAmount, setDiscountAmount] = useState(bill.discountAmount?.toString() || '')
+  const [showDiscount, setShowDiscount] = useState(!!bill.discountAmount)
   const [ocrItems, setOcrItems] = useState([])
 
   const [scanState, setScanState] = useState('idle')
@@ -142,6 +157,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
     setScanState('scanning')
     try {
       const data = await scanReceipt(file)
+      setScanState('success')
       setOcrData(data)
     } catch {
       setScanState('error')
@@ -152,6 +168,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
     setScanState('scanning')
     try {
       const data = await retry()
+      setScanState('success')
       setOcrData(data)
     } catch {
       setScanState('error')
@@ -163,6 +180,11 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
     setScanState('success')
 
     if (confirmed.grandTotal) setGrandTotal(confirmed.grandTotal.toFixed(2))
+
+    if (confirmed.discountAmount) {
+      setDiscountAmount(confirmed.discountAmount.toFixed(2))
+      setShowDiscount(true)
+    }
 
     if (confirmed.tipAmount && confirmed.tipAmount > 0) {
       setTipMode('amount')
@@ -211,6 +233,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
       tipMode,
       tipPercent: tipMode === 'percent' ? tipPercent : null,
       tipAmount,
+      discountAmount: parseFloat(discountAmount) || 0,
       _ocrItems: ocrItems,
     })
   }
@@ -334,6 +357,44 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
                 </p>
               )}
             </div>
+
+            {showDiscount ? (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-gray-500 font-medium">Discount</label>
+                  <button
+                    onClick={() => {
+                      setDiscountAmount('')
+                      setShowDiscount(false)
+                    }}
+                    className="text-xs text-gray-400 font-medium hover:text-gray-600"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <div className="flex items-center border border-gray-200 rounded-xl bg-white focus-within:ring-2 focus-within:ring-red-400 focus-within:border-transparent">
+                  <span className="pl-4 text-red-400 font-medium select-none">-$</span>
+                  <input
+                    className="flex-1 px-2 py-3 text-sm bg-transparent outline-none"
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={discountAmount}
+                    onChange={(e) => setDiscountAmount(e.target.value)}
+                    min="0"
+                    step="0.01"
+                    autoFocus
+                  />
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowDiscount(true)}
+                className="self-start text-xs text-indigo-500 font-semibold hover:text-indigo-600"
+              >
+                + Add discount
+              </button>
+            )}
           </div>
         </div>
 

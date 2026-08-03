@@ -13,6 +13,10 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - DATABASE_URL=postgresql://tabup:${POSTGRES_PASSWORD}@db:5432/tabup
       - PORT=3001
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - REMINDER_DELAY_HOURS=${REMINDER_DELAY_HOURS:-24}
+      - REMINDER_CRON=${REMINDER_CRON:-0 * * * *}
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL}
     volumes:
       - receipt_uploads:/app/uploads
     depends_on:

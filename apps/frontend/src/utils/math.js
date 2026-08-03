@@ -89,6 +89,10 @@ export function fmt(amount) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
 }
 
+export function fmtSom(amount) {
+  return `${Math.round(amount).toLocaleString('en-US')} so'm`
+}
+
 export function generateId() {
   return Math.random().toString(36).slice(2, 10)
 }

@@ -1,215 +1,14 @@
 import React, { useState, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Plus, Minus, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { ArrowLeft, ArrowRight, Plus } from 'lucide-react'
 import { generateId, fmt, getItemShares } from '../utils/math'
+import { getRemainingUnits, isItemComplete } from '../utils/itemizerState'
+import MemberCard from './MemberCard'
+import ItemChip, { ItemChipPreview } from './ItemChip'
+import ItemDetailSheet from './ItemDetailSheet'
 
-// Unassigned member: a muted chip the user taps to add at qty 1.
-function AddChip({ member, onAdd }) {
-  return (
-    <motion.button
-      whileTap={{ scale: 0.95 }}
-      onClick={onAdd}
-      className="px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all whitespace-nowrap bg-gray-100 text-gray-400 border-transparent"
-    >
-      {member.name}
-    </motion.button>
-  )
-}
-
-// Assigned member: active chip + inline −/+ stepper + resolved $ share.
-function AssignedChip({ member, count, share, onInc, onDec }) {
-  return (
-    <div className="flex items-center gap-2 pl-3 pr-1.5 py-1 rounded-full bg-indigo-500 text-white border-2 border-indigo-500 shadow-sm shadow-indigo-200">
-      <span className="text-xs font-semibold whitespace-nowrap">{member.name}</span>
-      <div className="flex items-center gap-1.5 bg-indigo-600/60 rounded-full px-1 py-0.5">
-        <motion.button
-          whileTap={{ scale: 0.85 }}
-          onClick={onDec}
-          aria-label="Decrease share"
-          className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-indigo-700"
-        >
-          <Minus size={12} />
-        </motion.button>
-        <span className="text-xs font-bold w-3 text-center tabular-nums">{count}</span>
-        <motion.button
-          whileTap={{ scale: 0.85 }}
-          onClick={onInc}
-          aria-label="Increase share"
-          className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-indigo-700"
-        >
-          <Plus size={12} />
-        </motion.button>
-      </div>
-      <span className="text-xs font-bold whitespace-nowrap tabular-nums">{fmt(share)}</span>
-    </div>
-  )
-}
-
-function ItemRow({ item, activePersons, onUpdate, onRemove }) {
-  const [expanded, setExpanded] = useState(true)
-
-  // Resolve shares against currently-active members only.
-  const allShares = getItemShares(item)
-  const shares = {}
-  activePersons.forEach((p) => { if (allShares[p.id] > 0) shares[p.id] = allShares[p.id] })
-  const assignedIds = Object.keys(shares)
-  const totalCount = assignedIds.reduce((s, id) => s + shares[id], 0)
-  const unassigned = activePersons.filter((p) => !shares[p.id])
-
-  function setShares(next) {
-    // Drop zero/negative counts; store as plain object.
-    const cleaned = {}
-    Object.entries(next).forEach(([id, c]) => { if (c > 0) cleaned[id] = c })
-    onUpdate({ ...item, shares: cleaned })
-  }
-
-  function addAssignee(id) { setShares({ ...shares, [id]: 1 }) }
-  function incAssignee(id) { setShares({ ...shares, [id]: (shares[id] || 0) + 1 }) }
-
-  // "Everyone" assigns all active members at qty 1; tapping again when everyone
-  // is already on at qty 1 clears the item back to the split-among-everyone fallback.
-  const everyoneEqual =
-    activePersons.length > 0 &&
-    assignedIds.length === activePersons.length &&
-    activePersons.every((p) => shares[p.id] === 1)
-  function toggleEveryone() {
-    if (everyoneEqual) {
-      setShares({})
-    } else {
-      const next = {}
-      activePersons.forEach((p) => { next[p.id] = 1 })
-      setShares(next)
-    }
-  }
-  function decAssignee(id) {
-    const next = { ...shares }
-    if ((next[id] || 0) <= 1) delete next[id]
-    else next[id] = next[id] - 1
-    setShares(next)
-  }
-
-  const allEqual = assignedIds.length > 0 && assignedIds.every((id) => shares[id] === shares[assignedIds[0]])
-  const ratioLabel = assignedIds.length === 0
-    ? null
-    : allEqual
-      ? `${fmt(item.price)} split equally`
-      : `${fmt(item.price)} split ${assignedIds.map((id) => shares[id]).join(' : ')}`
-
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10, height: 0 }}
-      className="card overflow-hidden"
-    >
-      {/* Item header */}
-      <div className="flex items-center gap-2 p-3">
-        <input
-          className="flex-1 text-sm font-medium bg-transparent border-0 outline-none text-gray-800 placeholder-gray-300 min-w-0"
-          placeholder="Item name…"
-          value={item.name}
-          onChange={(e) => onUpdate({ ...item, name: e.target.value })}
-        />
-        <div className="relative flex-shrink-0 w-24">
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-          <input
-            className="w-full text-sm font-semibold bg-gray-50 rounded-lg pl-5 pr-2 py-1.5 border border-gray-100 text-right outline-none focus:ring-2 focus:ring-indigo-400"
-            type="number"
-            inputMode="decimal"
-            placeholder="0.00"
-            value={item.price === 0 ? '' : item.price}
-            onChange={(e) => onUpdate({ ...item, price: parseFloat(e.target.value) || 0 })}
-            min="0"
-            step="0.01"
-          />
-        </div>
-        <button
-          onClick={() => setExpanded((p) => !p)}
-          className="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-gray-500"
-        >
-          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-        <button
-          onClick={onRemove}
-          className="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors"
-        >
-          <Trash2 size={15} />
-        </button>
-      </div>
-
-      {/* Assignees */}
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-t border-gray-50"
-          >
-            <div className="px-3 py-2.5 flex flex-col gap-2.5">
-              {/* Quick action: assign / clear everyone at once */}
-              {activePersons.length > 1 && (
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={toggleEveryone}
-                  className={`self-start px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all whitespace-nowrap ${
-                    everyoneEqual
-                      ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm shadow-indigo-200'
-                      : 'bg-white text-indigo-600 border-indigo-200'
-                  }`}
-                >
-                  {everyoneEqual ? '✓ Everyone' : '+ Everyone'}
-                </motion.button>
-              )}
-
-              {/* Assigned members: chip + stepper + resolved $ */}
-              {assignedIds.length > 0 && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  {assignedIds.map((id) => {
-                    const member = activePersons.find((p) => p.id === id)
-                    const share = totalCount > 0 ? item.price * (shares[id] / totalCount) : 0
-                    return (
-                      <AssignedChip
-                        key={id}
-                        member={member}
-                        count={shares[id]}
-                        share={share}
-                        onInc={() => incAssignee(id)}
-                        onDec={() => decAssignee(id)}
-                      />
-                    )
-                  })}
-                </div>
-              )}
-
-              {/* Unassigned members: tap to add at qty 1 */}
-              {unassigned.length > 0 && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {assignedIds.length > 0 && (
-                    <span className="text-xs text-gray-300 font-medium mr-0.5">Add:</span>
-                  )}
-                  {unassigned.map((p) => (
-                    <AddChip key={p.id} member={p} onAdd={() => addAssignee(p.id)} />
-                  ))}
-                </div>
-              )}
-
-              {/* Ratio summary / fallback warning */}
-              {ratioLabel ? (
-                <p className="text-xs text-gray-400">{ratioLabel}</p>
-              ) : (
-                <p className="text-xs text-amber-500 font-medium bg-amber-50 px-2 py-1 rounded-lg self-start">
-                  ⚠ Split among everyone
-                </p>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  )
-}
+const EVERYONE_ID = 'everyone'
 
 export default function Itemizer({ bill, onBack, onNext, onChange }) {
   const [items, setItems] = useState(() => {
@@ -228,7 +27,16 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
   })
   const [newName, setNewName] = useState('')
   const [newPrice, setNewPrice] = useState('')
+  const [newQty, setNewQty] = useState('')
   const nameRef = useRef(null)
+  const qtyRef = useRef(null)
+  const priceRef = useRef(null)
+
+  const [activeDragItemId, setActiveDragItemId] = useState(null)
+  const [pendingStepper, setPendingStepper] = useState(null) // { itemId, memberId, itemName, max }
+  const [editingItemId, setEditingItemId] = useState(null)
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
   // Resolve active persons from bill
   const activePersons = (() => {
@@ -237,9 +45,14 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
   })()
 
   const itemsTotal = items.reduce((s, i) => s + i.price, 0)
-  const foodBudget = (bill.grandTotal || 0) - (bill.tipAmount || 0)
+  const foodBudget = (bill.grandTotal || 0) - (bill.tipAmount || 0) + (bill.discountAmount || 0)
   const remaining = Math.round((foodBudget - itemsTotal) * 100) / 100
   const isBalanced = Math.abs(remaining) < 0.005
+  const progressPct = foodBudget > 0 ? Math.min((itemsTotal / foodBudget) * 100, 100) : 0
+
+  const allAssigned = items.length > 0 && items.every(isItemComplete)
+  const activeDragItem = activeDragItemId ? items.find((i) => i.id === activeDragItemId) : null
+  const editingItem = editingItemId ? items.find((i) => i.id === editingItemId) : null
 
   function updateItem(updated) {
     setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
@@ -252,15 +65,19 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
   function addItem() {
     const name = newName.trim()
     const price = parseFloat(newPrice) || 0
+    const quantity = Math.max(1, parseInt(newQty) || 1)
     const newItem = {
       id: generateId(),
       name,
       price,
+      quantity,
+      unitPrice: price / quantity,
       shares: {},
     }
     setItems((prev) => [...prev, newItem])
     setNewName('')
     setNewPrice('')
+    setNewQty('')
     nameRef.current?.focus()
   }
 
@@ -270,107 +87,236 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
     onNext(updatedBill)
   }
 
-  const progressPct = foodBudget > 0 ? Math.min((itemsTotal / foodBudget) * 100, 100) : 0
+  function handleDragStart(event) {
+    setActiveDragItemId(event.active.id)
+  }
+
+  function handleDragEnd(event) {
+    setActiveDragItemId(null)
+    const { active, over } = event
+    if (!over) return
+    const item = items.find((i) => i.id === active.id)
+    if (!item) return
+
+    if (over.id === EVERYONE_ID) {
+      updateItem({ ...item, shares: {}, everyone: true })
+      return
+    }
+
+    const remainingUnits = getRemainingUnits(item)
+    if (remainingUnits <= 0) return
+    const member = activePersons.find((m) => m.id === over.id)
+    if (!member) return
+
+    if (remainingUnits === 1) {
+      assignQuantity(item.id, member.id, 1)
+      return
+    }
+    setPendingStepper({ itemId: item.id, memberId: member.id, itemName: item.name, max: remainingUnits })
+  }
+
+  function assignQuantity(itemId, memberId, qty) {
+    const item = items.find((i) => i.id === itemId)
+    if (!item) return
+    const shares = { ...getItemShares(item) }
+    shares[memberId] = (shares[memberId] || 0) + qty
+    updateItem({ ...item, shares, everyone: false })
+  }
+
+  function commitStepper(qty) {
+    if (!pendingStepper) return
+    assignQuantity(pendingStepper.itemId, pendingStepper.memberId, qty)
+    setPendingStepper(null)
+  }
+
+  function removeAssignment(itemId, memberId) {
+    const item = items.find((i) => i.id === itemId)
+    if (!item) return
+    if (memberId === EVERYONE_ID) {
+      updateItem({ ...item, everyone: false, shares: {} })
+      return
+    }
+    const shares = { ...getItemShares(item) }
+    delete shares[memberId]
+    updateItem({ ...item, shares })
+  }
 
   return (
-    <div className="flex flex-col min-h-screen pb-8">
+    <div className="flex flex-col min-h-screen pb-8 bg-canvas">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-12 pb-3">
         <button onClick={() => onBack({ ...bill, items })} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-lg font-bold flex-1">Add Items</h1>
+        <h1 className="text-lg font-bold flex-1 text-ink">Add Items</h1>
       </div>
 
       {/* Progress bar */}
-      <div className="px-5 mb-4">
-        <div className="card p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-gray-500">Assigned</span>
-            <span className={`text-xs font-bold ${isBalanced ? 'text-green-500' : remaining < 0 ? 'text-red-500' : 'text-gray-500'}`}>
+      <div className="px-5 mb-3.5">
+        <div className="bg-white border border-line rounded-[14px] p-3.5 flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-ink-muted">{isBalanced ? 'All assigned' : 'Assigned'}</span>
+            <span className={`text-[11px] font-bold ${isBalanced ? 'text-success' : remaining < 0 ? 'text-red-500' : 'text-ink-muted'}`}>
               {isBalanced ? '✓ Balanced' : remaining < 0 ? `Over by ${fmt(Math.abs(remaining))}` : `${fmt(remaining)} left`}
             </span>
           </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-[7px] bg-canvas-track rounded-full overflow-hidden">
             <motion.div
-              className={`h-full rounded-full transition-all ${isBalanced ? 'bg-green-400' : remaining < 0 ? 'bg-red-400' : 'bg-indigo-400'}`}
+              className={`h-full rounded-full ${isBalanced ? 'bg-success' : remaining < 0 ? 'bg-red-400' : 'bg-accent'}`}
               style={{ width: `${progressPct}%` }}
               layout
             />
           </div>
-          <div className="flex justify-between mt-1.5">
-            <span className="text-xs text-gray-400">{fmt(itemsTotal)} items</span>
-            <span className="text-xs text-gray-400">Food budget: {fmt(foodBudget)}</span>
+          <div className="flex justify-between mt-0.5">
+            <span className="text-[11px] text-ink-muted">{fmt(itemsTotal)} items</span>
+            <span className="text-[11px] text-ink-muted">Food budget: {fmt(foodBudget)}</span>
           </div>
         </div>
       </div>
 
-      {/* Items */}
-      <div className="px-5 flex flex-col gap-3 flex-1">
-        <AnimatePresence mode="popLayout">
-          {items.map((item) => (
-            <ItemRow
-              key={item.id}
-              item={item}
-              activePersons={activePersons}
-              onUpdate={updateItem}
-              onRemove={() => removeItem(item.id)}
-            />
-          ))}
-        </AnimatePresence>
+      {/* Two-column body */}
+      <div className="px-5 flex-1">
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <div className="flex gap-2.5 items-start">
+            <div className="flex-1 min-w-0 flex flex-col gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-ink-muted -mb-1">Members</p>
+              {activePersons.map((member) => (
+                <MemberCard
+                  key={member.id}
+                  member={member}
+                  isEveryone={false}
+                  items={items}
+                  pendingStepper={pendingStepper}
+                  activeDragItem={!!activeDragItem}
+                  onCommitStepper={commitStepper}
+                  onCancelStepper={() => setPendingStepper(null)}
+                  onRemoveAssignment={(itemId) => removeAssignment(itemId, member.id)}
+                />
+              ))}
+              {activePersons.length > 1 && (
+                <MemberCard
+                  member={{ id: EVERYONE_ID, name: 'Everyone' }}
+                  isEveryone
+                  items={items}
+                  pendingStepper={pendingStepper}
+                  activeDragItem={!!activeDragItem}
+                  onCommitStepper={commitStepper}
+                  onCancelStepper={() => setPendingStepper(null)}
+                  onRemoveAssignment={(itemId) => removeAssignment(itemId, EVERYONE_ID)}
+                />
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0 flex flex-col gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-ink-muted -mb-1">Items</p>
+              {items.map((item) => (
+                <ItemChip key={item.id} item={item} onTap={() => setEditingItemId(item.id)} />
+              ))}
+              {items.length === 0 && (
+                <p className="text-center text-sm text-gray-300 py-4">Add items below</p>
+              )}
+            </div>
+          </div>
+
+          <DragOverlay dropAnimation={null}>
+            {activeDragItem ? <ItemChipPreview item={activeDragItem} /> : null}
+          </DragOverlay>
+        </DndContext>
 
         {/* Add item form */}
-        <div className="card p-3">
-          <div className="flex gap-2 items-center">
+        <div className="card p-3 mt-3">
+          <div className="flex gap-2 items-end">
             <input
               ref={nameRef}
               className="flex-1 text-sm bg-transparent outline-none placeholder-gray-300 text-gray-800 min-w-0"
               placeholder="Item name…"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && newPrice && addItem()}
+              enterKeyHint="next"
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter') return
+                e.preventDefault()
+                qtyRef.current?.focus()
+              }}
             />
-            <div className="relative flex-shrink-0 w-24">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+            <div className="flex-shrink-0 w-14">
               <input
-                className="w-full text-sm font-semibold bg-gray-50 rounded-lg pl-5 pr-2 py-1.5 border border-gray-100 text-right outline-none focus:ring-2 focus:ring-indigo-400"
+                ref={qtyRef}
+                className="w-full text-sm font-semibold bg-gray-50 rounded-lg px-2 py-1.5 border border-gray-100 text-center outline-none focus:ring-2 focus:ring-indigo-400"
                 type="number"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={newPrice}
-                onChange={(e) => setNewPrice(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addItem()}
-                min="0"
-                step="0.01"
+                inputMode="numeric"
+                placeholder="Qty"
+                value={newQty}
+                onChange={(e) => setNewQty(e.target.value)}
+                enterKeyHint="next"
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter') return
+                  e.preventDefault()
+                  priceRef.current?.focus()
+                }}
+                min="1"
+                step="1"
               />
+            </div>
+            <div className="flex-shrink-0 w-24">
+              <p className="text-[10px] text-gray-400 mb-0.5 text-right pr-0.5">Umumiy narxi</p>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                <input
+                  ref={priceRef}
+                  className="w-full text-sm font-semibold bg-gray-50 rounded-lg pl-5 pr-2 py-1.5 border border-gray-100 text-right outline-none focus:ring-2 focus:ring-indigo-400"
+                  type="number"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  enterKeyHint="done"
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter') return
+                    e.preventDefault()
+                    addItem()
+                  }}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
             </div>
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={addItem}
-              className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 active:bg-indigo-700 disabled:opacity-40"
+              className="w-9 h-9 rounded-xl bg-accent text-white flex items-center justify-center flex-shrink-0 disabled:opacity-40"
               disabled={!newPrice}
             >
               <Plus size={18} />
             </motion.button>
           </div>
         </div>
-
-        {items.length === 0 && (
-          <p className="text-center text-sm text-gray-300 py-4">Add items from the bill above</p>
-        )}
       </div>
 
       {/* Footer */}
-      <div className="px-5 mt-4">
+      <div className="px-5 mt-4 flex flex-col gap-1.5">
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={handleNext}
-          disabled={items.length === 0}
-          className="btn-primary w-full text-base shadow-md shadow-indigo-200"
+          disabled={items.length === 0 || !allAssigned}
+          className="btn-primary w-full text-base shadow-md shadow-indigo-200 !bg-accent"
         >
           Calculate Split <ArrowRight size={18} />
         </motion.button>
+        {items.length > 0 && !allAssigned && (
+          <p className="text-center text-[11px] text-ink-muted">Assign every item to enable</p>
+        )}
       </div>
+
+      {editingItem && (
+        <ItemDetailSheet
+          item={editingItem}
+          activePersons={activePersons}
+          onUpdate={updateItem}
+          onRemove={() => removeItem(editingItem.id)}
+          onClose={() => setEditingItemId(null)}
+        />
+      )}
     </div>
   )
 }

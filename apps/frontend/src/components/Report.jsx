@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Copy, Check, RotateCcw, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+import { Copy, Check, RotateCcw, RefreshCw, ChevronDown, ChevronUp, HandCoins } from 'lucide-react'
 import { calculateSplits, fmt, getItemShares } from '../utils/math'
 
 function PersonCard({ result, index }) {
@@ -45,7 +45,7 @@ function PersonCard({ result, index }) {
   )
 }
 
-export default function Report({ bill, onReset, onNewWithSameCrew }) {
+export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew }) {
   const [copied, setCopied] = useState(false)
 
   if (!bill) return null
@@ -61,7 +61,8 @@ export default function Report({ bill, onReset, onNewWithSameCrew }) {
 
   const grandTotal = bill.grandTotal || 0
   const tipAmount = bill.tipAmount || 0
-  const foodTotal = grandTotal - tipAmount
+  const discountAmount = bill.discountAmount || 0
+  const foodTotal = grandTotal - tipAmount + discountAmount
   const tipLabel = bill.tipMode === 'amount' ? 'Tip' : `Tip (${bill.tipPercent ?? 0}%)`
   const verificationSum = results.reduce((s, r) => s + r.finalTotal, 0)
   const sumCheck = Math.abs(verificationSum - grandTotal) < 0.015
@@ -114,7 +115,7 @@ export default function Report({ bill, onReset, onNewWithSameCrew }) {
 
       <div className="px-5 pt-5 flex flex-col gap-4">
         {/* Bill summary bar */}
-        <div className="card p-4 grid grid-cols-2 divide-x divide-gray-100 text-center">
+        <div className={`card p-4 grid divide-x divide-gray-100 text-center ${discountAmount > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <div>
             <p className="text-xs text-gray-400 mb-0.5">Food</p>
             <p className="font-bold text-gray-800 text-sm">{fmt(foodTotal)}</p>
@@ -123,6 +124,12 @@ export default function Report({ bill, onReset, onNewWithSameCrew }) {
             <p className="text-xs text-gray-400 mb-0.5">{tipLabel}</p>
             <p className="font-bold text-gray-800 text-sm">{fmt(tipAmount)}</p>
           </div>
+          {discountAmount > 0 && (
+            <div>
+              <p className="text-xs text-gray-400 mb-0.5">Discount</p>
+              <p className="font-bold text-red-500 text-sm">-{fmt(discountAmount)}</p>
+            </div>
+          )}
         </div>
 
         {/* Person cards */}
@@ -182,6 +189,16 @@ export default function Report({ bill, onReset, onNewWithSameCrew }) {
         >
           {copied ? <><Check size={18} /> Copied!</> : <><Copy size={18} /> Copy Summary</>}
         </motion.button>
+
+        {onSettleUp && (
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={onSettleUp}
+            className="btn-secondary w-full text-base"
+          >
+            <HandCoins size={18} /> {bill.settleBillId ? 'View Settle Status' : 'Settle Up'}
+          </motion.button>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           {bill.crewId && (

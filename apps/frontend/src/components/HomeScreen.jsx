@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { PlusCircle, Users, Receipt, ChevronRight, Clock } from 'lucide-react'
 import { fmt } from '../utils/math'
 
-export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelectCrew, onManageCrews, onViewBill }) {
+export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelectCrew, onManageCrews, onViewBill, onViewAllBills }) {
   const recentCrews = crews.slice(0, 4)
 
   return (
@@ -65,7 +65,17 @@ export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelec
         {/* Recent Bills */}
         {recentBills.length > 0 && (
           <div>
-            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Recent Bills</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Recent Bills</h2>
+              {recentBills.length > 3 && (
+                <button
+                  onClick={onViewAllBills}
+                  className="text-xs font-semibold text-indigo-500 active:text-indigo-600"
+                >
+                  View All
+                </button>
+              )}
+            </div>
             <div className="card divide-y divide-gray-50">
               {recentBills.slice(0, 3).map((bill) => (
                 <motion.button
