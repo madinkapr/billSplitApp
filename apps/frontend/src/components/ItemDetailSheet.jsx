@@ -93,25 +93,28 @@ export default function ItemDetailSheet({ item, activePersons, onUpdate, onRemov
 
           <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-4">
             {/* Name / price / quantity */}
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-end">
               <input
                 className="flex-1 text-sm font-medium border border-gray-200 rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-indigo-400 min-w-0"
                 placeholder="Item name…"
                 value={item.name}
                 onChange={(e) => onUpdate({ ...item, name: e.target.value })}
               />
-              <div className="relative flex-shrink-0 w-24">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                <input
-                  className="w-full text-sm font-semibold bg-gray-50 rounded-lg pl-5 pr-2 py-2 border border-gray-100 text-right outline-none focus:ring-2 focus:ring-indigo-400"
-                  type="number"
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  value={item.price === 0 ? '' : item.price}
-                  onChange={(e) => onUpdate({ ...item, price: parseFloat(e.target.value) || 0 })}
-                  min="0"
-                  step="0.01"
-                />
+              <div className="flex-shrink-0 w-24">
+                <p className="text-[10px] text-gray-400 mb-0.5 text-right pr-0.5">Umumiy narxi</p>
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                  <input
+                    className="w-full text-sm font-semibold bg-gray-50 rounded-lg pl-5 pr-2 py-2 border border-gray-100 text-right outline-none focus:ring-2 focus:ring-indigo-400"
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={item.price === 0 ? '' : item.price}
+                    onChange={(e) => onUpdate({ ...item, price: parseFloat(e.target.value) || 0 })}
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
               </div>
               <div className="flex-shrink-0 w-16">
                 <input

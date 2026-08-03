@@ -29,6 +29,8 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
   const [newPrice, setNewPrice] = useState('')
   const [newQty, setNewQty] = useState('')
   const nameRef = useRef(null)
+  const qtyRef = useRef(null)
+  const priceRef = useRef(null)
 
   const [activeDragItemId, setActiveDragItemId] = useState(null)
   const [pendingStepper, setPendingStepper] = useState(null) // { itemId, memberId, itemName, max }
@@ -105,16 +107,25 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
     if (remainingUnits <= 0) return
     const member = activePersons.find((m) => m.id === over.id)
     if (!member) return
+
+    if (remainingUnits === 1) {
+      assignQuantity(item.id, member.id, 1)
+      return
+    }
     setPendingStepper({ itemId: item.id, memberId: member.id, itemName: item.name, max: remainingUnits })
+  }
+
+  function assignQuantity(itemId, memberId, qty) {
+    const item = items.find((i) => i.id === itemId)
+    if (!item) return
+    const shares = { ...getItemShares(item) }
+    shares[memberId] = (shares[memberId] || 0) + qty
+    updateItem({ ...item, shares, everyone: false })
   }
 
   function commitStepper(qty) {
     if (!pendingStepper) return
-    const item = items.find((i) => i.id === pendingStepper.itemId)
-    if (!item) return
-    const shares = { ...getItemShares(item) }
-    shares[pendingStepper.memberId] = (shares[pendingStepper.memberId] || 0) + qty
-    updateItem({ ...item, shares, everyone: false })
+    assignQuantity(pendingStepper.itemId, pendingStepper.memberId, qty)
     setPendingStepper(null)
   }
 
@@ -214,40 +225,61 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
 
         {/* Add item form */}
         <div className="card p-3 mt-3">
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-end">
             <input
               ref={nameRef}
               className="flex-1 text-sm bg-transparent outline-none placeholder-gray-300 text-gray-800 min-w-0"
               placeholder="Item name…"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && newPrice && addItem()}
+              enterKeyHint="next"
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter') return
+                e.preventDefault()
+                qtyRef.current?.focus()
+              }}
             />
             <div className="flex-shrink-0 w-14">
               <input
+                ref={qtyRef}
                 className="w-full text-sm font-semibold bg-gray-50 rounded-lg px-2 py-1.5 border border-gray-100 text-center outline-none focus:ring-2 focus:ring-indigo-400"
                 type="number"
                 inputMode="numeric"
                 placeholder="Qty"
                 value={newQty}
                 onChange={(e) => setNewQty(e.target.value)}
+                enterKeyHint="next"
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter') return
+                  e.preventDefault()
+                  priceRef.current?.focus()
+                }}
                 min="1"
                 step="1"
               />
             </div>
-            <div className="relative flex-shrink-0 w-24">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-              <input
-                className="w-full text-sm font-semibold bg-gray-50 rounded-lg pl-5 pr-2 py-1.5 border border-gray-100 text-right outline-none focus:ring-2 focus:ring-indigo-400"
-                type="number"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={newPrice}
-                onChange={(e) => setNewPrice(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addItem()}
-                min="0"
-                step="0.01"
-              />
+            <div className="flex-shrink-0 w-24">
+              <p className="text-[10px] text-gray-400 mb-0.5 text-right pr-0.5">Umumiy narxi</p>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                <input
+                  ref={priceRef}
+                  className="w-full text-sm font-semibold bg-gray-50 rounded-lg pl-5 pr-2 py-1.5 border border-gray-100 text-right outline-none focus:ring-2 focus:ring-indigo-400"
+                  type="number"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  enterKeyHint="done"
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter') return
+                    e.preventDefault()
+                    addItem()
+                  }}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
             </div>
             <motion.button
               whileTap={{ scale: 0.9 }}
