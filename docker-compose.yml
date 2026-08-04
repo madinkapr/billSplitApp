@@ -18,7 +18,7 @@ services:
       - REMINDER_CRON=${REMINDER_CRON:-0 * * * *}
       - PUBLIC_BASE_URL=${PUBLIC_BASE_URL}
     volumes:
-      - receipt_uploads:/app/uploads
+      - ./apps/backend/receipt_uploads:/app/uploads
     depends_on:
       - db
     restart: unless-stopped
@@ -35,4 +35,3 @@ services:
 
 volumes:
   postgres_data:
-  receipt_uploads:
