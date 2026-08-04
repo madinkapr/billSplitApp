@@ -32,3 +32,4 @@ graphify-out/
 
 # Receipt uploads (ML training data — not tracked in git)
 apps/backend/uploads/
+apps/backend/receipt_uploads/
