@@ -48,7 +48,7 @@ function ScanBanner({ scanState, errorMessage, onScan, onRetry, onRescan }) {
           <div className="flex items-center gap-3">
             <ScanLine size={20} />
             <div className="text-left">
-              <p className="text-sm font-semibold">Scan Receipt</p>
+              <p className="text-sm font-semibold">Scan Receipt (camera)</p>
               <p className="text-xs text-indigo-200">Auto-fill totals and items</p>
             </div>
           </div>
@@ -59,10 +59,16 @@ function ScanBanner({ scanState, errorMessage, onScan, onRetry, onRescan }) {
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => galleryRef.current?.click()}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-indigo-500 text-sm font-medium"
+          className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl bg-indigo-50 text-indigo-700"
         >
-          <Image size={16} />
-          Choose from gallery
+          <div className="flex items-center gap-3">
+            <Image size={20} />
+            <div className="text-left">
+              <p className="text-sm font-semibold">Scan Receipt (gallery)</p>
+              <p className="text-xs text-indigo-400">Auto-fill totals and items</p>
+            </div>
+          </div>
+          <ArrowRight size={16} className="opacity-70" />
           <input ref={galleryRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
         </motion.button>
       </div>
