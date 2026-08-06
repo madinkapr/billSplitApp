@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Check, Send, Bell, Loader2 } from 'lucide-react'
-import { calculateSplits, fmtSom } from '../utils/math'
+import { useTranslation } from 'react-i18next'
+import { calculateSplits } from '../utils/math'
 import { useLocalStorage } from '../hooks/useLocalStorage'
+import { useCurrency } from '../hooks/useCurrency'
 
 function ParticipantRow({ participant, onShare, onRemind, reminding, copied }) {
+  const { t } = useTranslation()
+  const { fmt } = useCurrency()
   return (
     <div className="flex items-center gap-3 px-4 py-3">
       <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-sm flex-shrink-0">
@@ -12,18 +16,18 @@ function ParticipantRow({ participant, onShare, onRemind, reminding, copied }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-800 truncate">{participant.name}</p>
-        <p className="text-xs text-gray-400">{fmtSom(participant.amount)}</p>
+        <p className="text-xs text-gray-400">{fmt(participant.amount)}</p>
       </div>
       {participant.paid ? (
         <span className="text-xs font-semibold text-green-600 flex items-center gap-1 flex-shrink-0">
-          <Check size={14} /> To'landi
+          <Check size={14} /> {t('settleUp.paid')}
         </span>
       ) : (
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             onClick={() => onShare(participant)}
             className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-indigo-500 transition-colors rounded-lg"
-            title="Telegramda yuborish"
+            title={t('settleUp.sendTelegram')}
           >
             {copied ? <Check size={16} className="text-green-500" /> : <Send size={15} />}
           </button>
@@ -32,7 +36,7 @@ function ParticipantRow({ participant, onShare, onRemind, reminding, copied }) {
               onClick={() => onRemind(participant)}
               disabled={reminding}
               className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-amber-500 transition-colors rounded-lg disabled:opacity-40"
-              title="Eslatib qo'y"
+              title={t('settleUp.remind')}
             >
               {reminding ? <Loader2 size={15} className="animate-spin" /> : <Bell size={15} />}
             </button>
@@ -44,6 +48,8 @@ function ParticipantRow({ participant, onShare, onRemind, reminding, copied }) {
 }
 
 export default function SettleUp({ bill, onBack, onChange }) {
+  const { t } = useTranslation()
+  const { fmt } = useCurrency()
   const [payerInfo, setPayerInfo] = useLocalStorage('tabup_payer_info', { name: '', contact: '', contactType: 'card' })
 
   const allMembers = bill._adhocMembers || []
@@ -114,14 +120,14 @@ export default function SettleUp({ bill, onBack, onChange }) {
       setPayerInfo({ name: payerName.trim(), contact: payerContact.trim(), contactType: payerContactType })
       onChange({ ...bill, settleBillId: json.billId })
     } catch {
-      setSubmitError("Yuborishda xatolik yuz berdi. Qayta urinib ko'ring.")
+      setSubmitError(t('settleUp.submitError'))
     } finally {
       setSubmitting(false)
     }
   }
 
   async function shareLink(participant) {
-    const text = `Salom! Sizning ulushingiz: ${fmtSom(participant.amount)}. Iltimos shu link orqali botga yozing va to'lang:`
+    const text = t('settleUp.shareText', { amount: fmt(participant.amount) })
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(participant.deepLink)}&text=${encodeURIComponent(text)}`
     const opened = window.open(shareUrl, '_blank', 'noopener,noreferrer')
 
@@ -151,11 +157,11 @@ export default function SettleUp({ bill, onBack, onChange }) {
         const json = await res.json()
         alert(
           json.error === 'not_started'
-            ? "Bu odam hali botni ishga tushirmagan — linkni qayta yuboring."
-            : "Allaqachon to'lagan."
+            ? t('settleUp.remindNotStarted')
+            : t('settleUp.remindAlreadyPaid')
         )
       } else if (!res.ok) {
-        alert("Eslatma yuborilmadi. Qayta urinib ko'ring.")
+        alert(t('settleUp.remindFailed'))
       }
       fetchStatus()
     } finally {
@@ -172,27 +178,27 @@ export default function SettleUp({ bill, onBack, onChange }) {
         <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-lg font-bold flex-1">Settle Up</h1>
+        <h1 className="text-lg font-bold flex-1">{t('settleUp.title')}</h1>
       </div>
 
       <div className="px-5 flex flex-col gap-4">
         {!hasSession && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="card p-5 flex flex-col gap-4">
             <div>
-              <h2 className="font-bold text-gray-800 mb-1">To'lovchi ma'lumoti</h2>
-              <p className="text-xs text-gray-400">Boshqalar shu ma'lumot bilan sizga pul o'tkazadi.</p>
+              <h2 className="font-bold text-gray-800 mb-1">{t('settleUp.payerInfoTitle')}</h2>
+              <p className="text-xs text-gray-400">{t('settleUp.payerInfoSubtitle')}</p>
             </div>
 
             {activeMembers.length > 1 && (
               <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Kim to'lagan</label>
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">{t('settleUp.whoPaid')}</label>
                 <select
                   className="input-field w-full"
                   value={payerId}
                   onChange={(e) => setPayerId(e.target.value)}
                 >
                   {activeMembers.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name}{m.isMe ? ' (Men)' : ''}</option>
+                    <option key={m.id} value={m.id}>{m.name}{m.isMe ? t('common.you') : ''}</option>
                   ))}
                 </select>
               </div>
@@ -200,7 +206,7 @@ export default function SettleUp({ bill, onBack, onChange }) {
 
             <input
               className="input-field"
-              placeholder="Ismingiz"
+              placeholder={t('settleUp.namePlaceholder')}
               value={payerName}
               onChange={(e) => setPayerName(e.target.value)}
               maxLength={30}
@@ -208,8 +214,8 @@ export default function SettleUp({ bill, onBack, onChange }) {
 
             <div className="flex gap-2">
               {[
-                { value: 'card', label: 'Karta raqami' },
-                { value: 'phone', label: 'Telefon raqami' },
+                { value: 'card', label: t('settleUp.cardNumber') },
+                { value: 'phone', label: t('settleUp.phoneNumber') },
               ].map((opt) => (
                 <button
                   key={opt.value}
@@ -226,15 +232,14 @@ export default function SettleUp({ bill, onBack, onChange }) {
 
             <input
               className="input-field"
-              placeholder={payerContactType === 'card' ? '16 xonali karta raqami' : 'Telefon raqami (90XXXXXXX)'}
+              placeholder={payerContactType === 'card' ? t('settleUp.cardNumberPlaceholder') : t('settleUp.phoneNumberPlaceholder')}
               value={payerContact}
               onChange={(e) => setPayerContact(e.target.value)}
               maxLength={40}
               inputMode="numeric"
             />
             <p className="text-xs text-gray-400 -mt-1">
-              Botdagi xabarda shu ma'lumot bilan bir qatorda *880# orqali tezkor o'tkazma kodi ham chiqadi (Click'ning
-              milliy karta2karta xizmati, ~2% komissiya bilan) — bu ixtiyoriy qulaylik, xohlagan usulda to'lash mumkin.
+              {t('settleUp.disclaimer')}
             </p>
 
             {submitError && <p className="text-xs text-red-500">{submitError}</p>}
@@ -244,7 +249,7 @@ export default function SettleUp({ bill, onBack, onChange }) {
               disabled={submitting || !payerName.trim() || !payerContact.trim()}
               className="btn-primary w-full disabled:opacity-40"
             >
-              {submitting ? <Loader2 size={18} className="animate-spin" /> : "Havolalarni yaratish"}
+              {submitting ? <Loader2 size={18} className="animate-spin" /> : t('settleUp.createLinks')}
             </button>
           </motion.div>
         )}
@@ -253,8 +258,8 @@ export default function SettleUp({ bill, onBack, onChange }) {
           <>
             <div className="card p-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-gray-800">To'lov holati</p>
-                <p className="text-xs text-gray-400">{paidCount} / {totalCount} to'lagan</p>
+                <p className="text-sm font-semibold text-gray-800">{t('settleUp.paymentStatus')}</p>
+                <p className="text-xs text-gray-400">{t('settleUp.paidCount', { paid: paidCount, total: totalCount })}</p>
               </div>
               {!status && <Loader2 size={18} className="animate-spin text-gray-300" />}
             </div>

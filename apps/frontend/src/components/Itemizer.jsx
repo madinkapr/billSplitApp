@@ -2,8 +2,10 @@ import React, { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { ArrowLeft, ArrowRight, Plus } from 'lucide-react'
-import { generateId, fmt, getItemShares } from '../utils/math'
+import { useTranslation } from 'react-i18next'
+import { generateId, getItemShares } from '../utils/math'
 import { getRemainingUnits, isItemComplete } from '../utils/itemizerState'
+import { useCurrency } from '../hooks/useCurrency'
 import MemberCard from './MemberCard'
 import ItemChip, { ItemChipPreview } from './ItemChip'
 import ItemDetailSheet from './ItemDetailSheet'
@@ -11,6 +13,8 @@ import ItemDetailSheet from './ItemDetailSheet'
 const EVERYONE_ID = 'everyone'
 
 export default function Itemizer({ bill, onBack, onNext, onChange }) {
+  const { t } = useTranslation()
+  const { fmt, symbol } = useCurrency()
   const [items, setItems] = useState(() => {
     if (bill.items?.length > 0) return bill.items
     if (bill._ocrItems?.length > 0) {
@@ -148,16 +152,16 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
         <button onClick={() => onBack({ ...bill, items })} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-lg font-bold flex-1 text-ink">Add Items</h1>
+        <h1 className="text-lg font-bold flex-1 text-ink">{t('itemizer.title')}</h1>
       </div>
 
       {/* Progress bar */}
       <div className="px-5 mb-3.5">
         <div className="bg-white border border-line rounded-[14px] p-3.5 flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-ink-muted">{isBalanced ? 'All assigned' : 'Assigned'}</span>
+            <span className="text-[11px] font-semibold text-ink-muted">{isBalanced ? t('itemizer.allAssigned') : t('itemizer.assigned')}</span>
             <span className={`text-[11px] font-bold ${isBalanced ? 'text-success' : remaining < 0 ? 'text-red-500' : 'text-ink-muted'}`}>
-              {isBalanced ? '✓ Balanced' : remaining < 0 ? `Over by ${fmt(Math.abs(remaining))}` : `${fmt(remaining)} left`}
+              {isBalanced ? t('itemizer.balanced') : remaining < 0 ? t('itemizer.overBy', { amount: fmt(Math.abs(remaining)) }) : t('itemizer.leftAmount', { amount: fmt(remaining) })}
             </span>
           </div>
           <div className="h-[7px] bg-canvas-track rounded-full overflow-hidden">
@@ -168,8 +172,8 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
             />
           </div>
           <div className="flex justify-between mt-0.5">
-            <span className="text-[11px] text-ink-muted">{fmt(itemsTotal)} items</span>
-            <span className="text-[11px] text-ink-muted">Food budget: {fmt(foodBudget)}</span>
+            <span className="text-[11px] text-ink-muted">{t('itemizer.itemsTotal', { amount: fmt(itemsTotal) })}</span>
+            <span className="text-[11px] text-ink-muted">{t('itemizer.foodBudget', { amount: fmt(foodBudget) })}</span>
           </div>
         </div>
       </div>
@@ -179,7 +183,7 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="flex gap-2.5 items-start">
             <div className="flex-1 min-w-0 flex flex-col gap-2">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-ink-muted -mb-1">Members</p>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-ink-muted -mb-1">{t('itemizer.members')}</p>
               {activePersons.map((member) => (
                 <MemberCard
                   key={member.id}
@@ -195,7 +199,7 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
               ))}
               {activePersons.length > 1 && (
                 <MemberCard
-                  member={{ id: EVERYONE_ID, name: 'Everyone' }}
+                  member={{ id: EVERYONE_ID, name: t('itemizer.everyone') }}
                   isEveryone
                   items={items}
                   pendingStepper={pendingStepper}
@@ -208,12 +212,12 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
             </div>
 
             <div className="flex-1 min-w-0 flex flex-col gap-2">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-ink-muted -mb-1">Items</p>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-ink-muted -mb-1">{t('itemizer.itemsHeader')}</p>
               {items.map((item) => (
                 <ItemChip key={item.id} item={item} onTap={() => setEditingItemId(item.id)} />
               ))}
               {items.length === 0 && (
-                <p className="text-center text-sm text-gray-300 py-4">Add items below</p>
+                <p className="text-center text-sm text-gray-300 py-4">{t('itemizer.addItemsBelow')}</p>
               )}
             </div>
           </div>
@@ -229,7 +233,7 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
             <input
               ref={nameRef}
               className="flex-1 text-sm bg-transparent outline-none placeholder-gray-300 text-gray-800 min-w-0"
-              placeholder="Item name…"
+              placeholder={t('itemizer.itemNamePlaceholder')}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               enterKeyHint="next"
@@ -245,7 +249,7 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
                 className="w-full text-sm font-semibold bg-gray-50 rounded-lg px-2 py-1.5 border border-gray-100 text-center outline-none focus:ring-2 focus:ring-indigo-400"
                 type="number"
                 inputMode="numeric"
-                placeholder="Qty"
+                placeholder={t('itemizer.qty')}
                 value={newQty}
                 onChange={(e) => setNewQty(e.target.value)}
                 enterKeyHint="next"
@@ -259,12 +263,12 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
               />
             </div>
             <div className="flex-shrink-0 w-24">
-              <p className="text-[10px] text-gray-400 mb-0.5 text-right pr-0.5">Umumiy narxi</p>
+              <p className="text-[10px] text-gray-400 mb-0.5 text-right pr-0.5">{t('itemizer.totalPrice')}</p>
               <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm whitespace-nowrap">{symbol}</span>
                 <input
                   ref={priceRef}
-                  className="w-full text-sm font-semibold bg-gray-50 rounded-lg pl-5 pr-2 py-1.5 border border-gray-100 text-right outline-none focus:ring-2 focus:ring-indigo-400"
+                  className="w-full text-sm font-semibold bg-gray-50 rounded-lg pl-11 pr-2 py-1.5 border border-gray-100 text-right outline-none focus:ring-2 focus:ring-indigo-400"
                   type="number"
                   inputMode="decimal"
                   placeholder="0.00"
@@ -301,10 +305,10 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
           disabled={items.length === 0 || !allAssigned}
           className="btn-primary w-full text-base shadow-md shadow-indigo-200 !bg-accent"
         >
-          Calculate Split <ArrowRight size={18} />
+          {t('itemizer.calculateSplit')} <ArrowRight size={18} />
         </motion.button>
         {items.length > 0 && !allAssigned && (
-          <p className="text-center text-[11px] text-ink-muted">Assign every item to enable</p>
+          <p className="text-center text-[11px] text-ink-muted">{t('itemizer.assignAllToEnable')}</p>
         )}
       </div>
 

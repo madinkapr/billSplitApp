@@ -1,9 +1,12 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, ChevronRight } from 'lucide-react'
-import { fmt } from '../utils/math'
+import { useTranslation } from 'react-i18next'
+import { useCurrency } from '../hooks/useCurrency'
 
 export default function BillHistory({ recentBills, onBack, onViewBill }) {
+  const { t } = useTranslation()
+  const { fmt } = useCurrency()
   return (
     <div className="flex flex-col min-h-screen pb-8">
       {/* Header */}
@@ -11,15 +14,15 @@ export default function BillHistory({ recentBills, onBack, onViewBill }) {
         <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-lg font-bold flex-1">All Bills</h1>
+        <h1 className="text-lg font-bold flex-1">{t('billHistory.title')}</h1>
       </div>
 
       <div className="px-5">
         {recentBills.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-5xl mb-4">🧾</div>
-            <h3 className="font-semibold text-gray-700 mb-1">No bills yet</h3>
-            <p className="text-sm text-gray-400">Bills you split will show up here.</p>
+            <h3 className="font-semibold text-gray-700 mb-1">{t('billHistory.noBillsYet')}</h3>
+            <p className="text-sm text-gray-400">{t('billHistory.noBillsBody')}</p>
           </div>
         ) : (
           <div className="card divide-y divide-gray-50">
@@ -34,8 +37,8 @@ export default function BillHistory({ recentBills, onBack, onViewBill }) {
                   <span className="text-xl">{bill.crewEmoji || '🍽️'}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 text-sm">{bill.crewName || 'Quick Split'}</p>
-                  <p className="text-xs text-gray-400">{bill.activeMembers?.length || 0} people · {fmt(bill.grandTotal || 0)}</p>
+                  <p className="font-semibold text-gray-900 text-sm">{bill.crewName || t('home.quickSplit')}</p>
+                  <p className="text-xs text-gray-400">{t('billHistory.peopleCount', { count: bill.activeMembers?.length || 0 })} · {fmt(bill.grandTotal || 0)}</p>
                 </div>
                 <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
               </motion.button>

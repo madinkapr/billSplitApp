@@ -2,8 +2,9 @@ import React from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { Check } from 'lucide-react'
-import { fmt } from '../utils/math'
+import { useTranslation } from 'react-i18next'
 import { getAssignedUnits, getTotalUnits, getItemState } from '../utils/itemizerState'
+import { useCurrency } from '../hooks/useCurrency'
 
 function Grip() {
   return (
@@ -23,6 +24,8 @@ const STATE_STYLES = {
 }
 
 export function ItemChipPreview({ item }) {
+  const { t } = useTranslation()
+  const { fmt } = useCurrency()
   const assigned = getAssignedUnits(item)
   const total = getTotalUnits(item)
   return (
@@ -32,7 +35,7 @@ export function ItemChipPreview({ item }) {
     >
       <div className="flex items-center gap-1.5 min-w-0">
         <Grip />
-        <span className="font-bold text-[11.5px] truncate text-ink">{item.name || 'Item'}</span>
+        <span className="font-bold text-[11.5px] truncate text-ink">{item.name || t('itemChip.item')}</span>
       </div>
       <span className="text-[10px] font-bold flex-none text-accent">{fmt(item.price)} · {assigned}/{total}</span>
     </div>
@@ -40,6 +43,8 @@ export function ItemChipPreview({ item }) {
 }
 
 export default function ItemChip({ item, onTap }) {
+  const { t } = useTranslation()
+  const { fmt } = useCurrency()
   const state = getItemState(item)
   const disabled = state === 'done' || state === 'everyone'
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -87,7 +92,7 @@ export default function ItemChip({ item, onTap }) {
       <div className="flex items-center gap-1.5 min-w-0">
         <Grip />
         <span className={`font-bold text-[11.5px] truncate ${disabled ? 'line-through text-ink-muted' : 'text-ink'}`}>
-          {item.name || 'Item'}
+          {item.name || t('itemChip.item')}
         </span>
       </div>
       <span className={`text-[10px] font-bold flex-none ${disabled ? 'text-ink-muted' : 'text-accent'}`}>

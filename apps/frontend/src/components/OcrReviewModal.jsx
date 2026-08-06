@@ -1,9 +1,13 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Plus, Trash2, AlertTriangle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { generateId } from '../utils/math'
+import { useCurrency } from '../hooks/useCurrency'
 
 function ItemRow({ item, onChange, onDelete }) {
+  const { t } = useTranslation()
+  const { fmt, symbol } = useCurrency()
   const total = (parseFloat(item.unitPrice) || 0) * (parseInt(item.quantity) || 1)
   const hasError = !item.name.trim() || parseFloat(item.unitPrice) <= 0
 
@@ -22,12 +26,12 @@ function ItemRow({ item, onChange, onDelete }) {
       <input
         type="text"
         value={item.name}
-        placeholder="Item name"
+        placeholder={t('ocrReview.itemNamePlaceholder')}
         onChange={(e) => onChange({ ...item, name: e.target.value })}
         className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-indigo-400"
       />
       <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-        <span className="pl-2 text-gray-400 text-xs">$</span>
+        <span className="pl-2 text-gray-400 text-xs whitespace-nowrap">{symbol}</span>
         <input
           type="number"
           min="0"
@@ -41,7 +45,7 @@ function ItemRow({ item, onChange, onDelete }) {
           className="w-24 px-1 py-1.5 text-sm focus:outline-none bg-transparent"
         />
       </div>
-      <span className="text-xs text-gray-400 w-20 text-right font-medium">${total.toFixed(2)}</span>
+      <span className="text-xs text-gray-400 w-20 text-right font-medium">{fmt(total)}</span>
       <button
         onClick={onDelete}
         className="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
@@ -53,6 +57,8 @@ function ItemRow({ item, onChange, onDelete }) {
 }
 
 export default function OcrReviewModal({ ocrData, onConfirm, onCancel }) {
+  const { t } = useTranslation()
+  const { fmt, symbol } = useCurrency()
   const [grandTotal, setGrandTotal] = useState(ocrData.grandTotal?.toString() || '')
   const [tipAmount, setTipAmount] = useState(ocrData.tipAmount?.toString() || '')
   const [tipPercent, setTipPercent] = useState(ocrData.tipPercent?.toString() || '')
@@ -116,8 +122,8 @@ export default function OcrReviewModal({ ocrData, onConfirm, onCancel }) {
           {/* Header */}
           <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
             <div>
-              <h2 className="text-base font-bold">Review Receipt</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Check and edit before confirming</p>
+              <h2 className="text-base font-bold">{t('ocrReview.title')}</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{t('ocrReview.subtitle')}</p>
             </div>
             <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
               <X size={16} />
@@ -127,9 +133,9 @@ export default function OcrReviewModal({ ocrData, onConfirm, onCancel }) {
           <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-4">
             {/* Grand Total */}
             <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Grand Total</label>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">{t('ocrReview.grandTotal')}</label>
               <div className={`flex items-center border-2 rounded-xl ${!grandTotal ? 'border-amber-400 bg-amber-50' : 'border-gray-200'} focus-within:border-indigo-500 focus-within:bg-white transition-colors`}>
-                <span className="pl-4 text-gray-400 font-medium">$</span>
+                <span className="pl-4 text-gray-400 font-medium whitespace-nowrap">{symbol}</span>
                 <input
                   type="number"
                   inputMode="decimal"
@@ -141,17 +147,17 @@ export default function OcrReviewModal({ ocrData, onConfirm, onCancel }) {
               </div>
               {!grandTotal && (
                 <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                  <AlertTriangle size={12} /> Total not detected — please enter manually
+                  <AlertTriangle size={12} /> {t('ocrReview.totalNotDetected')}
                 </p>
               )}
             </div>
 
             {/* Tip */}
             <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Tip</label>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">{t('ocrReview.tip')}</label>
               <div className="flex gap-2">
                 <div className="flex items-center border border-gray-200 rounded-xl flex-1 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent">
-                  <span className="pl-3 text-gray-400 text-xs font-medium">$</span>
+                  <span className="pl-3 text-gray-400 text-xs font-medium whitespace-nowrap">{symbol}</span>
                   <input
                     type="number" inputMode="decimal" placeholder="0.00" min="0" step="0.01"
                     value={tipAmount}
@@ -174,9 +180,9 @@ export default function OcrReviewModal({ ocrData, onConfirm, onCancel }) {
             {/* Discount — faqat OCR aniqlagan bo'lsa ko'rsatiladi */}
             {ocrData.discountAmount > 0 && (
               <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Discount</label>
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">{t('ocrReview.discount')}</label>
                 <div className="flex items-center border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-red-400 focus-within:border-transparent">
-                  <span className="pl-4 text-red-400 font-medium">-$</span>
+                  <span className="pl-4 text-red-400 font-medium whitespace-nowrap">-{symbol}</span>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -195,10 +201,10 @@ export default function OcrReviewModal({ ocrData, onConfirm, onCancel }) {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Items ({items.length})
+                  {t('ocrReview.itemsCount', { count: items.length })}
                 </label>
                 <span className="text-xs text-gray-400">
-                  Total: <span className="font-semibold text-gray-600">${itemsTotal.toFixed(2)}</span>
+                  {t('ocrReview.total', { amount: fmt(itemsTotal) })}
                 </span>
               </div>
 
@@ -206,14 +212,14 @@ export default function OcrReviewModal({ ocrData, onConfirm, onCancel }) {
                 <div className="flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-2">
                   <AlertTriangle size={13} className="text-amber-500 mt-0.5 flex-shrink-0" />
                   <p className="text-xs text-amber-700">
-                    Items total (${itemsTotal.toFixed(2)}) doesn't match receipt subtotal (${subtotalNum.toFixed(2)})
+                    {t('ocrReview.mismatchWarning', { itemsTotal: fmt(itemsTotal), subtotal: fmt(subtotalNum) })}
                   </p>
                 </div>
               )}
 
               <div className="border border-gray-100 rounded-xl px-3 py-1">
                 {items.length === 0 && (
-                  <p className="text-xs text-gray-400 text-center py-3">No items detected</p>
+                  <p className="text-xs text-gray-400 text-center py-3">{t('ocrReview.noItemsDetected')}</p>
                 )}
                 {items.map((item) => (
                   <ItemRow
@@ -229,7 +235,7 @@ export default function OcrReviewModal({ ocrData, onConfirm, onCancel }) {
                 onClick={addItem}
                 className="mt-2 flex items-center gap-1.5 text-xs text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
               >
-                <Plus size={14} /> Add item
+                <Plus size={14} /> {t('ocrReview.addItem')}
               </button>
             </div>
           </div>
@@ -240,14 +246,14 @@ export default function OcrReviewModal({ ocrData, onConfirm, onCancel }) {
               onClick={onCancel}
               className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
             >
-              Enter manually
+              {t('ocrReview.enterManually')}
             </button>
             <button
               onClick={handleConfirm}
               disabled={!grandNum}
               className="flex-1 py-3 rounded-xl bg-indigo-500 text-white text-sm font-semibold disabled:opacity-40 hover:bg-indigo-600 transition-colors"
             >
-              Confirm
+              {t('ocrReview.confirm')}
             </button>
           </div>
         </motion.div>

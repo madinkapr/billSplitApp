@@ -1,13 +1,16 @@
 import React, { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, ArrowRight, UserPlus, Trash2, ScanLine, Image, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { generateId } from '../utils/math'
 import { useOcr } from '../hooks/useOcr'
+import { useCurrency } from '../hooks/useCurrency'
 import OcrReviewModal from './OcrReviewModal'
 
 const TIP_PRESETS = [15, 18, 20]
 
 function MemberToggle({ member, active, onToggle }) {
+  const { t } = useTranslation()
   return (
     <motion.button
       whileTap={{ scale: 0.95 }}
@@ -21,13 +24,14 @@ function MemberToggle({ member, active, onToggle }) {
       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${active ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
         {member.name.charAt(0).toUpperCase()}
       </div>
-      <span className="truncate">{member.name}{member.isMe ? ' (You)' : ''}</span>
+      <span className="truncate">{member.name}{member.isMe ? t('common.you') : ''}</span>
     </motion.button>
   )
 }
 
 // scanState: 'idle' | 'scanning' | 'success' | 'error'
 function ScanBanner({ scanState, errorMessage, onScan, onRetry, onRescan }) {
+  const { t } = useTranslation()
   const cameraRef = useRef(null)
   const galleryRef = useRef(null)
 
@@ -48,8 +52,8 @@ function ScanBanner({ scanState, errorMessage, onScan, onRetry, onRescan }) {
           <div className="flex items-center gap-3">
             <ScanLine size={20} />
             <div className="text-left">
-              <p className="text-sm font-semibold">Scan Receipt (camera)</p>
-              <p className="text-xs text-indigo-200">Auto-fill totals and items</p>
+              <p className="text-sm font-semibold">{t('billSetup.scanCamera')}</p>
+              <p className="text-xs text-indigo-200">{t('billSetup.scanSubtitle')}</p>
             </div>
           </div>
           <ArrowRight size={16} className="opacity-70" />
@@ -64,8 +68,8 @@ function ScanBanner({ scanState, errorMessage, onScan, onRetry, onRescan }) {
           <div className="flex items-center gap-3">
             <Image size={20} />
             <div className="text-left">
-              <p className="text-sm font-semibold">Scan Receipt (gallery)</p>
-              <p className="text-xs text-indigo-400">Auto-fill totals and items</p>
+              <p className="text-sm font-semibold">{t('billSetup.scanGallery')}</p>
+              <p className="text-xs text-indigo-400">{t('billSetup.scanSubtitle')}</p>
             </div>
           </div>
           <ArrowRight size={16} className="opacity-70" />
@@ -80,8 +84,8 @@ function ScanBanner({ scanState, errorMessage, onScan, onRetry, onRescan }) {
       <div className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl bg-indigo-50 border-2 border-indigo-200">
         <Loader2 size={20} className="text-indigo-500 animate-spin flex-shrink-0" />
         <div>
-          <p className="text-sm font-semibold text-indigo-700">Scanning receipt…</p>
-          <p className="text-xs text-indigo-400">This may take a few seconds</p>
+          <p className="text-sm font-semibold text-indigo-700">{t('billSetup.scanning')}</p>
+          <p className="text-xs text-indigo-400">{t('billSetup.scanningSubtitle')}</p>
         </div>
       </div>
     )
@@ -93,15 +97,15 @@ function ScanBanner({ scanState, errorMessage, onScan, onRetry, onRescan }) {
         <div className="flex items-center gap-3">
           <CheckCircle2 size={20} className="text-green-500 flex-shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-green-700">Receipt scanned</p>
-            <p className="text-xs text-green-500">Fields auto-filled below</p>
+            <p className="text-sm font-semibold text-green-700">{t('billSetup.scanSuccess')}</p>
+            <p className="text-xs text-green-500">{t('billSetup.scanSuccessSubtitle')}</p>
           </div>
         </div>
         <button
           onClick={onRescan}
           className="flex items-center gap-1 text-xs text-green-600 font-semibold hover:text-green-700"
         >
-          <RefreshCw size={13} /> Rescan
+          <RefreshCw size={13} /> {t('billSetup.rescan')}
         </button>
       </div>
     )
@@ -113,7 +117,7 @@ function ScanBanner({ scanState, errorMessage, onScan, onRetry, onRescan }) {
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <AlertCircle size={20} className="text-red-400 flex-shrink-0" />
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-red-700">Scan failed</p>
+          <p className="text-sm font-semibold text-red-700">{t('billSetup.scanFailed')}</p>
           <p className="text-xs text-red-400 truncate">{errorMessage}</p>
         </div>
       </div>
@@ -121,13 +125,15 @@ function ScanBanner({ scanState, errorMessage, onScan, onRetry, onRescan }) {
         onClick={onRetry}
         className="flex items-center gap-1 text-xs text-red-600 font-semibold hover:text-red-700 flex-shrink-0"
       >
-        <RefreshCw size={13} /> Try again
+        <RefreshCw size={13} /> {t('billSetup.tryAgain')}
       </button>
     </div>
   )
 }
 
 export default function BillSetup({ bill, crews, onBack, onNext }) {
+  const { t } = useTranslation()
+  const { fmt, symbol } = useCurrency()
   const crewMembers = (() => {
     if (bill.crewId) {
       const crew = crews?.find((c) => c.id === bill.crewId)
@@ -255,7 +261,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1">
-          <h1 className="text-lg font-bold">Bill Setup</h1>
+          <h1 className="text-lg font-bold">{t('billSetup.title')}</h1>
           {bill.crewName && <p className="text-xs text-gray-400">{bill.crewEmoji} {bill.crewName}</p>}
         </div>
       </div>
@@ -272,12 +278,12 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
 
         {/* Totals */}
         <div className="card p-5">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Bill Totals</h2>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{t('billSetup.billTotals')}</h2>
           <div className="flex flex-col gap-3">
             <div>
-              <label className="text-xs text-gray-500 font-medium mb-1 block">Grand Total *</label>
+              <label className="text-xs text-gray-500 font-medium mb-1 block">{t('billSetup.grandTotal')}</label>
               <div className="flex items-center border border-gray-200 rounded-xl bg-white focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent">
-                <span className="pl-4 text-gray-400 font-medium select-none">$</span>
+                <span className="pl-4 text-gray-400 font-medium select-none whitespace-nowrap">{symbol}</span>
                 <input
                   className="flex-1 px-2 py-3 text-sm bg-transparent outline-none"
                   type="number"
@@ -292,7 +298,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs text-gray-500 font-medium">Tip</label>
+                <label className="text-xs text-gray-500 font-medium">{t('billSetup.tip')}</label>
                 <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs font-semibold">
                   <button
                     onClick={() => setTipMode('percent')}
@@ -302,9 +308,9 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
                   </button>
                   <button
                     onClick={() => setTipMode('amount')}
-                    className={`px-3 py-1 transition-colors ${tipMode === 'amount' ? 'bg-indigo-500 text-white' : 'bg-white text-gray-500'}`}
+                    className={`px-3 py-1 transition-colors whitespace-nowrap ${tipMode === 'amount' ? 'bg-indigo-500 text-white' : 'bg-white text-gray-500'}`}
                   >
-                    $
+                    {symbol}
                   </button>
                 </div>
               </div>
@@ -333,7 +339,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
                       }`}
                       type="number"
                       inputMode="decimal"
-                      placeholder="Other"
+                      placeholder={t('billSetup.other')}
                       value={tipPercent != null && !TIP_PRESETS.includes(tipPercent) ? tipPercent : ''}
                       onChange={(e) => setTipPercent(parseFloat(e.target.value) || 0)}
                       min="0"
@@ -343,7 +349,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
                 </div>
               ) : (
                 <div className="flex items-center border border-gray-200 rounded-xl bg-white focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent">
-                  <span className="pl-4 text-gray-400 font-medium select-none">$</span>
+                  <span className="pl-4 text-gray-400 font-medium select-none whitespace-nowrap">{symbol}</span>
                   <input
                     className="flex-1 px-2 py-3 text-sm bg-transparent outline-none"
                     type="number"
@@ -359,7 +365,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
 
               {grandNum > 0 && tipAmount > 0 && (
                 <p className="text-xs text-gray-400 mt-1.5">
-                  Tip: ${tipAmount.toFixed(2)} · Food subtotal: ${(grandNum - tipAmount).toFixed(2)}
+                  {t('billSetup.tipSummary', { tip: fmt(tipAmount), food: fmt(grandNum - tipAmount) })}
                 </p>
               )}
             </div>
@@ -367,7 +373,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
             {showDiscount ? (
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs text-gray-500 font-medium">Discount</label>
+                  <label className="text-xs text-gray-500 font-medium">{t('billSetup.discount')}</label>
                   <button
                     onClick={() => {
                       setDiscountAmount('')
@@ -375,11 +381,11 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
                     }}
                     className="text-xs text-gray-400 font-medium hover:text-gray-600"
                   >
-                    Remove
+                    {t('billSetup.remove')}
                   </button>
                 </div>
                 <div className="flex items-center border border-gray-200 rounded-xl bg-white focus-within:ring-2 focus-within:ring-red-400 focus-within:border-transparent">
-                  <span className="pl-4 text-red-400 font-medium select-none">-$</span>
+                  <span className="pl-4 text-red-400 font-medium select-none whitespace-nowrap">-{symbol}</span>
                   <input
                     className="flex-1 px-2 py-3 text-sm bg-transparent outline-none"
                     type="number"
@@ -398,7 +404,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
                 onClick={() => setShowDiscount(true)}
                 className="self-start text-xs text-indigo-500 font-semibold hover:text-indigo-600"
               >
-                + Add discount
+                {t('billSetup.addDiscount')}
               </button>
             )}
           </div>
@@ -406,7 +412,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
 
         {/* Attendance */}
         <div className="card p-5">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Who's Here?</h2>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{t('billSetup.whosHere')}</h2>
           <div className="flex flex-col gap-2">
             {allMembers.map((member) => (
               <div key={member.id} className="flex items-center gap-2">
@@ -430,7 +436,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
           <div className="flex gap-2 mt-3">
             <input
               className="input-field flex-1 text-sm"
-              placeholder="Add someone…"
+              placeholder={t('billSetup.addSomeone')}
               value={newMemberName}
               onChange={(e) => setNewMemberName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addAdhocMember()}
@@ -452,7 +458,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
           disabled={!canProceed}
           className="btn-primary w-full text-base shadow-md shadow-indigo-200"
         >
-          Add Items <ArrowRight size={18} />
+          {t('billSetup.addItems')} <ArrowRight size={18} />
         </motion.button>
       </div>
 

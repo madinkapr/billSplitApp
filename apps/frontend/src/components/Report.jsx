@@ -1,9 +1,13 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Copy, Check, RotateCcw, RefreshCw, ChevronDown, ChevronUp, HandCoins } from 'lucide-react'
-import { calculateSplits, fmt, getItemShares } from '../utils/math'
+import { useTranslation } from 'react-i18next'
+import { calculateSplits, getItemShares } from '../utils/math'
+import { useCurrency } from '../hooks/useCurrency'
 
 function PersonCard({ result, index }) {
+  const { t } = useTranslation()
+  const { fmt } = useCurrency()
   const [open, setOpen] = useState(false)
 
   return (
@@ -21,8 +25,8 @@ function PersonCard({ result, index }) {
           {result.name.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900">{result.name}{result.isMe ? ' (You)' : ''}</p>
-          <p className="text-xs text-gray-400">Food subtotal: {fmt(result.subtotal)}</p>
+          <p className="font-semibold text-gray-900">{result.name}{result.isMe ? t('common.you') : ''}</p>
+          <p className="text-xs text-gray-400">{t('report.foodSubtotal', { amount: fmt(result.subtotal) })}</p>
         </div>
         <div className="text-right flex-shrink-0 flex items-center gap-2">
           <p className="text-xl font-bold text-indigo-600">{fmt(result.finalTotal)}</p>
@@ -37,7 +41,7 @@ function PersonCard({ result, index }) {
           className="border-t border-gray-50 px-4 py-3 bg-gray-50"
         >
           <p className="text-xs text-gray-400">
-            Food share {fmt(result.subtotal)} × ratio = {fmt(result.finalTotal)} total
+            {t('report.foodShareDetail', { subtotal: fmt(result.subtotal), total: fmt(result.finalTotal) })}
           </p>
         </motion.div>
       )}
@@ -46,6 +50,8 @@ function PersonCard({ result, index }) {
 }
 
 export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew }) {
+  const { t } = useTranslation()
+  const { fmt } = useCurrency()
   const [copied, setCopied] = useState(false)
 
   if (!bill) return null
@@ -63,24 +69,24 @@ export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew })
   const tipAmount = bill.tipAmount || 0
   const discountAmount = bill.discountAmount || 0
   const foodTotal = grandTotal - tipAmount + discountAmount
-  const tipLabel = bill.tipMode === 'amount' ? 'Tip' : `Tip (${bill.tipPercent ?? 0}%)`
+  const tipLabel = bill.tipMode === 'amount' ? t('report.tipAmountLabel') : t('report.tipPercentLabel', { percent: bill.tipPercent ?? 0 })
   const verificationSum = results.reduce((s, r) => s + r.finalTotal, 0)
   const sumCheck = Math.abs(verificationSum - grandTotal) < 0.015
 
   function buildTextSummary() {
     const lines = []
-    lines.push(`💸 TabUp Bill Split — ${bill.crewEmoji || ''} ${bill.crewName || 'Lunch'}`)
+    lines.push(t('report.summaryHeader', { crew: `${bill.crewEmoji || ''} ${bill.crewName || t('report.lunch')}`.trim() }))
     lines.push('─'.repeat(32))
-    lines.push(`Grand Total: ${fmt(grandTotal)}`)
+    lines.push(t('report.grandTotal', { amount: fmt(grandTotal) }))
     lines.push(`  ${tipLabel}: ${fmt(tipAmount)}`)
-    lines.push(`  Food: ${fmt(foodTotal)}`)
+    lines.push(`  ${t('report.food')}: ${fmt(foodTotal)}`)
     lines.push('─'.repeat(32))
     results.forEach((r) => {
-      lines.push(`${r.name}${r.isMe ? ' (You)' : ''}: ${fmt(r.finalTotal)}`)
+      lines.push(`${r.name}${r.isMe ? t('common.you') : ''}: ${fmt(r.finalTotal)}`)
     })
     lines.push('─'.repeat(32))
-    lines.push(`Verification: ${fmt(verificationSum)} / ${fmt(grandTotal)} ${sumCheck ? '✓' : '⚠️'}`)
-    lines.push('Split by TabUp 💸')
+    lines.push(t('report.summaryVerification', { sum: fmt(verificationSum), total: fmt(grandTotal), check: sumCheck ? '✓' : '⚠️' }))
+    lines.push(t('report.summarySplitBy'))
     return lines.join('\n')
   }
 
@@ -108,16 +114,16 @@ export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew })
       <div className="bg-indigo-600 px-5 pt-14 pb-6 text-white">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xl">{bill.crewEmoji || '🍽️'}</span>
-          <h1 className="text-xl font-bold">{bill.crewName || 'Bill Split'}</h1>
+          <h1 className="text-xl font-bold">{bill.crewName || t('report.billSplitFallback')}</h1>
         </div>
-        <p className="text-indigo-200 text-sm">Grand Total: {fmt(grandTotal)}</p>
+        <p className="text-indigo-200 text-sm">{t('report.grandTotal', { amount: fmt(grandTotal) })}</p>
       </div>
 
       <div className="px-5 pt-5 flex flex-col gap-4">
         {/* Bill summary bar */}
         <div className={`card p-4 grid divide-x divide-gray-100 text-center ${discountAmount > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <div>
-            <p className="text-xs text-gray-400 mb-0.5">Food</p>
+            <p className="text-xs text-gray-400 mb-0.5">{t('report.food')}</p>
             <p className="font-bold text-gray-800 text-sm">{fmt(foodTotal)}</p>
           </div>
           <div>
@@ -126,7 +132,7 @@ export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew })
           </div>
           {discountAmount > 0 && (
             <div>
-              <p className="text-xs text-gray-400 mb-0.5">Discount</p>
+              <p className="text-xs text-gray-400 mb-0.5">{t('report.discount')}</p>
               <p className="font-bold text-red-500 text-sm">-{fmt(discountAmount)}</p>
             </div>
           )}
@@ -134,7 +140,7 @@ export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew })
 
         {/* Person cards */}
         <div className="flex flex-col gap-3">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Each Person Owes</h2>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{t('report.eachPersonOwes')}</h2>
           {results.map((r, i) => (
             <PersonCard key={r.id} result={r} index={i} />
           ))}
@@ -143,13 +149,13 @@ export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew })
         {/* Verification */}
         <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium ${sumCheck ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
           <span>{sumCheck ? '✓' : '⚠️'}</span>
-          <span>{sumCheck ? `Totals verified: ${fmt(verificationSum)} = ${fmt(grandTotal)}` : `Rounding diff: ${fmt(Math.abs(verificationSum - grandTotal))}`}</span>
+          <span>{sumCheck ? t('report.totalsVerified', { sum: fmt(verificationSum), total: fmt(grandTotal) }) : t('report.roundingDiff', { amount: fmt(Math.abs(verificationSum - grandTotal)) })}</span>
         </div>
 
         {/* Items breakdown */}
         {bill.items && bill.items.length > 0 && (
           <div>
-            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Items</h2>
+            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{t('report.itemsHeader')}</h2>
             <div className="card divide-y divide-gray-50">
               {bill.items.map((item) => {
                 const shares = getItemShares(item)
@@ -160,7 +166,7 @@ export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew })
                 return (
                   <div key={item.id} className="flex flex-col px-4 py-3 gap-0.5">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium text-gray-800 flex-1 min-w-0 truncate">{item.name || 'Item'}</p>
+                      <p className="text-sm font-medium text-gray-800 flex-1 min-w-0 truncate">{item.name || t('report.itemFallback')}</p>
                       <div className="flex items-center gap-1.5 flex-shrink-0 text-sm font-semibold text-gray-700">
                         {item.quantity > 1 && item.unitPrice ? (
                           <>
@@ -173,7 +179,7 @@ export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew })
                         <span>{fmt(item.price)}</span>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-400 truncate">{assignedLabels.length > 0 ? assignedLabels.join(', ') : 'Everyone (split equally)'}</p>
+                    <p className="text-xs text-gray-400 truncate">{assignedLabels.length > 0 ? assignedLabels.join(', ') : t('report.everyoneSplitEqually')}</p>
                   </div>
                 )
               })}
@@ -187,7 +193,7 @@ export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew })
           onClick={copyToClipboard}
           className={`btn-primary w-full text-base transition-colors ${copied ? 'bg-green-500 hover:bg-green-600' : ''}`}
         >
-          {copied ? <><Check size={18} /> Copied!</> : <><Copy size={18} /> Copy Summary</>}
+          {copied ? <><Check size={18} /> {t('report.copied')}</> : <><Copy size={18} /> {t('report.copySummary')}</>}
         </motion.button>
 
         {onSettleUp && (
@@ -196,7 +202,7 @@ export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew })
             onClick={onSettleUp}
             className="btn-secondary w-full text-base"
           >
-            <HandCoins size={18} /> {bill.settleBillId ? 'View Settle Status' : 'Settle Up'}
+            <HandCoins size={18} /> {bill.settleBillId ? t('report.viewSettleStatus') : t('report.settleUp')}
           </motion.button>
         )}
 
@@ -207,7 +213,7 @@ export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew })
               onClick={onNewWithSameCrew}
               className="btn-secondary flex-1"
             >
-              <RefreshCw size={16} /> Same Crew
+              <RefreshCw size={16} /> {t('report.sameCrew')}
             </motion.button>
           )}
           <motion.button
@@ -215,7 +221,7 @@ export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew })
             onClick={onReset}
             className={`btn-secondary ${bill.crewId ? 'flex-1' : 'w-full'}`}
           >
-            <RotateCcw size={16} /> Home
+            <RotateCcw size={16} /> {t('report.home')}
           </motion.button>
         </div>
       </div>

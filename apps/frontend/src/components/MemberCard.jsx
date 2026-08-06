@@ -1,8 +1,10 @@
 import React from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { X } from 'lucide-react'
-import { fmt, getItemShares } from '../utils/math'
+import { useTranslation } from 'react-i18next'
+import { getItemShares } from '../utils/math'
 import { getUnitPrice } from '../utils/itemizerState'
+import { useCurrency } from '../hooks/useCurrency'
 import QuantityStepper from './QuantityStepper'
 
 export default function MemberCard({
@@ -15,6 +17,8 @@ export default function MemberCard({
   onCancelStepper,
   onRemoveAssignment,
 }) {
+  const { t } = useTranslation()
+  const { fmt } = useCurrency()
   const { setNodeRef, isOver } = useDroppable({ id: member.id })
 
   // Assigned-item rows: for a regular member, every item where they have a share count.
@@ -49,7 +53,7 @@ export default function MemberCard({
         >
           {isEveryone ? '∀' : (member.name || '?').charAt(0).toUpperCase()}
         </div>
-        <span className="font-bold text-xs flex-1 truncate">{member.name}{member.isMe ? ' (You)' : ''}</span>
+        <span className="font-bold text-xs flex-1 truncate">{member.name}{member.isMe ? t('common.you') : ''}</span>
         {assignedRows.length > 0 && (
           <span className="text-[10px] text-ink-muted font-semibold">{fmt(subtotal)}</span>
         )}
@@ -57,7 +61,7 @@ export default function MemberCard({
 
       {isEveryone && assignedRows.length > 0 && (
         <div className="inline-flex items-center gap-1 text-[10.5px] font-bold text-accent bg-accent-tint rounded-full px-2 py-0.5 self-start">
-          ✓ split equally
+          {t('memberCard.splitEqually')}
         </div>
       )}
 
@@ -73,7 +77,7 @@ export default function MemberCard({
 
       {assignedRows.length === 0 && !showStepper && (
         <p className="text-[10.5px] text-ink-faint italic py-[1px]">
-          {isDropTarget ? 'Release here' : isEveryone ? 'Split equally' : 'Drag here'}
+          {isDropTarget ? t('memberCard.releaseHere') : isEveryone ? t('memberCard.splitEquallyItalic') : t('memberCard.dragHere')}
         </p>
       )}
 

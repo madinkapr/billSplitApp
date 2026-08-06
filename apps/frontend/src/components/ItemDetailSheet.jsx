@@ -1,7 +1,9 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Plus, Minus, Trash2 } from 'lucide-react'
-import { fmt, getItemShares } from '../utils/math'
+import { useTranslation } from 'react-i18next'
+import { getItemShares } from '../utils/math'
+import { useCurrency } from '../hooks/useCurrency'
 
 // Unassigned member: a muted chip the user taps to add at qty 1.
 function AddChip({ member, onAdd }) {
@@ -18,15 +20,17 @@ function AddChip({ member, onAdd }) {
 
 // Assigned member: active chip + inline −/+ stepper + resolved $ share.
 function AssignedChip({ member, count, share, onInc, onDec }) {
+  const { t } = useTranslation()
+  const { fmt } = useCurrency()
   return (
     <div className="flex items-center gap-2 pl-3 pr-1.5 py-1 rounded-full bg-accent text-white border-2 border-accent shadow-sm">
       <span className="text-xs font-semibold whitespace-nowrap">{member.name}</span>
       <div className="flex items-center gap-1.5 bg-black/15 rounded-full px-1 py-0.5">
-        <motion.button whileTap={{ scale: 0.85 }} onClick={onDec} aria-label="Decrease share" className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-black/20">
+        <motion.button whileTap={{ scale: 0.85 }} onClick={onDec} aria-label={t('itemDetail.decreaseShare')} className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-black/20">
           <Minus size={12} />
         </motion.button>
         <span className="text-xs font-bold w-3 text-center tabular-nums">{count}</span>
-        <motion.button whileTap={{ scale: 0.85 }} onClick={onInc} aria-label="Increase share" className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-black/20">
+        <motion.button whileTap={{ scale: 0.85 }} onClick={onInc} aria-label={t('itemDetail.increaseShare')} className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-black/20">
           <Plus size={12} />
         </motion.button>
       </div>
@@ -36,6 +40,8 @@ function AssignedChip({ member, count, share, onInc, onDec }) {
 }
 
 export default function ItemDetailSheet({ item, activePersons, onUpdate, onRemove, onClose }) {
+  const { t } = useTranslation()
+  const { fmt, symbol } = useCurrency()
   const allShares = getItemShares(item)
   const shares = {}
   activePersons.forEach((p) => { if (allShares[p.id] > 0) shares[p.id] = allShares[p.id] })
@@ -65,8 +71,8 @@ export default function ItemDetailSheet({ item, activePersons, onUpdate, onRemov
   const ratioLabel = assignedIds.length === 0
     ? null
     : allEqual
-      ? `${fmt(item.price)} split equally`
-      : `${fmt(item.price)} split ${assignedIds.map((id) => shares[id]).join(' : ')}`
+      ? t('itemDetail.splitEqually', { amount: fmt(item.price) })
+      : t('itemDetail.splitRatio', { amount: fmt(item.price), ratio: assignedIds.map((id) => shares[id]).join(' : ') })
 
   return (
     <AnimatePresence>
@@ -85,7 +91,7 @@ export default function ItemDetailSheet({ item, activePersons, onUpdate, onRemov
           className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col shadow-xl"
         >
           <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
-            <h2 className="text-base font-bold">Edit Item</h2>
+            <h2 className="text-base font-bold">{t('itemDetail.editItem')}</h2>
             <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
               <X size={16} />
             </button>
@@ -96,16 +102,16 @@ export default function ItemDetailSheet({ item, activePersons, onUpdate, onRemov
             <div className="flex gap-2 items-end">
               <input
                 className="flex-1 text-sm font-medium border border-gray-200 rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-indigo-400 min-w-0"
-                placeholder="Item name…"
+                placeholder={t('itemizer.itemNamePlaceholder')}
                 value={item.name}
                 onChange={(e) => onUpdate({ ...item, name: e.target.value })}
               />
               <div className="flex-shrink-0 w-24">
-                <p className="text-[10px] text-gray-400 mb-0.5 text-right pr-0.5">Umumiy narxi</p>
+                <p className="text-[10px] text-gray-400 mb-0.5 text-right pr-0.5">{t('itemizer.totalPrice')}</p>
                 <div className="relative">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm whitespace-nowrap">{symbol}</span>
                   <input
-                    className="w-full text-sm font-semibold bg-gray-50 rounded-lg pl-5 pr-2 py-2 border border-gray-100 text-right outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-full text-sm font-semibold bg-gray-50 rounded-lg pl-11 pr-2 py-2 border border-gray-100 text-right outline-none focus:ring-2 focus:ring-indigo-400"
                     type="number"
                     inputMode="decimal"
                     placeholder="0.00"
@@ -121,7 +127,7 @@ export default function ItemDetailSheet({ item, activePersons, onUpdate, onRemov
                   className="w-full text-sm font-semibold bg-gray-50 rounded-lg px-2 py-2 border border-gray-100 text-center outline-none focus:ring-2 focus:ring-indigo-400"
                   type="number"
                   inputMode="numeric"
-                  placeholder="Qty"
+                  placeholder={t('itemizer.qty')}
                   value={item.quantity || 1}
                   onChange={(e) => {
                     const qty = Math.max(1, parseInt(e.target.value) || 1)
@@ -142,7 +148,7 @@ export default function ItemDetailSheet({ item, activePersons, onUpdate, onRemov
                   isEveryone ? 'bg-accent text-white border-accent shadow-sm' : 'bg-white text-accent border-accent/40'
                 }`}
               >
-                {isEveryone ? '✓ Everyone' : '+ Everyone'}
+                {isEveryone ? t('itemDetail.everyoneChecked') : t('itemDetail.everyoneAdd')}
               </motion.button>
             )}
 
@@ -169,7 +175,7 @@ export default function ItemDetailSheet({ item, activePersons, onUpdate, onRemov
             {/* Unassigned members: tap to add at qty 1 */}
             {unassigned.length > 0 && (
               <div className="flex items-center gap-1.5 flex-wrap">
-                {assignedIds.length > 0 && <span className="text-xs text-gray-300 font-medium mr-0.5">Add:</span>}
+                {assignedIds.length > 0 && <span className="text-xs text-gray-300 font-medium mr-0.5">{t('itemDetail.addLabel')}</span>}
                 {unassigned.map((p) => (
                   <AddChip key={p.id} member={p} onAdd={() => addAssignee(p.id)} />
                 ))}
@@ -179,7 +185,7 @@ export default function ItemDetailSheet({ item, activePersons, onUpdate, onRemov
             {ratioLabel ? (
               <p className="text-xs text-gray-400">{ratioLabel}</p>
             ) : (
-              <p className="text-xs text-gray-400">{fmt(item.price)} split equally among everyone</p>
+              <p className="text-xs text-gray-400">{t('itemDetail.splitEquallyAmongEveryone', { amount: fmt(item.price) })}</p>
             )}
           </div>
 
@@ -191,7 +197,7 @@ export default function ItemDetailSheet({ item, activePersons, onUpdate, onRemov
               <Trash2 size={16} />
             </button>
             <button onClick={onClose} className="btn-primary flex-1 text-sm">
-              Done
+              {t('itemDetail.done')}
             </button>
           </div>
         </motion.div>
