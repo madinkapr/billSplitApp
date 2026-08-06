@@ -33,6 +33,7 @@ const MESSAGES = {
     reminderPrefix: 'Eslatma!',
     thanks: 'Rahmat! ✅',
     paidConfirm: (amount) => `✅ To'landi — ${amount}`,
+    paidButton: "To'ladim ✅",
   },
   ru: {
     initial: 'Привет! Это бот TabUp — он открывается по ссылке для расчёта.',
@@ -46,6 +47,7 @@ const MESSAGES = {
     reminderPrefix: 'Напоминание!',
     thanks: 'Спасибо! ✅',
     paidConfirm: (amount) => `✅ Оплачено — ${amount}`,
+    paidButton: 'Оплатил(а) ✅',
   },
   en: {
     initial: 'Hi! This is the TabUp bot — it opens via a settle-up link.',
@@ -59,6 +61,7 @@ const MESSAGES = {
     reminderPrefix: 'Reminder!',
     thanks: 'Thanks! ✅',
     paidConfirm: (amount) => `✅ Paid — ${amount}`,
+    paidButton: 'Paid ✅',
   },
 }
 
@@ -106,8 +109,8 @@ function buildOwedMessage(bill, participant) {
   return lines.join('\n')
 }
 
-function paidKeyboard(participantId) {
-  return { inline_keyboard: [[{ text: "To'ladim ✅", callback_data: `pay:${participantId}` }]] }
+function paidKeyboard(participantId, lang) {
+  return { inline_keyboard: [[{ text: getMessages(lang).paidButton, callback_data: `pay:${participantId}` }]] }
 }
 
 async function init() {
@@ -136,7 +139,7 @@ async function sendReminder(pool, participant) {
   const sent = await bot.sendMessage(
     participant.telegram_chat_id,
     `${msgs.reminderPrefix}\n${buildOwedMessage(bill, participant)}`,
-    { parse_mode: 'Markdown', reply_markup: paidKeyboard(participant.id) }
+    { parse_mode: 'Markdown', reply_markup: paidKeyboard(participant.id, bill.language) }
   )
   await pool.query(
     `UPDATE bill_participants

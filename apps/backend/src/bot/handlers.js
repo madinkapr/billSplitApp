@@ -28,7 +28,7 @@ function register() {
     try {
       const sent = await bot.sendMessage(msg.chat.id, buildOwedMessage(bill, participant), {
         parse_mode: 'Markdown',
-        reply_markup: paidKeyboard(participant.id),
+        reply_markup: paidKeyboard(participant.id, bill.language),
       })
       await pool.query('UPDATE bill_participants SET telegram_message_id = $1 WHERE id = $2', [
         sent.message_id,
