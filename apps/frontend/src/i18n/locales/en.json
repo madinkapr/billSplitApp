@@ -4,6 +4,13 @@
     "cancel": "Cancel",
     "you": " (You)"
   },
+  "nav": {
+    "home": "Home",
+    "crews": "My Crews",
+    "history": "History",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar"
+  },
   "language": {
     "picker": "Language",
     "uz": "O'zbek",
@@ -41,7 +48,9 @@
     "saveCrew": "Save Crew",
     "noCrewsYet": "No crews yet. Create one to speed up future bills.",
     "createFirstCrew": "Create First Crew",
-    "start": "Start"
+    "start": "Start",
+    "subtitleCount_one": "{{count}} crew saved",
+    "subtitleCount_other": "{{count}} crews saved"
   },
   "billSetup": {
     "title": "Bill Setup",
@@ -84,7 +93,9 @@
     "totalPrice": "Total price",
     "everyone": "Everyone",
     "calculateSplit": "Calculate Split",
-    "assignAllToEnable": "Assign every item to enable"
+    "assignAllToEnable": "Assign every item to enable",
+    "liveSplit": "Live Split",
+    "dragHint": "Drag items here for {{name}}"
   },
   "itemChip": {
     "item": "Item"
@@ -182,6 +193,10 @@
     "noBillsYet": "No bills yet",
     "noBillsBody": "Bills you split will show up here.",
     "peopleCount_one": "{{count}} person",
-    "peopleCount_other": "{{count}} people"
+    "peopleCount_other": "{{count}} people",
+    "subtitleCount_one": "{{count}} bill total",
+    "subtitleCount_other": "{{count}} bills total",
+    "thisWeek": "This Week",
+    "earlier": "Earlier"
   }
 }

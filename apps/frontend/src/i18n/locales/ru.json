@@ -4,6 +4,13 @@
     "cancel": "Отмена",
     "you": " (Вы)"
   },
+  "nav": {
+    "home": "Главная",
+    "crews": "Мои группы",
+    "history": "История",
+    "collapse": "Свернуть панель",
+    "expand": "Развернуть панель"
+  },
   "language": {
     "picker": "Язык",
     "uz": "O'zbek",
@@ -43,7 +50,11 @@
     "saveCrew": "Сохранить группу",
     "noCrewsYet": "Пока нет групп. Создайте одну, чтобы ускорить будущие счета.",
     "createFirstCrew": "Создать первую группу",
-    "start": "Начать"
+    "start": "Начать",
+    "subtitleCount_one": "{{count}} группа сохранена",
+    "subtitleCount_few": "{{count}} группы сохранены",
+    "subtitleCount_many": "{{count}} групп сохранено",
+    "subtitleCount_other": "{{count}} группы сохранены"
   },
   "billSetup": {
     "title": "Настройка счёта",
@@ -86,7 +97,9 @@
     "totalPrice": "Общая цена",
     "everyone": "Все",
     "calculateSplit": "Рассчитать разделение",
-    "assignAllToEnable": "Распределите все товары, чтобы продолжить"
+    "assignAllToEnable": "Распределите все товары, чтобы продолжить",
+    "liveSplit": "Разделение в реальном времени",
+    "dragHint": "Перетащите товары сюда для {{name}}"
   },
   "itemChip": {
     "item": "Товар"
@@ -186,6 +199,12 @@
     "peopleCount_one": "{{count}} человек",
     "peopleCount_few": "{{count}} человека",
     "peopleCount_many": "{{count}} человек",
-    "peopleCount_other": "{{count}} человека"
+    "peopleCount_other": "{{count}} человека",
+    "subtitleCount_one": "{{count}} счёт всего",
+    "subtitleCount_few": "{{count}} счёта всего",
+    "subtitleCount_many": "{{count}} счетов всего",
+    "subtitleCount_other": "{{count}} счёта всего",
+    "thisWeek": "На этой неделе",
+    "earlier": "Ранее"
   }
 }

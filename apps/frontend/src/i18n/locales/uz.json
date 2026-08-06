@@ -4,6 +4,13 @@
     "cancel": "Bekor qilish",
     "you": " (Siz)"
   },
+  "nav": {
+    "home": "Bosh sahifa",
+    "crews": "Mening guruhlarim",
+    "history": "Tarix",
+    "collapse": "Panelni yig'ish",
+    "expand": "Panelni yoyish"
+  },
   "language": {
     "picker": "Til",
     "uz": "O'zbek",
@@ -41,7 +48,9 @@
     "saveCrew": "Guruhni saqlash",
     "noCrewsYet": "Hali guruhlar yo'q. Kelajakdagi hisoblarni tezlashtirish uchun birini yarating.",
     "createFirstCrew": "Birinchi guruhni yaratish",
-    "start": "Boshlash"
+    "start": "Boshlash",
+    "subtitleCount_one": "{{count}} guruh saqlangan",
+    "subtitleCount_other": "{{count}} guruh saqlangan"
   },
   "billSetup": {
     "title": "Hisobni sozlash",
@@ -84,7 +93,9 @@
     "totalPrice": "Umumiy narxi",
     "everyone": "Hammaga",
     "calculateSplit": "Bo'linmani hisoblash",
-    "assignAllToEnable": "Yoqish uchun barcha mahsulotlarni taqsimlang"
+    "assignAllToEnable": "Yoqish uchun barcha mahsulotlarni taqsimlang",
+    "liveSplit": "Jonli bo'linma",
+    "dragHint": "{{name}} uchun mahsulotlarni shu yerga torting"
   },
   "itemChip": {
     "item": "Mahsulot"
@@ -182,6 +193,10 @@
     "noBillsYet": "Hali hisoblar yo'q",
     "noBillsBody": "Siz bo'lgan hisoblar shu yerda ko'rinadi.",
     "peopleCount_one": "{{count}} kishi",
-    "peopleCount_other": "{{count}} kishi"
+    "peopleCount_other": "{{count}} kishi",
+    "subtitleCount_one": "{{count}} hisob",
+    "subtitleCount_other": "{{count}} hisob",
+    "thisWeek": "Shu hafta",
+    "earlier": "Avvalroq"
   }
 }

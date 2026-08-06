@@ -1,0 +1,423 @@
+import React, { useRef, useState } from 'react'
+import { ArrowLeft, ArrowRight, UserPlus, Trash2, ScanLine, Image, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { generateId } from '../../utils/math'
+import { useOcr } from '../../hooks/useOcr'
+import { useCurrency } from '../../hooks/useCurrency'
+import OcrReviewModal from '../../components/OcrReviewModal'
+
+const TIP_PRESETS = [15, 18, 20]
+
+function MemberToggle({ member, active, onToggle }) {
+  const { t } = useTranslation()
+  return (
+    <button
+      onClick={onToggle}
+      className={`flex items-center gap-2.5 py-2.5 px-3.5 rounded-xl border-2 transition-all text-sm font-medium ${
+        active ? 'border-desktop-primary bg-desktop-tileHome text-desktop-primary' : 'border-desktop-divider bg-desktop-content text-desktop-textMuted3'
+      }`}
+    >
+      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${active ? 'bg-desktop-primary text-white' : 'bg-white text-desktop-textMuted3'}`}>
+        {member.name.charAt(0).toUpperCase()}
+      </span>
+      <span className="truncate">{member.name}{member.isMe ? t('common.you') : ''}</span>
+    </button>
+  )
+}
+
+function ScanCards({ scanState, errorMessage, onScan, onRetry, onRescan }) {
+  const { t } = useTranslation()
+  const cameraRef = useRef(null)
+  const galleryRef = useRef(null)
+
+  function handleFileChange(e) {
+    const file = e.target.files?.[0]
+    if (file) onScan(file)
+    e.target.value = ''
+  }
+
+  if (scanState === 'scanning') {
+    return (
+      <div className="flex items-center gap-3 rounded-2xl bg-desktop-tileHome border-2 border-desktop-primary/30" style={{ padding: '18px 20px' }}>
+        <Loader2 size={20} className="text-desktop-primary animate-spin flex-shrink-0" />
+        <div>
+          <p className="text-sm font-semibold text-desktop-primary">{t('billSetup.scanning')}</p>
+          <p className="text-xs text-desktop-primary/70">{t('billSetup.scanningSubtitle')}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (scanState === 'success') {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-2xl bg-desktop-successBg border-2 border-desktop-successText2/30" style={{ padding: '18px 20px' }}>
+        <div className="flex items-center gap-3">
+          <CheckCircle2 size={20} className="text-desktop-successText flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-desktop-successText">{t('billSetup.scanSuccess')}</p>
+            <p className="text-xs text-desktop-successText2">{t('billSetup.scanSuccessSubtitle')}</p>
+          </div>
+        </div>
+        <button onClick={onRescan} className="flex items-center gap-1 text-xs text-desktop-successText font-semibold">
+          <RefreshCw size={13} /> {t('billSetup.rescan')}
+        </button>
+      </div>
+    )
+  }
+
+  if (scanState === 'error') {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-2xl bg-red-50 border-2 border-red-200" style={{ padding: '18px 20px' }}>
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <AlertCircle size={20} className="text-red-400 flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-red-700">{t('billSetup.scanFailed')}</p>
+            <p className="text-xs text-red-400 truncate">{errorMessage}</p>
+          </div>
+        </div>
+        <button onClick={onRetry} className="flex items-center gap-1 text-xs text-red-600 font-semibold flex-shrink-0">
+          <RefreshCw size={13} /> {t('billSetup.tryAgain')}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex gap-4">
+      <button
+        onClick={() => cameraRef.current?.click()}
+        className="flex-1 flex items-center gap-3 rounded-2xl text-white text-left"
+        style={{ padding: '18px 20px', background: 'linear-gradient(135deg, #8b7bff, #5a4bd6)' }}
+      >
+        <ScanLine size={20} className="flex-shrink-0" />
+        <span>
+          <p className="text-sm font-semibold">{t('billSetup.scanCamera')}</p>
+          <p className="text-xs text-white/75">{t('billSetup.scanSubtitle')}</p>
+        </span>
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
+      </button>
+      <button
+        onClick={() => galleryRef.current?.click()}
+        className="flex-1 flex items-center gap-3 rounded-2xl bg-desktop-tileHome text-left"
+        style={{ padding: '18px 20px' }}
+      >
+        <Image size={20} className="text-desktop-primary flex-shrink-0" />
+        <span>
+          <p className="text-sm font-semibold text-desktop-primary">{t('billSetup.scanGallery')}</p>
+          <p className="text-xs text-desktop-primary/60">{t('billSetup.scanSubtitle')}</p>
+        </span>
+        <input ref={galleryRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+      </button>
+    </div>
+  )
+}
+
+export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
+  const { t } = useTranslation()
+  const { fmt, symbol } = useCurrency()
+  const crewMembers = (() => {
+    if (bill.crewId) {
+      const crew = crews?.find((c) => c.id === bill.crewId)
+      return crew?.members || []
+    }
+    return bill._adhocMembers || [{ id: 'me', name: 'Me', isMe: true }]
+  })()
+
+  const [activeMembers, setActiveMembers] = useState(
+    bill.activeMembers.length > 0 ? bill.activeMembers : crewMembers.map((m) => m.id)
+  )
+  const [grandTotal, setGrandTotal] = useState(bill.grandTotal?.toString() || '')
+  const [tipMode, setTipMode] = useState(bill.tipMode || 'percent')
+  const [tipPercent, setTipPercent] = useState(bill.tipPercent ?? null)
+  const [tipAmountInput, setTipAmountInput] = useState(bill.tipAmount?.toString() || '')
+  const [newMemberName, setNewMemberName] = useState('')
+  const [adhocMembers, setAdhocMembers] = useState(crewMembers)
+  const [discountAmount, setDiscountAmount] = useState(bill.discountAmount?.toString() || '')
+  const [showDiscount, setShowDiscount] = useState(!!bill.discountAmount)
+  const [ocrItems, setOcrItems] = useState([])
+
+  const [scanState, setScanState] = useState('idle')
+  const [ocrData, setOcrData] = useState(null)
+
+  const { scanReceipt, retry, error: ocrError } = useOcr()
+
+  const grandNum = parseFloat(grandTotal) || 0
+  const tipAmount = tipMode === 'percent'
+    ? (tipPercent != null && grandNum > 0 ? grandNum - grandNum / (1 + tipPercent / 100) : 0)
+    : (parseFloat(tipAmountInput) || 0)
+
+  async function handleScan(file) {
+    setScanState('scanning')
+    try {
+      const data = await scanReceipt(file)
+      setScanState('success')
+      setOcrData(data)
+    } catch {
+      setScanState('error')
+    }
+  }
+
+  async function handleRetry() {
+    setScanState('scanning')
+    try {
+      const data = await retry()
+      setScanState('success')
+      setOcrData(data)
+    } catch {
+      setScanState('error')
+    }
+  }
+
+  function handleOcrConfirm(confirmed) {
+    setOcrData(null)
+    setScanState('success')
+    if (confirmed.grandTotal) setGrandTotal(confirmed.grandTotal.toFixed(2))
+    if (confirmed.discountAmount) {
+      setDiscountAmount(confirmed.discountAmount.toFixed(2))
+      setShowDiscount(true)
+    }
+    if (confirmed.tipAmount && confirmed.tipAmount > 0) {
+      setTipMode('amount')
+      setTipAmountInput(confirmed.tipAmount.toFixed(2))
+    } else if (confirmed.tipPercent && confirmed.tipPercent > 0) {
+      setTipMode('percent')
+      setTipPercent(confirmed.tipPercent)
+    }
+    setOcrItems(confirmed.items || [])
+  }
+
+  function handleOcrCancel() {
+    setOcrData(null)
+    setScanState('idle')
+  }
+
+  function toggleMember(id) {
+    setActiveMembers((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  function addAdhocMember() {
+    const trimmed = newMemberName.trim()
+    if (!trimmed) return
+    const newM = { id: generateId(), name: trimmed, isMe: false }
+    setAdhocMembers((prev) => [...prev, newM])
+    setActiveMembers((prev) => [...prev, newM.id])
+    setNewMemberName('')
+  }
+
+  function removeAdhocMember(id) {
+    setAdhocMembers((prev) => prev.filter((m) => m.id !== id))
+    setActiveMembers((prev) => prev.filter((x) => x !== id))
+  }
+
+  function handleNext() {
+    if (!grandTotal || parseFloat(grandTotal) <= 0) return
+    if (activeMembers.length === 0) return
+    onNext({
+      ...bill,
+      _adhocMembers: adhocMembers,
+      activeMembers,
+      grandTotal: grandNum,
+      tipMode,
+      tipPercent: tipMode === 'percent' ? tipPercent : null,
+      tipAmount,
+      discountAmount: parseFloat(discountAmount) || 0,
+      _ocrItems: ocrItems,
+    })
+  }
+
+  const allMembers = bill.crewId ? crewMembers : adhocMembers
+  const canProceed = grandNum > 0 && activeMembers.length > 0
+
+  return (
+    <div style={{ padding: '40px 44px' }}>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white transition-colors flex-shrink-0">
+          <ArrowLeft size={20} />
+        </button>
+        <div>
+          <h1 className="text-[22px] font-extrabold text-desktop-text">{t('billSetup.title')}</h1>
+          {bill.crewName && <p className="text-xs text-desktop-textMuted3">{bill.crewEmoji} {bill.crewName}</p>}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-5">
+        <ScanCards
+          scanState={scanState}
+          errorMessage={ocrError}
+          onScan={handleScan}
+          onRetry={handleRetry}
+          onRescan={() => setScanState('idle')}
+        />
+
+        <div className="flex gap-5 items-start">
+          {/* Bill Totals */}
+          <div className="flex-1 bg-white border border-desktop-cardBorder rounded-2xl" style={{ padding: 22 }}>
+            <h2 className="text-[12px] font-bold uppercase tracking-wide text-desktop-textMuted3 mb-3">{t('billSetup.billTotals')}</h2>
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-xs text-desktop-textMuted font-medium mb-1 block">{t('billSetup.grandTotal')}</label>
+                <div className="flex items-center border border-desktop-cardBorder rounded-xl bg-white focus-within:ring-2 focus-within:ring-desktop-primary/40">
+                  <span className="pl-4 text-desktop-textMuted3 font-medium whitespace-nowrap">{symbol}</span>
+                  <input
+                    className="flex-1 px-2 py-3 text-sm bg-transparent outline-none"
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={grandTotal}
+                    onChange={(e) => setGrandTotal(e.target.value)}
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-desktop-textMuted font-medium">{t('billSetup.tip')}</label>
+                  <div className="flex rounded-lg overflow-hidden border border-desktop-cardBorder text-xs font-semibold">
+                    <button
+                      onClick={() => setTipMode('percent')}
+                      className={`px-3 py-1 transition-colors ${tipMode === 'percent' ? 'bg-desktop-primary text-white' : 'bg-white text-desktop-textMuted3'}`}
+                    >
+                      %
+                    </button>
+                    <button
+                      onClick={() => setTipMode('amount')}
+                      className={`px-3 py-1 transition-colors whitespace-nowrap ${tipMode === 'amount' ? 'bg-desktop-primary text-white' : 'bg-white text-desktop-textMuted3'}`}
+                    >
+                      {symbol}
+                    </button>
+                  </div>
+                </div>
+
+                {tipMode === 'percent' ? (
+                  <div className="flex gap-2">
+                    {TIP_PRESETS.map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setTipPercent(tipPercent === p ? null : p)}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${
+                          tipPercent === p ? 'bg-desktop-primary border-desktop-primary text-white' : 'border-desktop-cardBorder text-desktop-textMuted bg-white'
+                        }`}
+                      >
+                        {p}%
+                      </button>
+                    ))}
+                    <input
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 text-center transition-all focus:outline-none focus:border-desktop-primary ${
+                        tipPercent != null && !TIP_PRESETS.includes(tipPercent) ? 'border-desktop-primary bg-desktop-tileHome text-desktop-primary' : 'border-desktop-cardBorder text-desktop-textMuted bg-white'
+                      }`}
+                      type="number"
+                      inputMode="decimal"
+                      placeholder={t('billSetup.other')}
+                      value={tipPercent != null && !TIP_PRESETS.includes(tipPercent) ? tipPercent : ''}
+                      onChange={(e) => setTipPercent(parseFloat(e.target.value) || 0)}
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center border border-desktop-cardBorder rounded-xl bg-white focus-within:ring-2 focus-within:ring-desktop-primary/40">
+                    <span className="pl-4 text-desktop-textMuted3 font-medium whitespace-nowrap">{symbol}</span>
+                    <input
+                      className="flex-1 px-2 py-3 text-sm bg-transparent outline-none"
+                      type="number"
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      value={tipAmountInput}
+                      onChange={(e) => setTipAmountInput(e.target.value)}
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                )}
+
+                {grandNum > 0 && tipAmount > 0 && (
+                  <p className="text-xs text-desktop-textMuted3 mt-1.5">
+                    {t('billSetup.tipSummary', { tip: fmt(tipAmount), food: fmt(grandNum - tipAmount) })}
+                  </p>
+                )}
+              </div>
+
+              {showDiscount ? (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs text-desktop-textMuted font-medium">{t('billSetup.discount')}</label>
+                    <button onClick={() => { setDiscountAmount(''); setShowDiscount(false) }} className="text-xs text-desktop-textMuted3 font-medium">
+                      {t('billSetup.remove')}
+                    </button>
+                  </div>
+                  <div className="flex items-center border border-desktop-cardBorder rounded-xl bg-white focus-within:ring-2 focus-within:ring-red-300">
+                    <span className="pl-4 text-red-400 font-medium whitespace-nowrap">-{symbol}</span>
+                    <input
+                      className="flex-1 px-2 py-3 text-sm bg-transparent outline-none"
+                      type="number"
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      value={discountAmount}
+                      onChange={(e) => setDiscountAmount(e.target.value)}
+                      min="0"
+                      step="0.01"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setShowDiscount(true)} className="self-start text-xs text-desktop-primary font-semibold">
+                  {t('billSetup.addDiscount')}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Who's Here */}
+          <div className="flex-1 bg-white border border-desktop-cardBorder rounded-2xl" style={{ padding: 22 }}>
+            <h2 className="text-[12px] font-bold uppercase tracking-wide text-desktop-textMuted3 mb-3">{t('billSetup.whosHere')}</h2>
+            <div className="flex flex-wrap gap-2">
+              {allMembers.map((member) => (
+                <div key={member.id} className="flex items-center gap-1">
+                  <MemberToggle member={member} active={activeMembers.includes(member.id)} onToggle={() => toggleMember(member.id)} />
+                  {!member.isMe && !bill.crewId && (
+                    <button onClick={() => removeAdhocMember(member.id)} className="w-8 h-8 flex items-center justify-center text-desktop-textMuted3 hover:text-red-500 flex-shrink-0">
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2 mt-3">
+              <input
+                className="flex-1 rounded-xl border border-desktop-cardBorder px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-desktop-primary/40"
+                placeholder={t('billSetup.addSomeone')}
+                value={newMemberName}
+                onChange={(e) => setNewMemberName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addAdhocMember()}
+                maxLength={25}
+              />
+              <button
+                onClick={addAdhocMember}
+                disabled={!newMemberName.trim()}
+                className="w-10 h-10 rounded-[10px] bg-desktop-primary text-white flex items-center justify-center flex-shrink-0 disabled:opacity-40"
+              >
+                <UserPlus size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={handleNext}
+          disabled={!canProceed}
+          className="w-full rounded-2xl text-white font-bold text-[15px] py-4 flex items-center justify-center gap-2 disabled:opacity-40"
+          style={{ background: 'linear-gradient(135deg, #8b7bff, #5a4bd6)', boxShadow: '0 10px 20px -6px rgba(81,64,214,.48)' }}
+        >
+          {t('billSetup.addItems')} <ArrowRight size={18} />
+        </button>
+      </div>
+
+      {ocrData && <OcrReviewModal ocrData={ocrData} onConfirm={handleOcrConfirm} onCancel={handleOcrCancel} />}
+    </div>
+  )
+}
