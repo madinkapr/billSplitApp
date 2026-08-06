@@ -13,7 +13,7 @@ function getInitialLanguage() {
   } catch {
     // storage unavailable or malformed — fall through to default
   }
-  return 'uz'
+  return 'ru'
 }
 
 i18next.use(initReactI18next).init({
@@ -23,7 +23,7 @@ i18next.use(initReactI18next).init({
     en: { translation: en },
   },
   lng: getInitialLanguage(),
-  fallbackLng: 'uz',
+  fallbackLng: 'ru',
   interpolation: { escapeValue: false },
 })
 

@@ -14,7 +14,7 @@ const LANGUAGES = [
 export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelectCrew, onManageCrews, onViewBill, onViewAllBills }) {
   const { t, i18n } = useTranslation()
   const { currency, setCurrency, fmt, CURRENCIES } = useCurrency()
-  const [language, setLanguage] = useLocalStorage('tabup_language', 'uz')
+  const [language, setLanguage] = useLocalStorage('tabup_language', 'ru')
   const [langOpen, setLangOpen] = useState(false)
   const [currencyOpen, setCurrencyOpen] = useState(false)
   const recentCrews = crews.slice(0, 4)

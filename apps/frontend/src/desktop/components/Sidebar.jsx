@@ -47,7 +47,7 @@ function FooterPill({ icon: Icon, value, open, onToggle, children, collapsed }) 
 export default function Sidebar({ screen, onNavigate, collapsed, onToggleCollapse }) {
   const { t, i18n } = useTranslation()
   const { currency, setCurrency, CURRENCIES } = useCurrency()
-  const [language, setLanguage] = useLocalStorage('tabup_language', 'uz')
+  const [language, setLanguage] = useLocalStorage('tabup_language', 'ru')
   const [langOpen, setLangOpen] = useState(false)
   const [currencyOpen, setCurrencyOpen] = useState(false)
 
