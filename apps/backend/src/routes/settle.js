@@ -49,20 +49,24 @@ router.get('/dial/:participantId', async (req, res) => {
 </body></html>`)
 })
 
+const SUPPORTED_LANGUAGES = ['uz', 'ru', 'en']
+
 router.post('/bills', async (req, res) => {
-  const { localId, crewName, grandTotal, tipAmount, tipPercent, payerName, payerContact, payerContactType, participants } = req.body
+  const { localId, crewName, grandTotal, tipAmount, tipPercent, payerName, payerContact, payerContactType, participants, language } = req.body
 
   if (!localId || !Array.isArray(participants) || participants.length === 0) {
     return res.status(400).json({ error: 'invalid_body' })
   }
+
+  const billLanguage = SUPPORTED_LANGUAGES.includes(language) ? language : 'uz'
 
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
 
     const billResult = await client.query(
-      `INSERT INTO bills (local_id, crew_name, grand_total, tip_amount, tip_percent, payer_name, payer_contact, payer_contact_type)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO bills (local_id, crew_name, grand_total, tip_amount, tip_percent, payer_name, payer_contact, payer_contact_type, language)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        ON CONFLICT (local_id) DO UPDATE SET
          crew_name = EXCLUDED.crew_name,
          grand_total = EXCLUDED.grand_total,
@@ -70,7 +74,8 @@ router.post('/bills', async (req, res) => {
          tip_percent = EXCLUDED.tip_percent,
          payer_name = EXCLUDED.payer_name,
          payer_contact = EXCLUDED.payer_contact,
-         payer_contact_type = EXCLUDED.payer_contact_type
+         payer_contact_type = EXCLUDED.payer_contact_type,
+         language = EXCLUDED.language
        RETURNING id`,
       [
         localId,
@@ -81,6 +86,7 @@ router.post('/bills', async (req, res) => {
         payerName || null,
         payerContact || null,
         payerContactType === 'phone' ? 'phone' : 'card',
+        billLanguage,
       ]
     )
     const billId = billResult.rows[0].id

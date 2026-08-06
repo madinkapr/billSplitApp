@@ -1,5 +1,5 @@
 const pool = require('../db')
-const { getBot, buildOwedMessage, paidKeyboard } = require('./telegramBot')
+const { getBot, buildOwedMessage, paidKeyboard, fmtSom, getMessages, langFromTelegramCode } = require('./telegramBot')
 
 function register() {
   const bot = getBot()
@@ -8,7 +8,8 @@ function register() {
   bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
     const token = match[1]?.trim()
     if (!token) {
-      return bot.sendMessage(msg.chat.id, "Salom! Bu TabUp bot — hisob-kitob havolasi orqali ochiladi.")
+      const msgs = getMessages(langFromTelegramCode(msg.from.language_code))
+      return bot.sendMessage(msg.chat.id, msgs.initial)
     }
 
     const { rows } = await pool.query(
@@ -18,7 +19,8 @@ function register() {
     )
     const participant = rows[0]
     if (!participant) {
-      return bot.sendMessage(msg.chat.id, 'Havola topilmadi yoki eskirgan.')
+      const msgs = getMessages(langFromTelegramCode(msg.from.language_code))
+      return bot.sendMessage(msg.chat.id, msgs.linkNotFound)
     }
 
     const billResult = await pool.query('SELECT * FROM bills WHERE id = $1', [participant.bill_id])
@@ -34,7 +36,7 @@ function register() {
       ])
     } catch (err) {
       console.error('Failed to send owed message:', err.message)
-      await bot.sendMessage(msg.chat.id, "Xabar yuborishda xatolik yuz berdi. To'lovchiga murojaat qiling.")
+      await bot.sendMessage(msg.chat.id, getMessages(bill?.language).sendError)
     }
   })
 
@@ -47,11 +49,18 @@ function register() {
        WHERE id = $1 AND paid = false RETURNING *`,
       [participantId]
     )
-    await bot.answerCallbackQuery(query.id, { text: 'Rahmat! ✅' })
-
     const participant = rows[0]
+
+    let billLanguage
     if (participant) {
-      await bot.editMessageText(`✅ To'landi — ${Math.round(participant.amount).toLocaleString('en-US')} so'm`, {
+      const billResult = await pool.query('SELECT language FROM bills WHERE id = $1', [participant.bill_id])
+      billLanguage = billResult.rows[0]?.language
+    }
+    const msgs = getMessages(billLanguage)
+    await bot.answerCallbackQuery(query.id, { text: msgs.thanks })
+
+    if (participant) {
+      await bot.editMessageText(msgs.paidConfirm(fmtSom(participant.amount)), {
         chat_id: query.message.chat.id,
         message_id: query.message.message_id,
       })

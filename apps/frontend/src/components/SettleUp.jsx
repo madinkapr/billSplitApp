@@ -48,7 +48,7 @@ function ParticipantRow({ participant, onShare, onRemind, reminding, copied }) {
 }
 
 export default function SettleUp({ bill, onBack, onChange }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { fmt } = useCurrency()
   const [payerInfo, setPayerInfo] = useLocalStorage('tabup_payer_info', { name: '', contact: '', contactType: 'card' })
 
@@ -111,6 +111,7 @@ export default function SettleUp({ bill, onBack, onChange }) {
           payerName: payerName.trim(),
           payerContact: payerContact.trim(),
           payerContactType,
+          language: i18n.language,
           participants: participants.map((p) => ({ localId: p.id, name: p.name, amount: p.finalTotal })),
         }),
       })

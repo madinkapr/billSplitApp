@@ -25,6 +25,7 @@ ALTER TABLE bills ADD COLUMN IF NOT EXISTS local_id TEXT UNIQUE;
 ALTER TABLE bills ADD COLUMN IF NOT EXISTS payer_name TEXT;
 ALTER TABLE bills ADD COLUMN IF NOT EXISTS payer_contact TEXT;
 ALTER TABLE bills ADD COLUMN IF NOT EXISTS payer_contact_type TEXT DEFAULT 'card';
+ALTER TABLE bills ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'uz';
 
 CREATE TABLE IF NOT EXISTS bill_participants (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
