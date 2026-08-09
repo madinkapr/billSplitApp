@@ -12,15 +12,9 @@ export default function DesktopHome({ crews, recentBills, onStartNewBill, onSele
     <div className="flex flex-col gap-[30px]" style={{ padding: '40px 44px' }}>
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div
-          className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg, #8b7bff, #5a4bd6)' }}
-        >
-          <span className="text-2xl leading-none">💸</span>
-        </div>
         <div>
-          <h1 className="text-[24px] font-extrabold text-desktop-text leading-tight">{t('home.title')}</h1>
-          <p className="text-sm text-desktop-textMuted">{t('home.tagline')}</p>
+          <img src="/logo-schet.png" alt="SCHET.uz" className="h-14 w-auto object-contain" />
+          <p className="text-sm text-desktop-textMuted mt-1">Hisoblarni oson bo'ling</p>
         </div>
       </div>
 

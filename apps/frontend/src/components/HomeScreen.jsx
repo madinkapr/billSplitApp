@@ -28,10 +28,7 @@ export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelec
       {/* Header */}
       <div className="bg-indigo-600 px-5 pt-14 pb-8 text-white relative">
         <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">💸</span>
-            <h1 className="text-2xl font-bold tracking-tight">{t('home.title')}</h1>
-          </div>
+          <img src="/logo-schet-white.png" alt="SCHET.uz" className="h-12 w-auto object-contain" />
           <div className="flex items-center gap-2">
             <div className="relative">
               <button
@@ -98,7 +95,7 @@ export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelec
             </div>
           </div>
         </div>
-        <p className="text-indigo-200 text-sm">{t('home.tagline')}</p>
+        <p className="text-indigo-200 text-sm">Hisoblarni oson bo'ling</p>
       </div>
 
       <div className="flex flex-col gap-4 px-5 pt-6">

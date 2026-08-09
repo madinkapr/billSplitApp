@@ -64,13 +64,9 @@ export default function Sidebar({ screen, onNavigate, collapsed, onToggleCollaps
     >
       {/* Header */}
       <div className="flex items-center gap-2 mb-8">
-        <div
-          className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg, #8b7bff, #5a4bd6)' }}
-        >
-          <span className="text-white text-base leading-none">💸</span>
-        </div>
-        {!collapsed && <span className="text-white font-extrabold text-lg flex-1 truncate">TabUp</span>}
+        {!collapsed && (
+          <img src="/logo-schet-white.png" alt="SCHET.uz" className="h-9 w-auto object-contain flex-1 min-w-0" />
+        )}
         {!collapsed && (
           <button
             onClick={onToggleCollapse}
