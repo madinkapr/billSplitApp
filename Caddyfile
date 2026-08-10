@@ -1,0 +1,7 @@
+www.schet.uz {
+    redir https://schet.uz{uri} permanent
+}
+
+schet.uz {
+    reverse_proxy frontend:80
+}

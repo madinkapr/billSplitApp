@@ -1,14 +1,30 @@
 services:
+  caddy:
+    image: caddy:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+
   frontend:
     build: ./apps/frontend
-    ports:
-      - "8890:80"
+    expose:
+      - "80"
     depends_on:
       - backend
     restart: unless-stopped
 
   backend:
     build: ./apps/backend
+    expose:
+      - "3001"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - DATABASE_URL=postgresql://tabup:${POSTGRES_PASSWORD}@db:5432/tabup
@@ -17,7 +33,9 @@ services:
       - REMINDER_DELAY_HOURS=${REMINDER_DELAY_HOURS:-24}
       - REMINDER_CRON=${REMINDER_CRON:-0 * * * *}
       - PUBLIC_BASE_URL=${PUBLIC_BASE_URL}
-      - ADMIN_KEY=${ADMIN_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
     volumes:
       - ./apps/backend/receipt_uploads:/app/uploads
     depends_on:
@@ -36,3 +54,5 @@ services:
 
 volumes:
   postgres_data:
+  caddy_data:
+  caddy_config:
