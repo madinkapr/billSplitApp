@@ -17,7 +17,7 @@ const slide = {
   transition: { type: 'spring', stiffness: 300, damping: 30 },
 }
 
-export default function MobileApp({ crews, setCrews, recentBills, screen, bill, setBill, direction, navigate, startNewBillWithCrew, saveBillToRecent }) {
+export default function MobileApp({ crews, setCrews, recentBills, screen, bill, setBill, direction, navigate, startNewBillWithCrew, saveBillToRecent, onOpenStats }) {
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center">
       <div className="w-full max-w-[500px] min-h-screen bg-white relative overflow-hidden">
@@ -32,6 +32,7 @@ export default function MobileApp({ crews, setCrews, recentBills, screen, bill, 
                 onManageCrews={() => navigate(SCREENS.CREWS)}
                 onViewBill={(bill) => navigate(SCREENS.REPORT, bill)}
                 onViewAllBills={() => navigate(SCREENS.HISTORY)}
+                onOpenStats={onOpenStats}
               />
             </motion.div>
           )}

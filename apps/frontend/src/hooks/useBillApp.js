@@ -38,8 +38,10 @@ export function useBillApp() {
 
   function saveBillToRecent(finalBill) {
     setRecentBills((prev) => {
+      const existing = prev.find((b) => b.id === finalBill.id)
+      const billWithDate = { ...finalBill, createdAt: existing?.createdAt ?? finalBill.createdAt ?? Date.now() }
       const filtered = prev.filter((b) => b.id !== finalBill.id)
-      return [finalBill, ...filtered].slice(0, 50)
+      return [billWithDate, ...filtered].slice(0, 50)
     })
   }
 

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { generateId } from '../utils/math'
 import { useOcr } from '../hooks/useOcr'
 import { useCurrency } from '../hooks/useCurrency'
+import { trackManualEntry } from '../utils/analytics'
 import OcrReviewModal from './OcrReviewModal'
 
 const TIP_PRESETS = [15, 18, 20]
@@ -237,6 +238,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
   function handleNext() {
     if (!grandTotal || parseFloat(grandTotal) <= 0) return
     if (activeMembers.length === 0) return
+    if (scanState !== 'success') trackManualEntry()
     onNext({
       ...bill,
       _adhocMembers: adhocMembers,

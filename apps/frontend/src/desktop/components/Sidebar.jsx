@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
-import { Home, Users, Clock, ChevronsLeft, ChevronsRight, Globe, Coins, Check, ChevronDown } from 'lucide-react'
+import { Home, Users, Clock, ChevronsLeft, ChevronsRight, Globe, Coins, Check, ChevronDown, BarChart2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { useCurrency } from '../../hooks/useCurrency'
+import { useIsAdmin } from '../../hooks/useIsAdmin'
 import { SCREENS } from '../../hooks/useBillApp'
 
 const LANGUAGES = [
@@ -44,12 +45,13 @@ function FooterPill({ icon: Icon, value, open, onToggle, children, collapsed }) 
   )
 }
 
-export default function Sidebar({ screen, onNavigate, collapsed, onToggleCollapse }) {
+export default function Sidebar({ screen, onNavigate, collapsed, onToggleCollapse, statsActive = false, onStatsClick }) {
   const { t, i18n } = useTranslation()
   const { currency, setCurrency, CURRENCIES } = useCurrency()
   const [language, setLanguage] = useLocalStorage('tabup_language', 'ru')
   const [langOpen, setLangOpen] = useState(false)
   const [currencyOpen, setCurrencyOpen] = useState(false)
+  const isAdmin = useIsAdmin()
 
   function changeLanguage(code) {
     setLanguage(code)
@@ -104,6 +106,23 @@ export default function Sidebar({ screen, onNavigate, collapsed, onToggleCollaps
             </button>
           )
         })}
+
+        {isAdmin && (
+          <a
+            href="/admin/stats"
+            onClick={(e) => {
+              if (!onStatsClick || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+              e.preventDefault()
+              onStatsClick()
+            }}
+            className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[14px] transition-colors ${
+              statsActive ? 'bg-white/[.12] text-white font-semibold' : 'text-white/70 hover:text-white/90 hover:bg-white/[.06] font-medium'
+            }`}
+          >
+            <BarChart2 size={18} className="flex-shrink-0" />
+            {!collapsed && <span className="truncate">{t('nav.stats')}</span>}
+          </a>
+        )}
       </nav>
 
       {/* Footer */}

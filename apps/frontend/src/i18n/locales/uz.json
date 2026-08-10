@@ -8,6 +8,7 @@
     "home": "Bosh sahifa",
     "crews": "Mening guruhlarim",
     "history": "Tarix",
+    "stats": "Statistika",
     "collapse": "Panelni yig'ish",
     "expand": "Panelni yoyish"
   },
@@ -198,5 +199,23 @@
     "subtitleCount_other": "{{count}} hisob",
     "thisWeek": "Shu hafta",
     "earlier": "Avvalroq"
+  },
+  "adminStats": {
+    "backToApp": "Ilovaga qaytish",
+    "title": "Sayt statistikasi",
+    "days": "kun",
+    "todayStat": "Bugun — {{label}}",
+    "periodStat": "{{days}} kunlik — {{label}}",
+    "uniqueVisitors": "Unikal tashrifchilar",
+    "totalViews": "Jami kirishlar",
+    "scans": "Chek skanerlandi",
+    "manualEntries": "Qo'lda kiritildi",
+    "trafficSection": "Tashrifchilar",
+    "entrySection": "Chek kiritish usuli",
+    "dateCol": "Sana",
+    "loadError": "Ma'lumotlarni yuklab bo'lmadi.",
+    "adminKeyTitle": "Admin kaliti",
+    "wrongKey": "Noto'g'ri kalit.",
+    "login": "Kirish"
   }
 }

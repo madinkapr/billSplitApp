@@ -27,6 +27,19 @@ ALTER TABLE bills ADD COLUMN IF NOT EXISTS payer_contact TEXT;
 ALTER TABLE bills ADD COLUMN IF NOT EXISTS payer_contact_type TEXT DEFAULT 'card';
 ALTER TABLE bills ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'uz';
 
+CREATE TABLE IF NOT EXISTS page_views (
+  id          BIGSERIAL PRIMARY KEY,
+  visitor_id  TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON page_views (created_at);
+
+CREATE TABLE IF NOT EXISTS manual_entries (
+  id          BIGSERIAL PRIMARY KEY,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_manual_entries_created_at ON manual_entries (created_at);
+
 CREATE TABLE IF NOT EXISTS bill_participants (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   bill_id             UUID NOT NULL REFERENCES bills(id) ON DELETE CASCADE,

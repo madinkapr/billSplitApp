@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { PlusCircle, Users, Receipt, ChevronRight, Clock, Globe, Check } from 'lucide-react'
+import { PlusCircle, Users, Receipt, ChevronRight, Clock, Globe, Check, BarChart2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { useCurrency } from '../hooks/useCurrency'
+import { useIsAdmin } from '../hooks/useIsAdmin'
 
 const LANGUAGES = [
   { code: 'uz', label: "O'zbek" },
@@ -11,13 +12,14 @@ const LANGUAGES = [
   { code: 'en', label: 'English' },
 ]
 
-export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelectCrew, onManageCrews, onViewBill, onViewAllBills }) {
+export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelectCrew, onManageCrews, onViewBill, onViewAllBills, onOpenStats }) {
   const { t, i18n } = useTranslation()
   const { currency, setCurrency, fmt, CURRENCIES } = useCurrency()
   const [language, setLanguage] = useLocalStorage('tabup_language', 'ru')
   const [langOpen, setLangOpen] = useState(false)
   const [currencyOpen, setCurrencyOpen] = useState(false)
   const recentCrews = crews.slice(0, 4)
+  const isAdmin = useIsAdmin()
 
   useEffect(() => {
     i18n.changeLanguage(language)
@@ -95,7 +97,7 @@ export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelec
             </div>
           </div>
         </div>
-        <p className="text-indigo-200 text-sm">Hisoblarni oson bo'ling</p>
+        <p className="text-indigo-200 text-sm">{t('home.tagline')}</p>
       </div>
 
       <div className="flex flex-col gap-4 px-5 pt-6">
@@ -190,6 +192,21 @@ export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelec
             <h3 className="font-semibold text-gray-700 mb-1">{t('home.emptyTitle')}</h3>
             <p className="text-sm text-gray-400">{t('home.emptyBody')}</p>
           </motion.div>
+        )}
+
+        {isAdmin && (
+          <a
+            href="/admin/stats"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+              e.preventDefault()
+              onOpenStats()
+            }}
+            className="flex items-center justify-center gap-1.5 text-xs font-medium text-gray-400 active:text-gray-500 mt-2"
+          >
+            <BarChart2 size={13} />
+            {t('nav.stats')}
+          </a>
         )}
       </div>
     </div>

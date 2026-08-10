@@ -8,6 +8,7 @@
     "home": "Home",
     "crews": "My Crews",
     "history": "History",
+    "stats": "Statistics",
     "collapse": "Collapse sidebar",
     "expand": "Expand sidebar"
   },
@@ -198,5 +199,23 @@
     "subtitleCount_other": "{{count}} bills total",
     "thisWeek": "This Week",
     "earlier": "Earlier"
+  },
+  "adminStats": {
+    "backToApp": "Back to app",
+    "title": "Site statistics",
+    "days": "days",
+    "todayStat": "Today — {{label}}",
+    "periodStat": "{{days}}-day — {{label}}",
+    "uniqueVisitors": "Unique visitors",
+    "totalViews": "Total views",
+    "scans": "Receipt scans",
+    "manualEntries": "Manual entries",
+    "trafficSection": "Traffic",
+    "entrySection": "Receipt entry method",
+    "dateCol": "Date",
+    "loadError": "Failed to load data.",
+    "adminKeyTitle": "Admin key",
+    "wrongKey": "Invalid key.",
+    "login": "Log in"
   }
 }

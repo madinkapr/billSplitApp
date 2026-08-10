@@ -3,8 +3,13 @@ import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrency } from '../../hooks/useCurrency'
 
+function formatBillDate(createdAt, language) {
+  if (!createdAt) return null
+  return new Date(createdAt).toLocaleDateString(language, { day: 'numeric', month: 'short' })
+}
+
 export default function DesktopHistory({ recentBills, onViewBill }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { fmt } = useCurrency()
 
   return (
@@ -37,6 +42,7 @@ export default function DesktopHistory({ recentBills, onViewBill }) {
                 <p className="font-semibold text-[14px] text-desktop-text truncate">{bill.crewName || t('home.quickSplit')}</p>
                 <p className="text-[12.5px] text-desktop-textMuted3">
                   {t('billHistory.peopleCount', { count: bill.activeMembers?.length || 0 })} · {fmt(bill.grandTotal || 0)}
+                  {formatBillDate(bill.createdAt, i18n.language) && ` · ${formatBillDate(bill.createdAt, i18n.language)}`}
                 </p>
               </span>
               <ChevronRight size={18} className="text-desktop-textMuted3 flex-shrink-0" />

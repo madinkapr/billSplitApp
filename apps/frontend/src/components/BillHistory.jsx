@@ -4,8 +4,13 @@ import { ArrowLeft, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrency } from '../hooks/useCurrency'
 
+function formatBillDate(createdAt, language) {
+  if (!createdAt) return null
+  return new Date(createdAt).toLocaleDateString(language, { day: 'numeric', month: 'short' })
+}
+
 export default function BillHistory({ recentBills, onBack, onViewBill }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { fmt } = useCurrency()
   return (
     <div className="flex flex-col min-h-screen pb-8">
@@ -38,7 +43,10 @@ export default function BillHistory({ recentBills, onBack, onViewBill }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 text-sm">{bill.crewName || t('home.quickSplit')}</p>
-                  <p className="text-xs text-gray-400">{t('billHistory.peopleCount', { count: bill.activeMembers?.length || 0 })} · {fmt(bill.grandTotal || 0)}</p>
+                  <p className="text-xs text-gray-400">
+                    {t('billHistory.peopleCount', { count: bill.activeMembers?.length || 0 })} · {fmt(bill.grandTotal || 0)}
+                    {formatBillDate(bill.createdAt, i18n.language) && ` · ${formatBillDate(bill.createdAt, i18n.language)}`}
+                  </p>
                 </div>
                 <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
               </motion.button>

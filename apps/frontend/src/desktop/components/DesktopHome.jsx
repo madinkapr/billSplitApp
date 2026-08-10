@@ -14,7 +14,7 @@ export default function DesktopHome({ crews, recentBills, onStartNewBill, onSele
       <div className="flex items-center gap-3">
         <div>
           <img src="/logo-schet.png" alt="SCHET.uz" className="h-14 w-auto object-contain" />
-          <p className="text-sm text-desktop-textMuted mt-1">Hisoblarni oson bo'ling</p>
+          <p className="text-sm text-desktop-textMuted mt-1">{t('home.tagline')}</p>
         </div>
       </div>
 
@@ -26,8 +26,8 @@ export default function DesktopHome({ crews, recentBills, onStartNewBill, onSele
           style={{
             flex: 1.3,
             padding: '26px 28px',
-            background: 'linear-gradient(135deg, #8b7bff, #5a4bd6)',
-            boxShadow: '0 10px 20px -6px rgba(81,64,214,.48)',
+            background: 'linear-gradient(135deg, #3e8ee8, #114f9e)',
+            boxShadow: '0 10px 20px -6px rgba(22,105,211,.48)',
           }}
         >
           <span className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">

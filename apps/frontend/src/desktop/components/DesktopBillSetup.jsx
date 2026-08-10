@@ -87,7 +87,7 @@ function ScanCards({ scanState, errorMessage, onScan, onRetry, onRescan }) {
       <button
         onClick={() => cameraRef.current?.click()}
         className="flex-1 flex items-center gap-3 rounded-2xl text-white text-left"
-        style={{ padding: '18px 20px', background: 'linear-gradient(135deg, #8b7bff, #5a4bd6)' }}
+        style={{ padding: '18px 20px', background: 'linear-gradient(135deg, #3e8ee8, #114f9e)' }}
       >
         <ScanLine size={20} className="flex-shrink-0" />
         <span>
@@ -411,7 +411,7 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
           onClick={handleNext}
           disabled={!canProceed}
           className="w-full rounded-2xl text-white font-bold text-[15px] py-4 flex items-center justify-center gap-2 disabled:opacity-40"
-          style={{ background: 'linear-gradient(135deg, #8b7bff, #5a4bd6)', boxShadow: '0 10px 20px -6px rgba(81,64,214,.48)' }}
+          style={{ background: 'linear-gradient(135deg, #3e8ee8, #114f9e)', boxShadow: '0 10px 20px -6px rgba(22,105,211,.48)' }}
         >
           {t('billSetup.addItems')} <ArrowRight size={18} />
         </button>

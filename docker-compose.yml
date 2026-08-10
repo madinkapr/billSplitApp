@@ -17,6 +17,7 @@ services:
       - REMINDER_DELAY_HOURS=${REMINDER_DELAY_HOURS:-24}
       - REMINDER_CRON=${REMINDER_CRON:-0 * * * *}
       - PUBLIC_BASE_URL=${PUBLIC_BASE_URL}
+      - ADMIN_KEY=${ADMIN_KEY}
     volumes:
       - ./apps/backend/receipt_uploads:/app/uploads
     depends_on:

@@ -8,6 +8,7 @@
     "home": "Главная",
     "crews": "Мои группы",
     "history": "История",
+    "stats": "Статистика",
     "collapse": "Свернуть панель",
     "expand": "Развернуть панель"
   },
@@ -206,5 +207,23 @@
     "subtitleCount_other": "{{count}} счёта всего",
     "thisWeek": "На этой неделе",
     "earlier": "Ранее"
+  },
+  "adminStats": {
+    "backToApp": "Вернуться в приложение",
+    "title": "Статистика сайта",
+    "days": "дней",
+    "todayStat": "Сегодня — {{label}}",
+    "periodStat": "{{days}} дней — {{label}}",
+    "uniqueVisitors": "Уникальные посетители",
+    "totalViews": "Всего просмотров",
+    "scans": "Сканы чека",
+    "manualEntries": "Ручной ввод",
+    "trafficSection": "Посещаемость",
+    "entrySection": "Способ ввода чека",
+    "dateCol": "Дата",
+    "loadError": "Не удалось загрузить данные.",
+    "adminKeyTitle": "Ключ администратора",
+    "wrongKey": "Неверный ключ.",
+    "login": "Войти"
   }
 }

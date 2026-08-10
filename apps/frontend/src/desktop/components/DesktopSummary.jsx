@@ -87,7 +87,7 @@ export default function DesktopSummary({ bill, onReset, onSettleUp, onNewWithSam
   return (
     <div>
       {/* Header band */}
-      <div style={{ padding: '30px 44px', background: 'linear-gradient(135deg, #8b7bff, #5a4bd6)' }} className="text-white">
+      <div style={{ padding: '30px 44px', background: 'linear-gradient(135deg, #3e8ee8, #114f9e)' }} className="text-white">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-2xl">{bill.crewEmoji || '🍽️'}</span>
           <h1 className="text-2xl font-extrabold">{bill.crewName || t('report.billSplitFallback')}</h1>

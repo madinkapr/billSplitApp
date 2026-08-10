@@ -38,7 +38,7 @@ export default function MemberCard({
 
   let cardStyle = 'border-[1.5px] border-line bg-white' // filled (default)
   if (isDropTarget) {
-    cardStyle = 'border-2 border-accent bg-accent-tint shadow-[0_0_0_4px_rgba(108,92,231,.12)]'
+    cardStyle = 'border-2 border-accent bg-accent-tint shadow-[0_0_0_4px_rgba(22,105,211,.12)]'
   } else if (assignedRows.length === 0) {
     cardStyle = 'border-[1.5px] border-dashed border-line-dashed bg-white'
   }

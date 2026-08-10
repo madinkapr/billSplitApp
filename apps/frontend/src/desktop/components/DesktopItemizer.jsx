@@ -390,7 +390,7 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange }) {
                 onClick={handleNext}
                 disabled={items.length === 0 || !allAssigned}
                 className="w-full rounded-xl text-white font-bold text-sm py-3 flex items-center justify-center gap-2 disabled:opacity-40"
-                style={{ background: 'linear-gradient(135deg, #8b7bff, #5a4bd6)' }}
+                style={{ background: 'linear-gradient(135deg, #3e8ee8, #114f9e)' }}
               >
                 {t('itemizer.calculateSplit')} <ArrowRight size={16} />
               </button>

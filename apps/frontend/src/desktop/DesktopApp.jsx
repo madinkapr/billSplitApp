@@ -11,7 +11,7 @@ import DesktopItemizer from './components/DesktopItemizer'
 import DesktopSummary from './components/DesktopSummary'
 import SettleUp from '../components/SettleUp'
 
-export default function DesktopApp({ crews, setCrews, recentBills, screen, bill, setBill, navigate, startNewBillWithCrew, saveBillToRecent }) {
+export default function DesktopApp({ crews, setCrews, recentBills, screen, bill, setBill, navigate, startNewBillWithCrew, saveBillToRecent, onOpenStats }) {
   const [collapsed, setCollapsed] = useLocalStorage('tabup_sidebar_collapsed', false)
 
   function navFromSidebar(target) {
@@ -26,6 +26,7 @@ export default function DesktopApp({ crews, setCrews, recentBills, screen, bill,
         onNavigate={navFromSidebar}
         collapsed={collapsed}
         onToggleCollapse={() => setCollapsed((p) => !p)}
+        onStatsClick={onOpenStats}
       />
 
       <div className="flex-1 min-w-0 overflow-y-auto">

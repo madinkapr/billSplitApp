@@ -6,6 +6,7 @@ const path = require('path')
 const pool = require('./db')
 const ocrRouter = require('./routes/ocr')
 const settleRouter = require('./routes/settle')
+const analyticsRouter = require('./routes/analytics')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -19,6 +20,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/ocr', ocrRouter)
 app.use('/api/settle', settleRouter)
+app.use('/api/analytics', analyticsRouter)
 
 async function initDb() {
   const schema = fs.readFileSync(path.join(__dirname, 'db/schema.sql'), 'utf8')
