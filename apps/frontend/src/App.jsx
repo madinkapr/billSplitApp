@@ -7,7 +7,7 @@ import AdminStatsPage from './admin/AdminStatsPage'
 import { trackPageView } from './utils/analytics'
 
 function getRouteFromLocation() {
-  return window.location.pathname === '/admin/stats' ? 'admin' : 'app'
+  return window.location.pathname.startsWith('/admin') ? 'admin' : 'app'
 }
 
 export default function App() {

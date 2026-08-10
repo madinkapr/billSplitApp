@@ -1,5 +1,6 @@
 const express = require('express')
 const pool = require('../db')
+const requireAdmin = require('../middleware/requireAdmin')
 
 const router = express.Router()
 
@@ -29,14 +30,6 @@ router.post('/manual-entry', async (req, res) => {
     res.status(500).json({ error: 'server_error' })
   }
 })
-
-function requireAdmin(req, res, next) {
-  const adminKey = process.env.ADMIN_KEY
-  if (!adminKey || req.get('x-admin-key') !== adminKey) {
-    return res.status(401).json({ error: 'unauthorized' })
-  }
-  next()
-}
 
 const DAY_QUERY = (table) => `
   SELECT to_char(created_at AT TIME ZONE 'Asia/Tashkent', 'YYYY-MM-DD') AS day, COUNT(*)::int AS count

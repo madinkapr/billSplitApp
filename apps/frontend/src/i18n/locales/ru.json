@@ -222,8 +222,12 @@
     "entrySection": "Способ ввода чека",
     "dateCol": "Дата",
     "loadError": "Не удалось загрузить данные.",
-    "adminKeyTitle": "Ключ администратора",
+    "adminKeyTitle": "Вход для администратора",
+    "username": "Логин",
+    "password": "Пароль",
     "wrongKey": "Неверный ключ.",
-    "login": "Войти"
+    "invalidCredentials": "Неверный логин или пароль.",
+    "login": "Войти",
+    "logout": "Выйти"
   }
 }

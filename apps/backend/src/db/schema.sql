@@ -40,6 +40,13 @@ CREATE TABLE IF NOT EXISTS manual_entries (
 );
 CREATE INDEX IF NOT EXISTS idx_manual_entries_created_at ON manual_entries (created_at);
 
+CREATE TABLE IF NOT EXISTS admins (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  username      TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS bill_participants (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   bill_id             UUID NOT NULL REFERENCES bills(id) ON DELETE CASCADE,

@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Lock, Loader2, Table as TableIcon, LineChart as LineChartIcon, ArrowLeft } from 'lucide-react'
+import { Lock, Loader2, Table as TableIcon, LineChart as LineChartIcon, ArrowLeft, LogOut, Eye, EyeOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import Sidebar from '../desktop/components/Sidebar'
 
-const ADMIN_KEY_STORAGE = 'tabup_admin_key'
+const ADMIN_TOKEN_STORAGE = 'tabup_admin_token'
 const RANGE_OPTIONS = [7, 30, 90]
 const ALL_KEYS = ['uniqueVisitors', 'totalViews', 'scans', 'manualEntries']
 const TRAFFIC_COLORS = { uniqueVisitors: '#2a78d6', totalViews: '#eb6834' }
@@ -69,9 +69,9 @@ function fillRange(rows, days) {
   return out
 }
 
-async function fetchStats(adminKey, days) {
+async function fetchStats(token, days) {
   const res = await fetch(`/api/analytics/stats?days=${days}`, {
-    headers: { 'x-admin-key': adminKey },
+    headers: { Authorization: `Bearer ${token}` },
   })
   if (res.status === 401) throw Object.assign(new Error('unauthorized'), { code: 401 })
   if (!res.ok) throw new Error('server_error')
@@ -79,15 +79,28 @@ async function fetchStats(adminKey, days) {
   return json.days
 }
 
+async function loginRequest(username, password) {
+  const res = await fetch('/api/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  })
+  if (!res.ok) throw Object.assign(new Error('unauthorized'), { code: res.status })
+  const json = await res.json()
+  return json.token
+}
+
 function LoginForm({ onSubmit, error, loading }) {
   const { t } = useTranslation()
-  const [value, setValue] = useState('')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          onSubmit(value)
+          onSubmit(username, password)
         }}
         className="card w-full max-w-sm p-6 space-y-4"
       >
@@ -96,15 +109,34 @@ function LoginForm({ onSubmit, error, loading }) {
           <h1 className="font-semibold text-lg">{t('adminStats.adminKeyTitle')}</h1>
         </div>
         <input
-          type="password"
+          type="text"
           autoFocus
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder="ADMIN_KEY"
+          autoComplete="username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder={t('adminStats.username')}
           className="input-field"
         />
-        {error && <p className="text-sm text-red-600">{t('adminStats.wrongKey')}</p>}
-        <button type="submit" disabled={loading || !value} className="btn-primary w-full">
+        <div className="relative">
+          <input
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder={t('adminStats.password')}
+            className="input-field pr-10 w-full"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((p) => !p)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
+        {error && <p className="text-sm text-red-600">{t('adminStats.invalidCredentials')}</p>}
+        <button type="submit" disabled={loading || !username || !password} className="btn-primary w-full">
           {loading ? <Loader2 size={16} className="animate-spin" /> : t('adminStats.login')}
         </button>
       </form>
@@ -417,7 +449,7 @@ function StatsBody({ theme, t, days, setDays, rows, error, data, today, periodTo
 }
 
 function MobileLayout(props) {
-  const { t, days, setDays, onBack } = props
+  const { t, days, setDays, onBack, onLogout } = props
   const theme = THEMES.mobile
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center">
@@ -427,6 +459,9 @@ function MobileLayout(props) {
             <ArrowLeft size={20} />
           </button>
           <h1 className="text-lg font-bold flex-1">{t('adminStats.title')}</h1>
+          <button onClick={onLogout} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors" title={t('adminStats.logout')}>
+            <LogOut size={18} />
+          </button>
         </div>
 
         <div className="px-4 flex flex-col gap-5">
@@ -439,7 +474,7 @@ function MobileLayout(props) {
 }
 
 function DesktopLayout(props) {
-  const { t, days, setDays, onBack } = props
+  const { t, days, setDays, onBack, onLogout } = props
   const theme = THEMES.desktop
   const [collapsed, setCollapsed] = useLocalStorage('tabup_sidebar_collapsed', false)
 
@@ -457,7 +492,16 @@ function DesktopLayout(props) {
         <div className="flex flex-col gap-[30px]" style={{ padding: '40px 44px' }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <h1 className={theme.heading}>{t('adminStats.title')}</h1>
-            <RangeToggle theme={theme} days={days} setDays={setDays} t={t} />
+            <div className="flex items-center gap-3">
+              <RangeToggle theme={theme} days={days} setDays={setDays} t={t} />
+              <button
+                onClick={onLogout}
+                className="w-9 h-9 flex items-center justify-center rounded-xl border border-desktop-cardBorder hover:bg-desktop-content transition-colors"
+                title={t('adminStats.logout')}
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
           </div>
           <StatsBody theme={theme} {...props} />
         </div>
@@ -469,7 +513,7 @@ function DesktopLayout(props) {
 export default function AdminStatsPage({ onBack }) {
   const { t } = useTranslation()
   const isDesktop = useIsDesktop()
-  const [authed, setAuthed] = useState(() => !!localStorage.getItem(ADMIN_KEY_STORAGE))
+  const [authed, setAuthed] = useState(() => !!localStorage.getItem(ADMIN_TOKEN_STORAGE))
   const [loginError, setLoginError] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
   const [days, setDays] = useState(30)
@@ -487,13 +531,13 @@ export default function AdminStatsPage({ onBack }) {
 
   useEffect(() => {
     if (!authed) return
-    const key = localStorage.getItem(ADMIN_KEY_STORAGE)
+    const token = localStorage.getItem(ADMIN_TOKEN_STORAGE)
     setError(null)
-    fetchStats(key, days)
+    fetchStats(token, days)
       .then(setRows)
       .catch((err) => {
         if (err.code === 401) {
-          localStorage.removeItem(ADMIN_KEY_STORAGE)
+          localStorage.removeItem(ADMIN_TOKEN_STORAGE)
           setAuthed(false)
         } else {
           setError('server_error')
@@ -501,12 +545,13 @@ export default function AdminStatsPage({ onBack }) {
       })
   }, [authed, days])
 
-  async function handleLogin(key) {
+  async function handleLogin(username, password) {
     setLoginLoading(true)
     setLoginError(false)
     try {
-      const data = await fetchStats(key, days)
-      localStorage.setItem(ADMIN_KEY_STORAGE, key)
+      const token = await loginRequest(username, password)
+      const data = await fetchStats(token, days)
+      localStorage.setItem(ADMIN_TOKEN_STORAGE, token)
       setRows(data)
       setAuthed(true)
     } catch {
@@ -514,6 +559,12 @@ export default function AdminStatsPage({ onBack }) {
     } finally {
       setLoginLoading(false)
     }
+  }
+
+  function handleLogout() {
+    localStorage.removeItem(ADMIN_TOKEN_STORAGE)
+    setRows(null)
+    setAuthed(false)
   }
 
   const data = useMemo(() => (rows ? fillRange(rows, days) : []), [rows, days])
@@ -531,7 +582,7 @@ export default function AdminStatsPage({ onBack }) {
     return <LoginForm onSubmit={handleLogin} error={loginError} loading={loginLoading} />
   }
 
-  const layoutProps = { t, days, setDays, rows, error, data, today, periodTotals, trafficLabels, entryLabels, onBack }
+  const layoutProps = { t, days, setDays, rows, error, data, today, periodTotals, trafficLabels, entryLabels, onBack, onLogout: handleLogout }
 
   return isDesktop ? <DesktopLayout {...layoutProps} /> : <MobileLayout {...layoutProps} />
 }

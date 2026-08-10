@@ -214,8 +214,12 @@
     "entrySection": "Chek kiritish usuli",
     "dateCol": "Sana",
     "loadError": "Ma'lumotlarni yuklab bo'lmadi.",
-    "adminKeyTitle": "Admin kaliti",
+    "adminKeyTitle": "Admin kirishi",
+    "username": "Login",
+    "password": "Parol",
     "wrongKey": "Noto'g'ri kalit.",
-    "login": "Kirish"
+    "invalidCredentials": "Login yoki parol noto'g'ri.",
+    "login": "Kirish",
+    "logout": "Chiqish"
   }
 }
