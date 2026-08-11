@@ -5,7 +5,19 @@ function register() {
   const bot = getBot()
   if (!bot) return
 
-  bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
+  // Thin sync wrappers so a rejected promise anywhere inside (DB hiccup, a Telegram API
+  // error like "message is not modified") can never crash the whole bot process — that
+  // would take down Settle Up for every real user, not just the one who triggered it.
+  bot.onText(/\/start(?:\s+(.+))?/, (msg, match) => {
+    handleStart(bot, msg, match).catch((err) => console.error('handlers /start failed:', err.message))
+  })
+
+  bot.on('callback_query', (query) => {
+    handlePayCallback(bot, query).catch((err) => console.error('handlers callback_query failed:', err.message))
+  })
+}
+
+async function handleStart(bot, msg, match) {
     const token = match[1]?.trim()
     if (!token) {
       const msgs = getMessages(langFromTelegramCode(msg.from.language_code))
@@ -38,9 +50,9 @@ function register() {
       console.error('Failed to send owed message:', err.message)
       await bot.sendMessage(msg.chat.id, getMessages(bill?.language).sendError)
     }
-  })
+}
 
-  bot.on('callback_query', async (query) => {
+async function handlePayCallback(bot, query) {
     const [action, participantId] = (query.data || '').split(':')
     if (action !== 'pay') return
 
@@ -51,12 +63,12 @@ function register() {
     )
     const participant = rows[0]
 
-    let billLanguage
+    let bill
     if (participant) {
-      const billResult = await pool.query('SELECT language FROM bills WHERE id = $1', [participant.bill_id])
-      billLanguage = billResult.rows[0]?.language
+      const billResult = await pool.query('SELECT language, created_by_chat_id FROM bills WHERE id = $1', [participant.bill_id])
+      bill = billResult.rows[0]
     }
-    const msgs = getMessages(billLanguage)
+    const msgs = getMessages(bill?.language)
     await bot.answerCallbackQuery(query.id, { text: msgs.thanks })
 
     if (participant) {
@@ -65,7 +77,22 @@ function register() {
         message_id: query.message.message_id,
       })
     }
-  })
+
+    // Best-effort live update to whoever ran /newbill for this bill (bot-created bills
+    // only — bill.created_by_chat_id is NULL for web-app bills). Never let this break
+    // the payment confirmation above if it fails (e.g. the payer blocked the bot).
+    if (participant && bill?.created_by_chat_id) {
+      try {
+        const countResult = await pool.query(
+          'SELECT COUNT(*) FILTER (WHERE paid) AS paid, COUNT(*) AS total FROM bill_participants WHERE bill_id = $1',
+          [participant.bill_id]
+        )
+        const { paid, total } = countResult.rows[0]
+        await bot.sendMessage(bill.created_by_chat_id, getMessages(bill.language).newBill.status.paymentUpdate(participant.name, paid, total))
+      } catch (err) {
+        console.error('Payer notification failed:', err.message)
+      }
+    }
 }
 
 module.exports = { register }
