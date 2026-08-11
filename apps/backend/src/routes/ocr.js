@@ -69,19 +69,60 @@ const ERROR_MAP = {
   PARSE_ERROR: { status: 422, error: 'Receipt format not recognized. Enter details manually.' },
   IMAGE_UNREADABLE: { status: 422, error: 'Could not read receipt. Try a clearer photo.' },
   GEMINI_KEY_INVALID: { status: 503, error: 'OCR service unavailable.' },
+  GEMINI_KEY_FORBIDDEN: { status: 503, error: 'OCR service unavailable.' },
+  GEMINI_BAD_REQUEST: { status: 502, error: 'OCR service error. Try again.' },
+  GEMINI_MODEL_UNAVAILABLE: { status: 503, error: 'OCR service unavailable.' },
   GEMINI_RATE_LIMIT: { status: 429, error: 'Too many requests. Try again in a moment.' },
   GEMINI_SERVER_ERROR: { status: 502, error: 'OCR service error. Try again.' },
   TIMEOUT: { status: 504, error: 'Scan took too long. Try again.' },
   NETWORK_ERROR: { status: 502, error: 'Connection error. Please try again.' },
 }
 
+// @google/genai throws ApiError with a numeric .status; some transports nest it
+// under .response.status or embed the API's JSON envelope in .message.
+function geminiStatusCode(err) {
+  if (typeof err?.status === 'number') return err.status
+  if (typeof err?.response?.status === 'number') return err.response.status
+  if (typeof err?.code === 'number') return err.code
+  try {
+    const parsed = JSON.parse(err?.message || '')
+    if (typeof parsed?.error?.code === 'number') return parsed.error.code
+  } catch {
+    /* message is not the JSON envelope */
+  }
+  return null
+}
+
 function mapGeminiError(err) {
-  const msg = err.message || ''
-  if (msg.includes('API_KEY') || msg.includes('401')) return 'GEMINI_KEY_INVALID'
-  if (msg.includes('429') || msg.includes('quota')) return 'GEMINI_RATE_LIMIT'
-  if (msg.includes('500') || msg.includes('503')) return 'GEMINI_SERVER_ERROR'
-  if (err.name === 'AbortError' || msg.includes('timeout')) return 'TIMEOUT'
-  if (msg.includes('fetch') || msg.includes('ECONNREFUSED')) return 'NETWORK_ERROR'
+  const msg = (err.message || '').toLowerCase()
+
+  if (err.name === 'AbortError' || msg.includes('timeout') || msg.includes('aborted')) return 'TIMEOUT'
+
+  switch (geminiStatusCode(err)) {
+    case 400:
+      // "API key not valid" is reported as 400 INVALID_ARGUMENT, not 401
+      return msg.includes('api key') ? 'GEMINI_KEY_INVALID' : 'GEMINI_BAD_REQUEST'
+    case 401:
+      return 'GEMINI_KEY_INVALID'
+    case 403:
+      // key restrictions (referrer/IP/API), or Generative Language API disabled on the project
+      return 'GEMINI_KEY_FORBIDDEN'
+    case 404:
+      // configured model retired, renamed, or closed to new API keys
+      return 'GEMINI_MODEL_UNAVAILABLE'
+    case 429:
+      return 'GEMINI_RATE_LIMIT'
+    case 500:
+    case 502:
+    case 503:
+    case 504:
+      return 'GEMINI_SERVER_ERROR'
+  }
+
+  if (msg.includes('api key') || msg.includes('api_key')) return 'GEMINI_KEY_INVALID'
+  if (msg.includes('permission') || msg.includes('forbidden')) return 'GEMINI_KEY_FORBIDDEN'
+  if (msg.includes('quota') || msg.includes('rate limit')) return 'GEMINI_RATE_LIMIT'
+  if (msg.includes('fetch') || msg.includes('econnrefused') || msg.includes('enotfound')) return 'NETWORK_ERROR'
   return 'GEMINI_SERVER_ERROR'
 }
 
@@ -138,7 +179,11 @@ router.post('/scan', (req, res) => {
       let rawText
       try {
         const result = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-lite',
+          // gemini-2.5-* is closed to new API keys ("no longer available to new
+          // users", 404) — it only kept working on older grandfathered keys.
+          // Pinned, not gemini-flash-lite-latest: OCR_PROMPT is tuned for this
+          // model and a floating alias could regress parsing without warning.
+          model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
           contents: [
             {
               parts: [
@@ -152,7 +197,13 @@ router.post('/scan', (req, res) => {
         rawText = result.candidates?.[0]?.content?.parts?.[0]?.text || ''
       } catch (geminiErr) {
         clearTimeout(timeout)
-        console.error('[Gemini error]', geminiErr?.message, geminiErr?.status, JSON.stringify(geminiErr))
+        console.error('[Gemini error]', {
+          name: geminiErr?.name,
+          httpStatus: geminiStatusCode(geminiErr),
+          message: geminiErr?.message,
+          // key fingerprint only — never log the key itself
+          keyTail: (process.env.GEMINI_API_KEY || '').slice(-6) || '(unset)',
+        })
         errorCode = mapGeminiError(geminiErr)
         throw geminiErr
       }
