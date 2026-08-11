@@ -9,6 +9,9 @@ CREATE TABLE IF NOT EXISTS receipts (
   ocr_result  JSONB,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
+-- Bot-sourced receipts (downloaded from Telegram into memory) never touch local disk,
+-- unlike web-app uploads (saved via multer) — so filepath has nothing to store for them.
+ALTER TABLE receipts ALTER COLUMN filepath DROP NOT NULL;
 
 CREATE TABLE IF NOT EXISTS bills (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -26,6 +29,13 @@ ALTER TABLE bills ADD COLUMN IF NOT EXISTS payer_name TEXT;
 ALTER TABLE bills ADD COLUMN IF NOT EXISTS payer_contact TEXT;
 ALTER TABLE bills ADD COLUMN IF NOT EXISTS payer_contact_type TEXT DEFAULT 'card';
 ALTER TABLE bills ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'uz';
+-- Set only when a bill is created via the bot's /newbill flow (NULL for web-app bills) —
+-- lets the bot push a "so-and-so paid" update back to whoever ran /newbill, and lets
+-- /status look up "the bill I most recently created" without needing its ID remembered.
+ALTER TABLE bills ADD COLUMN IF NOT EXISTS created_by_chat_id BIGINT;
+-- The web-app's currency is a global browser setting, never persisted per-bill. The bot's
+-- /newbill asks per-bill, so this column exists so /status can format amounts correctly later.
+ALTER TABLE bills ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'UZS';
 
 CREATE TABLE IF NOT EXISTS page_views (
   id          BIGSERIAL PRIMARY KEY,
@@ -64,3 +74,21 @@ CREATE TABLE IF NOT EXISTS bill_participants (
   created_at          TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (bill_id, member_local_id)
 );
+
+-- Tracks each Telegram chat's in-progress /newbill conversation. Bots poll for messages
+-- statelessly, so "which step is this chat on" has to be persisted somewhere that survives
+-- a server restart — this row is that somewhere.
+CREATE TABLE IF NOT EXISTS bot_sessions (
+  telegram_chat_id BIGINT PRIMARY KEY,
+  state             TEXT NOT NULL,
+  draft             JSONB NOT NULL DEFAULT '{}',
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- One row per /newbill start, mirroring page_views/manual_entries — feeds the admin
+-- stats dashboard's "bills started via the bot" metric (see routes/analytics.js).
+CREATE TABLE IF NOT EXISTS bot_starts (
+  id          BIGSERIAL PRIMARY KEY,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_bot_starts_created_at ON bot_starts (created_at);
