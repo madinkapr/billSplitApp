@@ -12,46 +12,50 @@ function ItemRow({ item, onChange, onDelete }) {
   const hasError = !item.name.trim() || parseFloat(item.unitPrice) <= 0
 
   return (
-    <div className={`flex items-center gap-2 py-2 border-b border-gray-100 last:border-0 ${hasError ? 'bg-red-50 rounded-xl px-2' : ''}`}>
-      <input
-        type="number"
-        min="1"
-        value={item.quantity}
-        onChange={(e) => {
-          const qty = Math.max(1, parseInt(e.target.value) || 1)
-          onChange({ ...item, quantity: qty, price: (parseFloat(item.unitPrice) || 0) * qty })
-        }}
-        className="w-12 text-center border border-gray-200 rounded-lg py-1.5 text-sm font-semibold focus:outline-none focus:border-indigo-400"
-      />
-      <input
-        type="text"
-        value={item.name}
-        placeholder={t('ocrReview.itemNamePlaceholder')}
-        onChange={(e) => onChange({ ...item, name: e.target.value })}
-        className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-indigo-400"
-      />
-      <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-        <span className="pl-2 text-gray-400 text-xs whitespace-nowrap">{symbol}</span>
+    <div className={`flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 py-2 border-b border-gray-100 last:border-0 ${hasError ? 'bg-red-50 rounded-xl px-2' : ''}`}>
+      <div className="flex items-center gap-2 sm:flex-1 sm:min-w-0">
         <input
           type="number"
-          min="0"
-          step="0.01"
-          value={item.unitPrice}
-          placeholder="0.00"
+          min="1"
+          value={item.quantity}
           onChange={(e) => {
-            const up = parseFloat(e.target.value) || 0
-            onChange({ ...item, unitPrice: e.target.value, price: up * (parseInt(item.quantity) || 1) })
+            const qty = Math.max(1, parseInt(e.target.value) || 1)
+            onChange({ ...item, quantity: qty, price: (parseFloat(item.unitPrice) || 0) * qty })
           }}
-          className="w-24 px-1 py-1.5 text-sm focus:outline-none bg-transparent"
+          className="w-12 flex-shrink-0 text-center border border-gray-200 rounded-lg py-1.5 text-sm font-semibold focus:outline-none focus:border-indigo-400"
+        />
+        <input
+          type="text"
+          value={item.name}
+          placeholder={t('ocrReview.itemNamePlaceholder')}
+          onChange={(e) => onChange({ ...item, name: e.target.value })}
+          className="flex-1 min-w-0 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-indigo-400"
         />
       </div>
-      <span className="text-xs text-gray-400 w-20 text-right font-medium">{fmt(total)}</span>
-      <button
-        onClick={onDelete}
-        className="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
-      >
-        <Trash2 size={14} />
-      </button>
+      <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center flex-shrink-0 border border-gray-200 rounded-lg overflow-hidden">
+          <span className="pl-2 text-gray-400 text-xs whitespace-nowrap">{symbol}</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={item.unitPrice}
+            placeholder="0.00"
+            onChange={(e) => {
+              const up = parseFloat(e.target.value) || 0
+              onChange({ ...item, unitPrice: e.target.value, price: up * (parseInt(item.quantity) || 1) })
+            }}
+            className="w-24 px-1 py-1.5 text-sm focus:outline-none bg-transparent"
+          />
+        </div>
+        <span className="text-xs text-gray-400 w-20 flex-shrink-0 text-right font-medium">{fmt(total)}</span>
+        <button
+          onClick={onDelete}
+          className="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
     </div>
   )
 }
@@ -117,7 +121,7 @@ export default function OcrReviewModal({ ocrData, onConfirm, onCancel }) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 60, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col shadow-xl"
+          className="bg-white rounded-2xl w-full max-w-md sm:max-w-lg lg:max-w-2xl max-h-[85vh] flex flex-col shadow-xl"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
