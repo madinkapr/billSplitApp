@@ -25,7 +25,7 @@
     "usd": "Доллар"
   },
   "home": {
-    "title": "TabUp",
+    "title": "schet.uz",
     "tagline": "Делите счета честно, каждый раз",
     "newBill": "Новый счёт",
     "myCrews": "Мои группы",
@@ -160,14 +160,16 @@
     "itemsHeader": "Товары",
     "itemFallback": "Товар",
     "everyoneSplitEqually": "Все (поровну)",
+    "ateLabel": "Вы поели",
+    "dishesLabel": "Блюда",
     "copySummary": "Скопировать сводку",
     "copied": "Скопировано!",
     "viewSettleStatus": "Статус оплаты",
     "settleUp": "Рассчитаться",
     "sameCrew": "Та же группа",
     "home": "Домой",
-    "summaryHeader": "💸 Разделение счёта TabUp — {{crew}}",
-    "summarySplitBy": "Разделено с TabUp 💸",
+    "summaryHeader": "💸 Разделение счёта schet.uz — {{crew}}",
+    "summarySplitBy": "Разделено с schet.uz 💸",
     "summaryVerification": "Проверка: {{sum}} / {{total}} {{check}}"
   },
   "settleUp": {

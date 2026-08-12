@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import { calculateSplits } from '../utils/math'
+import { calculateSplits, getItemShares } from '../utils/math'
+import { getUnitPrice } from '../utils/itemizerState'
 import { useCurrency } from './useCurrency'
 
 export function useBillSummary(bill) {
@@ -25,21 +26,43 @@ export function useBillSummary(bill) {
   const verificationSum = results.reduce((s, r) => s + r.finalTotal, 0)
   const sumCheck = Math.abs(verificationSum - grandTotal) < 0.015
 
+  function personalItemsForMember(memberId) {
+    return (bill.items || [])
+      .filter((item) => getItemShares(item)[memberId] > 0)
+      .map((item) => {
+        const count = getItemShares(item)[memberId]
+        const amount = getUnitPrice(item) * count
+        const label = count > 1 ? `${item.name} ×${count}` : item.name
+        return `${label} - ${fmt(amount)}`
+      })
+  }
+
+  function sharedItems() {
+    return (bill.items || [])
+      .filter((item) => item.everyone === true && Object.keys(getItemShares(item)).length === 0)
+      .map((item) => `${item.name} - ${fmt(item.price / Math.max(activeMembers.length, 1))}`)
+  }
+
   function buildTextSummary() {
     const lines = []
     lines.push(t('report.summaryHeader', { crew: `${bill.crewEmoji || ''} ${bill.crewName || t('report.lunch')}`.trim() }))
     lines.push('─'.repeat(32))
-    lines.push(t('report.grandTotal', { amount: fmt(grandTotal) }))
-    lines.push(`  ${tipLabel}: ${fmt(tipAmount)}`)
-    lines.push(`  ${t('report.food')}: ${fmt(foodTotal)}`)
-    lines.push('─'.repeat(32))
-    results.forEach((r) => {
+    const shared = sharedItems()
+    results.forEach((r, i) => {
+      const personal = personalItemsForMember(r.id)
+      if (i > 0) lines.push('')
       lines.push(`${r.name}${r.isMe ? t('common.you') : ''}: ${fmt(r.finalTotal)}`)
+      if (personal.length > 0) {
+        const dishesLabel = r.isMe ? t('report.ateLabel') : t('report.dishesLabel')
+        lines.push(`${dishesLabel}:`)
+        personal.forEach((name) => lines.push(`- ${name}`))
+      }
+      if (shared.length > 0) {
+        lines.push(`${t('report.everyoneSplitEqually')}:`)
+        shared.forEach((name) => lines.push(`- ${name}`))
+      }
     })
-    lines.push('─'.repeat(32))
-    lines.push(t('report.summaryVerification', { sum: fmt(verificationSum), total: fmt(grandTotal), check: sumCheck ? '✓' : '⚠️' }))
-    lines.push(t('report.summarySplitBy'))
-    return lines.join('\n')
+    return lines.join('\n').trim()
   }
 
   return {

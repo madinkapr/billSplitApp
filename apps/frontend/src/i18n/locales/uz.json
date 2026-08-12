@@ -25,7 +25,7 @@
     "usd": "Dollar"
   },
   "home": {
-    "title": "TabUp",
+    "title": "schet.uz",
     "tagline": "Hisoblarni adolatli bo'lishing, har doim",
     "newBill": "Yangi hisob",
     "myCrews": "Mening guruhlarim",
@@ -156,14 +156,16 @@
     "itemsHeader": "Mahsulotlar",
     "itemFallback": "Mahsulot",
     "everyoneSplitEqually": "Hammaga (teng taqsimlangan)",
+    "ateLabel": "Siz yedingiz",
+    "dishesLabel": "Taomlar",
     "copySummary": "Xulosani nusxalash",
     "copied": "Nusxalandi!",
     "viewSettleStatus": "To'lov holatini ko'rish",
     "settleUp": "Hisob-kitob qilish",
     "sameCrew": "Xuddi shu guruh",
     "home": "Bosh sahifa",
-    "summaryHeader": "💸 TabUp hisob bo'linishi — {{crew}}",
-    "summarySplitBy": "TabUp orqali bo'lindi 💸",
+    "summaryHeader": "💸 schet.uz hisob bo'linishi — {{crew}}",
+    "summarySplitBy": "schet.uz orqali bo'lindi 💸",
     "summaryVerification": "Tekshiruv: {{sum}} / {{total}} {{check}}"
   },
   "settleUp": {

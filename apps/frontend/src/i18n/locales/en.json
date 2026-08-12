@@ -25,7 +25,7 @@
     "usd": "Dollar"
   },
   "home": {
-    "title": "TabUp",
+    "title": "schet.uz",
     "tagline": "Split bills fairly, every time",
     "newBill": "New Bill",
     "myCrews": "My Crews",
@@ -156,14 +156,16 @@
     "itemsHeader": "Items",
     "itemFallback": "Item",
     "everyoneSplitEqually": "Everyone (split equally)",
+    "ateLabel": "You ate",
+    "dishesLabel": "Dishes",
     "copySummary": "Copy Summary",
     "copied": "Copied!",
     "viewSettleStatus": "View Settle Status",
     "settleUp": "Settle Up",
     "sameCrew": "Same Crew",
     "home": "Home",
-    "summaryHeader": "💸 TabUp Bill Split — {{crew}}",
-    "summarySplitBy": "Split by TabUp 💸",
+    "summaryHeader": "💸 schet.uz Bill Split — {{crew}}",
+    "summarySplitBy": "Split by schet.uz 💸",
     "summaryVerification": "Verification: {{sum}} / {{total}} {{check}}"
   },
   "settleUp": {

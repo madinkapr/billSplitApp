@@ -24,7 +24,7 @@ function langFromTelegramCode(code) {
 
 const MESSAGES = {
   uz: {
-    initial: "Salom! Bu TabUp bot.\n\nYangi hisob boshlash uchun /newbill deb yozing.",
+    initial: "Salom! Bu schet.uz boti.\n\nYangi hisob boshlash uchun /newbill deb yozing.",
     linkNotFound: 'Havola topilmadi yoki eskirgan.',
     sendError: "Xabar yuborishda xatolik yuz berdi. To'lovchiga murojaat qiling.",
     greeting: (crew, amount) => `Salom! ${crew} uchun ulushingiz: ${amount}`,
@@ -111,7 +111,7 @@ const MESSAGES = {
     },
   },
   ru: {
-    initial: 'Привет! Это бот TabUp.\n\nЧтобы начать новый счёт, напишите /newbill.',
+    initial: 'Привет! Это бот schet.uz.\n\nЧтобы начать новый счёт, напишите /newbill.',
     linkNotFound: 'Ссылка не найдена или устарела.',
     sendError: 'Не удалось отправить сообщение. Обратитесь к плательщику.',
     greeting: (crew, amount) => `Привет! Ваша доля за «${crew}»: ${amount}`,
@@ -198,7 +198,7 @@ const MESSAGES = {
     },
   },
   en: {
-    initial: "Hi! This is the TabUp bot.\n\nType /newbill to start a new bill.",
+    initial: "Hi! This is the schet.uz bot.\n\nType /newbill to start a new bill.",
     linkNotFound: 'Link not found or expired.',
     sendError: 'Failed to send the message. Please contact the payer.',
     greeting: (crew, amount) => `Hi! Your share for ${crew} is: ${amount}`,
