@@ -56,3 +56,17 @@ initDb()
     console.error('DB init failed:', err.message)
     process.exit(1)
   })
+
+async function shutdown() {
+  console.log('Shutting down...')
+  try {
+    require('./bot').stop()
+  } catch (err) {
+    console.error('Error stopping bot:', err.message)
+  }
+  await pool.end()
+  process.exit(0)
+}
+
+process.on('SIGINT', shutdown)
+process.on('SIGTERM', shutdown)

@@ -14,4 +14,8 @@ async function start() {
   console.log(`Settle-up bot running as @${telegramBot.getBotUsername()}`)
 }
 
-module.exports = { start }
+function stop() {
+  telegramBot.stop()
+}
+
+module.exports = { start, stop }

@@ -369,10 +369,15 @@ async function init() {
   const token = process.env.TELEGRAM_BOT_TOKEN
   if (!token) return null
   bot = new TelegramBot(token, { polling: true })
+  bot.on('polling_error', (err) => console.error('Telegram polling error:', err.message))
   const me = await bot.getMe()
   botUsername = me.username
   await registerCommandMenu()
   return bot
+}
+
+function stop() {
+  if (bot) bot.stopPolling()
 }
 
 function getBot() {
@@ -404,6 +409,7 @@ async function sendReminder(pool, participant) {
 
 module.exports = {
   init,
+  stop,
   getBot,
   getBotUsername,
   sendReminder,
