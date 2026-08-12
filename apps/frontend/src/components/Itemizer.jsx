@@ -229,20 +229,20 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
 
         {/* Add item form */}
         <div className="card p-3 mt-3">
+          <input
+            ref={nameRef}
+            className="w-full text-sm bg-transparent outline-none placeholder-gray-300 text-gray-800 mb-2 pb-2 border-b border-gray-100"
+            placeholder={t('itemizer.itemNamePlaceholder')}
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            enterKeyHint="next"
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter') return
+              e.preventDefault()
+              qtyRef.current?.focus()
+            }}
+          />
           <div className="flex gap-2 items-end">
-            <input
-              ref={nameRef}
-              className="flex-1 text-sm bg-transparent outline-none placeholder-gray-300 text-gray-800 min-w-0"
-              placeholder={t('itemizer.itemNamePlaceholder')}
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              enterKeyHint="next"
-              onKeyDown={(e) => {
-                if (e.key !== 'Enter') return
-                e.preventDefault()
-                qtyRef.current?.focus()
-              }}
-            />
             <div className="flex-shrink-0 w-16">
               <p className="text-[10px] text-gray-400 mb-0.5 text-center">{t('itemizer.qty')}</p>
               <input
