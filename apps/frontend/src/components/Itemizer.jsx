@@ -243,13 +243,13 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
                 qtyRef.current?.focus()
               }}
             />
-            <div className="flex-shrink-0 w-14">
+            <div className="flex-shrink-0 w-16">
+              <p className="text-[10px] text-gray-400 mb-0.5 text-center">{t('itemizer.qty')}</p>
               <input
                 ref={qtyRef}
                 className="w-full text-sm font-semibold bg-gray-50 rounded-lg px-2 py-1.5 border border-gray-100 text-center outline-none focus:ring-2 focus:ring-indigo-400"
                 type="number"
                 inputMode="numeric"
-                placeholder={t('itemizer.qty')}
                 value={newQty}
                 onChange={(e) => setNewQty(e.target.value)}
                 enterKeyHint="next"

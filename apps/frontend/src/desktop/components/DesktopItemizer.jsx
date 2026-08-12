@@ -340,30 +340,35 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange }) {
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); qtyRef.current?.focus() } }}
               />
-              <input
-                ref={qtyRef}
-                className="w-14 text-sm font-semibold bg-desktop-content rounded-lg px-2 py-1.5 border border-desktop-cardBorder text-center outline-none focus:ring-2 focus:ring-desktop-primary/40 flex-shrink-0"
-                type="number"
-                inputMode="numeric"
-                placeholder={t('itemizer.qty')}
-                value={newQty}
-                onChange={(e) => setNewQty(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); priceRef.current?.focus() } }}
-                min="1"
-                step="1"
-              />
-              <input
-                ref={priceRef}
-                className="w-20 text-sm font-semibold bg-desktop-content rounded-lg px-2 py-1.5 border border-desktop-cardBorder text-right outline-none focus:ring-2 focus:ring-desktop-primary/40 flex-shrink-0"
-                type="number"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={newPrice}
-                onChange={(e) => setNewPrice(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
-                min="0"
-                step="0.01"
-              />
+              <div className="flex-shrink-0 w-16">
+                <p className="text-[10px] text-desktop-textMuted3 mb-0.5 text-center">{t('itemizer.qty')}</p>
+                <input
+                  ref={qtyRef}
+                  className="w-full text-sm font-semibold bg-desktop-content rounded-lg px-2 py-1.5 border border-desktop-cardBorder text-center outline-none focus:ring-2 focus:ring-desktop-primary/40"
+                  type="number"
+                  inputMode="numeric"
+                  value={newQty}
+                  onChange={(e) => setNewQty(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); priceRef.current?.focus() } }}
+                  min="1"
+                  step="1"
+                />
+              </div>
+              <div className="flex-shrink-0 w-24">
+                <p className="text-[10px] text-desktop-textMuted3 mb-0.5 text-right pr-0.5">{t('itemizer.totalPrice')}</p>
+                <input
+                  ref={priceRef}
+                  className="w-full text-sm font-semibold bg-desktop-content rounded-lg px-2 py-1.5 border border-desktop-cardBorder text-right outline-none focus:ring-2 focus:ring-desktop-primary/40"
+                  type="number"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
               <button
                 onClick={addItem}
                 disabled={!newPrice}
