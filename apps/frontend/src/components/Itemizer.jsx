@@ -1,20 +1,23 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { ArrowLeft, ArrowRight, Plus } from 'lucide-react'
+import { ArrowLeft, Plus, Copy, Check, RotateCcw, RefreshCw, HandCoins } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { generateId, getItemShares } from '../utils/math'
 import { getRemainingUnits, isItemComplete } from '../utils/itemizerState'
 import { useCurrency } from '../hooks/useCurrency'
+import { useBillSummary } from '../hooks/useBillSummary'
+import { copyText } from '../utils/clipboard'
 import MemberCard from './MemberCard'
 import ItemChip, { ItemChipPreview } from './ItemChip'
 import ItemDetailSheet from './ItemDetailSheet'
 
 const EVERYONE_ID = 'everyone'
 
-export default function Itemizer({ bill, onBack, onNext, onChange }) {
+export default function Itemizer({ bill, onBack, onNext, onChange, onReset, onSettleUp, onNewWithSameCrew }) {
   const { t } = useTranslation()
   const { fmt, symbol } = useCurrency()
+  const [copied, setCopied] = useState(false)
   const [items, setItems] = useState(() => {
     if (bill.items?.length > 0) return bill.items
     if (bill._ocrItems?.length > 0) {
@@ -85,12 +88,6 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
     nameRef.current?.focus()
   }
 
-  function handleNext() {
-    const updatedBill = { ...bill, items }
-    onChange(updatedBill)
-    onNext(updatedBill)
-  }
-
   function handleDragStart(event) {
     setActiveDragItemId(event.active.id)
   }
@@ -143,6 +140,24 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
     const shares = { ...getItemShares(item) }
     delete shares[memberId]
     updateItem({ ...item, shares })
+  }
+
+  // Live final split (tip/discount-adjusted)
+  const summary = useBillSummary({ ...bill, items })
+
+  useEffect(() => {
+    if (allAssigned && isBalanced) {
+      const updatedBill = { ...bill, items }
+      onChange(updatedBill)
+      onNext(updatedBill)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allAssigned, isBalanced, items])
+
+  async function copySummary() {
+    await copyText(summary.buildTextSummary())
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
@@ -297,19 +312,62 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="px-5 mt-4 flex flex-col gap-1.5">
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={handleNext}
-          disabled={items.length === 0 || !allAssigned}
-          className="btn-primary w-full text-base shadow-md shadow-indigo-200 !bg-accent"
-        >
-          {t('itemizer.calculateSplit')} <ArrowRight size={18} />
-        </motion.button>
-        {items.length > 0 && !allAssigned && (
-          <p className="text-center text-[11px] text-ink-muted">{t('itemizer.assignAllToEnable')}</p>
-        )}
+      {/* Live Split */}
+      <div className="px-5 mt-4">
+        <div className="card p-3.5 flex flex-col gap-2.5">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-ink-muted">{t('itemizer.liveSplit')}</p>
+          <div className="flex flex-col gap-2">
+            {summary.results.map((r) => (
+              <div key={r.id} className="flex items-center justify-between text-sm">
+                <span className="text-gray-800 font-medium truncate">{r.name}{r.isMe ? t('common.you') : ''}</span>
+                <span className="font-bold text-accent flex-shrink-0">{fmt(r.finalTotal)}</span>
+              </div>
+            ))}
+          </div>
+
+          {allAssigned && isBalanced ? (
+            <>
+              <div className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium ${summary.sumCheck ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                <span>{summary.sumCheck ? '✓' : '⚠️'}</span>
+                <span>
+                  {summary.sumCheck
+                    ? t('report.totalsVerified', { sum: fmt(summary.verificationSum), total: fmt(summary.grandTotal) })
+                    : t('report.roundingDiff', { amount: fmt(Math.abs(summary.verificationSum - summary.grandTotal)) })}
+                </span>
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={copySummary}
+                className={`btn-primary w-full text-base transition-colors ${copied ? 'bg-green-500 hover:bg-green-600' : ''}`}
+              >
+                {copied ? <><Check size={18} /> {t('report.copied')}</> : <><Copy size={18} /> {t('report.copySummary')}</>}
+              </motion.button>
+              {onSettleUp && (
+                <motion.button whileTap={{ scale: 0.97 }} onClick={onSettleUp} className="btn-secondary w-full text-base">
+                  <HandCoins size={18} /> {bill.settleBillId ? t('report.viewSettleStatus') : t('report.settleUp')}
+                </motion.button>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                {bill.crewId && (
+                  <motion.button whileTap={{ scale: 0.97 }} onClick={onNewWithSameCrew} className="btn-secondary flex-1">
+                    <RefreshCw size={16} /> {t('report.sameCrew')}
+                  </motion.button>
+                )}
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={onReset}
+                  className={`btn-secondary ${bill.crewId ? 'flex-1' : 'w-full'}`}
+                >
+                  <RotateCcw size={16} /> {t('report.home')}
+                </motion.button>
+              </div>
+            </>
+          ) : (
+            items.length > 0 && (
+              <p className="text-center text-[11px] text-ink-muted">{t('itemizer.assignAllToEnable')}</p>
+            )
+          )}
+        </div>
       </div>
 
       {editingItem && (

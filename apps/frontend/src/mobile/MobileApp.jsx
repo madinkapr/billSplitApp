@@ -74,11 +74,19 @@ export default function MobileApp({ crews, setCrews, recentBills, screen, bill, 
               <Itemizer
                 bill={bill}
                 onBack={(updatedBill) => navigate(SCREENS.SETUP, updatedBill)}
-                onNext={(updatedBill) => {
-                  saveBillToRecent(updatedBill)
-                  navigate(SCREENS.REPORT, updatedBill)
-                }}
+                onNext={(updatedBill) => saveBillToRecent(updatedBill)}
                 onChange={(updatedBill) => setBill(updatedBill)}
+                onReset={() => navigate(SCREENS.HOME)}
+                onSettleUp={() => navigate(SCREENS.SETTLE, bill)}
+                onNewWithSameCrew={() => {
+                  if (bill) {
+                    const crew = crews.find((c) => c.id === bill.crewId)
+                    if (crew) startNewBillWithCrew(crew)
+                    else navigate(SCREENS.HOME)
+                  } else {
+                    navigate(SCREENS.HOME)
+                  }
+                }}
               />
             </motion.div>
           )}

@@ -1,11 +1,13 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDraggable, useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { ArrowLeft, ArrowRight, Plus, Check, GripVertical, X } from 'lucide-react'
+import { ArrowLeft, Plus, Check, GripVertical, X, Copy, RotateCcw, RefreshCw, HandCoins } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { generateId, getItemShares } from '../../utils/math'
 import { getRemainingUnits, isItemComplete, getUnitPrice, getAssignedUnits, getTotalUnits, getItemState } from '../../utils/itemizerState'
 import { useCurrency } from '../../hooks/useCurrency'
+import { useBillSummary } from '../../hooks/useBillSummary'
+import { copyText } from '../../utils/clipboard'
 import QuantityStepper from '../../components/QuantityStepper'
 
 const EVERYONE_ID = 'everyone'
@@ -130,9 +132,10 @@ function DesktopItemCard({ item, onTap }) {
   )
 }
 
-export default function DesktopItemizer({ bill, onBack, onNext, onChange }) {
+export default function DesktopItemizer({ bill, onBack, onNext, onChange, onReset, onSettleUp, onNewWithSameCrew }) {
   const { t } = useTranslation()
   const { fmt, symbol } = useCurrency()
+  const [copied, setCopied] = useState(false)
   const [items, setItems] = useState(() => {
     if (bill.items?.length > 0) return bill.items
     if (bill._ocrItems?.length > 0) {
@@ -190,12 +193,6 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange }) {
     nameRef.current?.focus()
   }
 
-  function handleNext() {
-    const updatedBill = { ...bill, items }
-    onChange(updatedBill)
-    onNext(updatedBill)
-  }
-
   function handleDragStart(event) {
     setActiveDragItemId(event.active.id)
   }
@@ -250,15 +247,23 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange }) {
     updateItem({ ...item, shares })
   }
 
-  // Live per-member running totals for the sticky summary panel
-  const liveTotals = activePersons.map((member) => {
-    const rows = items.map((i) => ({ item: i, count: getItemShares(i)[member.id] || 0 })).filter((r) => r.count > 0)
-    const everyoneShare = items
-      .filter((i) => i.everyone === true && Object.keys(getItemShares(i)).length === 0)
-      .reduce((s, i) => s + i.price / Math.max(activePersons.length, 1), 0)
-    const total = rows.reduce((s, r) => s + getUnitPrice(r.item) * r.count, 0) + everyoneShare
-    return { member, total }
-  })
+  // Live final split (tip/discount-adjusted) for the sticky summary panel
+  const summary = useBillSummary({ ...bill, items })
+
+  useEffect(() => {
+    if (allAssigned && isBalanced) {
+      const updatedBill = { ...bill, items }
+      onChange(updatedBill)
+      onNext(updatedBill)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allAssigned, isBalanced, items])
+
+  async function copySummary() {
+    await copyText(summary.buildTextSummary())
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div style={{ padding: '40px 44px' }}>
@@ -384,23 +389,56 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange }) {
             <div className="bg-white border border-desktop-cardBorder rounded-2xl p-4 flex flex-col gap-3">
               <p className="text-[11px] font-bold uppercase tracking-wide text-desktop-textMuted3">{t('itemizer.liveSplit')}</p>
               <div className="flex flex-col gap-2">
-                {liveTotals.map(({ member, total }) => (
-                  <div key={member.id} className="flex items-center justify-between text-[13px]">
-                    <span className="text-desktop-text font-medium truncate">{member.name}{member.isMe ? t('common.you') : ''}</span>
-                    <span className="font-bold text-desktop-primary flex-shrink-0">{fmt(total)}</span>
+                {summary.results.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between text-[13px]">
+                    <span className="text-desktop-text font-medium truncate">{r.name}{r.isMe ? t('common.you') : ''}</span>
+                    <span className="font-bold text-desktop-primary flex-shrink-0">{fmt(r.finalTotal)}</span>
                   </div>
                 ))}
               </div>
-              <button
-                onClick={handleNext}
-                disabled={items.length === 0 || !allAssigned}
-                className="w-full rounded-xl text-white font-bold text-sm py-3 flex items-center justify-center gap-2 disabled:opacity-40"
-                style={{ background: 'linear-gradient(135deg, #3e8ee8, #114f9e)' }}
-              >
-                {t('itemizer.calculateSplit')} <ArrowRight size={16} />
-              </button>
-              {items.length > 0 && !allAssigned && (
-                <p className="text-center text-[11px] text-desktop-textMuted3">{t('itemizer.assignAllToEnable')}</p>
+
+              {allAssigned && isBalanced ? (
+                <>
+                  <div className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-[12px] font-medium ${summary.sumCheck ? 'bg-desktop-successBg text-desktop-successText' : 'bg-red-50 text-red-700'}`}>
+                    <span>{summary.sumCheck ? '✓' : '⚠️'}</span>
+                    <span>
+                      {summary.sumCheck
+                        ? t('report.totalsVerified', { sum: fmt(summary.verificationSum), total: fmt(summary.grandTotal) })
+                        : t('report.roundingDiff', { amount: fmt(Math.abs(summary.verificationSum - summary.grandTotal)) })}
+                    </span>
+                  </div>
+                  <button
+                    onClick={copySummary}
+                    className={`w-full rounded-xl text-white font-bold text-sm py-3 flex items-center justify-center gap-2 transition-colors ${copied ? 'bg-desktop-successText' : 'bg-desktop-primary'}`}
+                  >
+                    {copied ? <><Check size={18} /> {t('report.copied')}</> : <><Copy size={18} /> {t('report.copySummary')}</>}
+                  </button>
+                  {onSettleUp && (
+                    <button
+                      onClick={onSettleUp}
+                      className="w-full rounded-xl bg-white border border-desktop-cardBorder text-desktop-text font-bold text-sm py-3 flex items-center justify-center gap-2"
+                    >
+                      <HandCoins size={18} /> {bill.settleBillId ? t('report.viewSettleStatus') : t('report.settleUp')}
+                    </button>
+                  )}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {bill.crewId && (
+                      <button onClick={onNewWithSameCrew} className="rounded-xl bg-desktop-chipBg text-desktop-text font-semibold text-sm py-3 flex items-center justify-center gap-2">
+                        <RefreshCw size={15} /> {t('report.sameCrew')}
+                      </button>
+                    )}
+                    <button
+                      onClick={onReset}
+                      className={`rounded-xl bg-desktop-chipBg text-desktop-text font-semibold text-sm py-3 flex items-center justify-center gap-2 ${bill.crewId ? '' : 'col-span-2'}`}
+                    >
+                      <RotateCcw size={15} /> {t('report.home')}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                items.length > 0 && (
+                  <p className="text-center text-[11px] text-desktop-textMuted3">{t('itemizer.assignAllToEnable')}</p>
+                )
               )}
             </div>
           </div>
