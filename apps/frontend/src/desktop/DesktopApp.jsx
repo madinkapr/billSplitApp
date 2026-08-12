@@ -72,34 +72,14 @@ export default function DesktopApp({ crews, setCrews, recentBills, screen, bill,
             onBack={(updatedBill) => navigate(SCREENS.SETUP, updatedBill)}
             onNext={(updatedBill) => saveBillToRecent(updatedBill)}
             onChange={(updatedBill) => setBill(updatedBill)}
-            onReset={() => navigate(SCREENS.HOME)}
             onSettleUp={() => navigate(SCREENS.SETTLE, bill)}
-            onNewWithSameCrew={() => {
-              if (bill) {
-                const crew = crews.find((c) => c.id === bill.crewId)
-                if (crew) startNewBillWithCrew(crew)
-                else navigate(SCREENS.HOME)
-              } else {
-                navigate(SCREENS.HOME)
-              }
-            }}
           />
         )}
 
         {screen === SCREENS.REPORT && (
           <DesktopSummary
             bill={bill}
-            onReset={() => navigate(SCREENS.HOME)}
             onSettleUp={() => navigate(SCREENS.SETTLE, bill)}
-            onNewWithSameCrew={() => {
-              if (bill) {
-                const crew = crews.find((c) => c.id === bill.crewId)
-                if (crew) startNewBillWithCrew(crew)
-                else navigate(SCREENS.HOME)
-              } else {
-                navigate(SCREENS.HOME)
-              }
-            }}
           />
         )}
 

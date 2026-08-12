@@ -162,8 +162,6 @@
     "copied": "Nusxalandi!",
     "viewSettleStatus": "To'lov holatini ko'rish",
     "settleUp": "Hisob-kitob qilish",
-    "sameCrew": "Xuddi shu guruh",
-    "home": "Bosh sahifa",
     "summaryHeader": "💸 schet.uz hisob bo'linishi — {{crew}}",
     "summarySplitBy": "schet.uz orqali bo'lindi 💸",
     "summaryVerification": "Tekshiruv: {{sum}} / {{total}} {{check}}"

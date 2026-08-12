@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Copy, Check, RotateCcw, RefreshCw, ChevronDown, ChevronUp, HandCoins } from 'lucide-react'
+import { Copy, Check, ChevronDown, ChevronUp, HandCoins } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getItemShares } from '../../utils/math'
 import { copyText } from '../../utils/clipboard'
@@ -37,7 +37,7 @@ function PersonCard({ result }) {
   )
 }
 
-export default function DesktopSummary({ bill, onReset, onSettleUp, onNewWithSameCrew }) {
+export default function DesktopSummary({ bill, onSettleUp }) {
   const { t } = useTranslation()
   const { fmt } = useCurrency()
   const [copied, setCopied] = useState(false)
@@ -145,17 +145,6 @@ export default function DesktopSummary({ bill, onReset, onSettleUp, onNewWithSam
                 <HandCoins size={18} /> {bill.settleBillId ? t('report.viewSettleStatus') : t('report.settleUp')}
               </button>
             )}
-
-            <div className="grid grid-cols-2 gap-2.5">
-              {bill.crewId && (
-                <button onClick={onNewWithSameCrew} className="rounded-xl bg-desktop-chipBg text-desktop-text font-semibold text-sm py-3 flex items-center justify-center gap-2">
-                  <RefreshCw size={15} /> {t('report.sameCrew')}
-                </button>
-              )}
-              <button onClick={onReset} className={`rounded-xl bg-desktop-chipBg text-desktop-text font-semibold text-sm py-3 flex items-center justify-center gap-2 ${bill.crewId ? '' : 'col-span-2'}`}>
-                <RotateCcw size={15} /> {t('report.home')}
-              </button>
-            </div>
           </div>
         </div>
       </div>

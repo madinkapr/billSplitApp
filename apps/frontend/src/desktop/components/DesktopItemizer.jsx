@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDraggable, useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { ArrowLeft, Plus, Check, GripVertical, X, Copy, RotateCcw, RefreshCw, HandCoins } from 'lucide-react'
+import { ArrowLeft, Plus, Check, GripVertical, X, Copy, HandCoins } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { generateId, getItemShares } from '../../utils/math'
 import { getRemainingUnits, isItemComplete, getUnitPrice, getAssignedUnits, getTotalUnits, getItemState } from '../../utils/itemizerState'
@@ -132,7 +132,7 @@ function DesktopItemCard({ item, onTap }) {
   )
 }
 
-export default function DesktopItemizer({ bill, onBack, onNext, onChange, onReset, onSettleUp, onNewWithSameCrew }) {
+export default function DesktopItemizer({ bill, onBack, onNext, onChange, onSettleUp }) {
   const { t } = useTranslation()
   const { fmt, symbol } = useCurrency()
   const [copied, setCopied] = useState(false)
@@ -421,19 +421,6 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange, onRese
                       <HandCoins size={18} /> {bill.settleBillId ? t('report.viewSettleStatus') : t('report.settleUp')}
                     </button>
                   )}
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {bill.crewId && (
-                      <button onClick={onNewWithSameCrew} className="rounded-xl bg-desktop-chipBg text-desktop-text font-semibold text-sm py-3 flex items-center justify-center gap-2">
-                        <RefreshCw size={15} /> {t('report.sameCrew')}
-                      </button>
-                    )}
-                    <button
-                      onClick={onReset}
-                      className={`rounded-xl bg-desktop-chipBg text-desktop-text font-semibold text-sm py-3 flex items-center justify-center gap-2 ${bill.crewId ? '' : 'col-span-2'}`}
-                    >
-                      <RotateCcw size={15} /> {t('report.home')}
-                    </button>
-                  </div>
                 </>
               ) : (
                 items.length > 0 && (

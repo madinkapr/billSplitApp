@@ -76,17 +76,7 @@ export default function MobileApp({ crews, setCrews, recentBills, screen, bill, 
                 onBack={(updatedBill) => navigate(SCREENS.SETUP, updatedBill)}
                 onNext={(updatedBill) => saveBillToRecent(updatedBill)}
                 onChange={(updatedBill) => setBill(updatedBill)}
-                onReset={() => navigate(SCREENS.HOME)}
                 onSettleUp={() => navigate(SCREENS.SETTLE, bill)}
-                onNewWithSameCrew={() => {
-                  if (bill) {
-                    const crew = crews.find((c) => c.id === bill.crewId)
-                    if (crew) startNewBillWithCrew(crew)
-                    else navigate(SCREENS.HOME)
-                  } else {
-                    navigate(SCREENS.HOME)
-                  }
-                }}
               />
             </motion.div>
           )}
@@ -95,17 +85,7 @@ export default function MobileApp({ crews, setCrews, recentBills, screen, bill, 
             <motion.div key="report" custom={direction} {...slide} className="absolute inset-0 overflow-y-auto">
               <Report
                 bill={bill}
-                onReset={() => navigate(SCREENS.HOME)}
                 onSettleUp={() => navigate(SCREENS.SETTLE, bill)}
-                onNewWithSameCrew={() => {
-                  if (bill) {
-                    const crew = crews.find((c) => c.id === bill.crewId)
-                    if (crew) startNewBillWithCrew(crew)
-                    else navigate(SCREENS.HOME)
-                  } else {
-                    navigate(SCREENS.HOME)
-                  }
-                }}
               />
             </motion.div>
           )}

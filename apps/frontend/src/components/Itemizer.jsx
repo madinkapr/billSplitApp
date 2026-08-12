@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { ArrowLeft, Plus, Copy, Check, RotateCcw, RefreshCw, HandCoins } from 'lucide-react'
+import { ArrowLeft, Plus, Copy, Check, HandCoins } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { generateId, getItemShares } from '../utils/math'
 import { getRemainingUnits, isItemComplete } from '../utils/itemizerState'
@@ -14,7 +14,7 @@ import ItemDetailSheet from './ItemDetailSheet'
 
 const EVERYONE_ID = 'everyone'
 
-export default function Itemizer({ bill, onBack, onNext, onChange, onReset, onSettleUp, onNewWithSameCrew }) {
+export default function Itemizer({ bill, onBack, onNext, onChange, onSettleUp }) {
   const { t } = useTranslation()
   const { fmt, symbol } = useCurrency()
   const [copied, setCopied] = useState(false)
@@ -347,20 +347,6 @@ export default function Itemizer({ bill, onBack, onNext, onChange, onReset, onSe
                   <HandCoins size={18} /> {bill.settleBillId ? t('report.viewSettleStatus') : t('report.settleUp')}
                 </motion.button>
               )}
-              <div className="grid grid-cols-2 gap-3">
-                {bill.crewId && (
-                  <motion.button whileTap={{ scale: 0.97 }} onClick={onNewWithSameCrew} className="btn-secondary flex-1">
-                    <RefreshCw size={16} /> {t('report.sameCrew')}
-                  </motion.button>
-                )}
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={onReset}
-                  className={`btn-secondary ${bill.crewId ? 'flex-1' : 'w-full'}`}
-                >
-                  <RotateCcw size={16} /> {t('report.home')}
-                </motion.button>
-              </div>
             </>
           ) : (
             items.length > 0 && (

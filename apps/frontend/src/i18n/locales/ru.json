@@ -166,8 +166,6 @@
     "copied": "Скопировано!",
     "viewSettleStatus": "Статус оплаты",
     "settleUp": "Рассчитаться",
-    "sameCrew": "Та же группа",
-    "home": "Домой",
     "summaryHeader": "💸 Разделение счёта schet.uz — {{crew}}",
     "summarySplitBy": "Разделено с schet.uz 💸",
     "summaryVerification": "Проверка: {{sum}} / {{total}} {{check}}"

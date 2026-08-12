@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Copy, Check, RotateCcw, RefreshCw, ChevronDown, ChevronUp, HandCoins } from 'lucide-react'
+import { Copy, Check, ChevronDown, ChevronUp, HandCoins } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getItemShares } from '../utils/math'
 import { copyText } from '../utils/clipboard'
@@ -51,7 +51,7 @@ function PersonCard({ result, index }) {
   )
 }
 
-export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew }) {
+export default function Report({ bill, onSettleUp }) {
   const { t } = useTranslation()
   const { fmt } = useCurrency()
   const [copied, setCopied] = useState(false)
@@ -165,25 +165,6 @@ export default function Report({ bill, onReset, onSettleUp, onNewWithSameCrew })
             <HandCoins size={18} /> {bill.settleBillId ? t('report.viewSettleStatus') : t('report.settleUp')}
           </motion.button>
         )}
-
-        <div className="grid grid-cols-2 gap-3">
-          {bill.crewId && (
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={onNewWithSameCrew}
-              className="btn-secondary flex-1"
-            >
-              <RefreshCw size={16} /> {t('report.sameCrew')}
-            </motion.button>
-          )}
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={onReset}
-            className={`btn-secondary ${bill.crewId ? 'flex-1' : 'w-full'}`}
-          >
-            <RotateCcw size={16} /> {t('report.home')}
-          </motion.button>
-        </div>
       </div>
     </div>
   )

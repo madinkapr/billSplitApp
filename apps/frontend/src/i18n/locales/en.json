@@ -162,8 +162,6 @@
     "copied": "Copied!",
     "viewSettleStatus": "View Settle Status",
     "settleUp": "Settle Up",
-    "sameCrew": "Same Crew",
-    "home": "Home",
     "summaryHeader": "💸 schet.uz Bill Split — {{crew}}",
     "summarySplitBy": "Split by schet.uz 💸",
     "summaryVerification": "Verification: {{sum}} / {{total}} {{check}}"
