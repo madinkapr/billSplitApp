@@ -48,10 +48,15 @@ export function useBillSummary(bill) {
     lines.push(t('report.summaryHeader', { crew: `${bill.crewEmoji || ''} ${bill.crewName || t('report.lunch')}`.trim() }))
     lines.push('─'.repeat(32))
     const shared = sharedItems()
+    const totalSubtotal = results.reduce((s, x) => s + x.subtotal, 0)
     results.forEach((r, i) => {
       const personal = personalItemsForMember(r.id)
       if (i > 0) lines.push('')
       lines.push(`${r.name}${r.isMe ? t('common.you') : ''}: ${fmt(r.finalTotal)}`)
+      if (tipAmount > 0) {
+        const personalTip = totalSubtotal > 0 ? tipAmount * (r.subtotal / totalSubtotal) : 0
+        lines.push(`${tipLabel}: ${fmt(personalTip)}`)
+      }
       if (personal.length > 0) {
         const dishesLabel = r.isMe ? t('report.ateLabel') : t('report.dishesLabel')
         lines.push(`${dishesLabel}:`)
