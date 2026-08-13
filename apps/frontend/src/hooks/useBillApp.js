@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocalStorage } from './useLocalStorage'
 import { generateId } from '../utils/math'
 
@@ -12,6 +12,23 @@ export function useBillApp() {
   const [screen, setScreen] = useState(SCREENS.HOME)
   const [prevScreen, setPrevScreen] = useState(SCREENS.HOME)
   const [bill, setBill] = useState(null)
+
+  // One-time cleanup: an earlier bug bulk-stamped every dateless bill with the same
+  // Date.now() on load. Real saves never share an identical millisecond timestamp, so any
+  // group of entries with the exact same createdAt is that bug's fingerprint — strip it
+  // back to "unknown date" rather than keep showing a fabricated day. Unaffected entries
+  // (unique timestamps, including genuinely-today saves) are left untouched.
+  useEffect(() => {
+    setRecentBills((prev) => {
+      const counts = {}
+      prev.forEach((b) => {
+        if (b.createdAt) counts[b.createdAt] = (counts[b.createdAt] || 0) + 1
+      })
+      if (!Object.values(counts).some((c) => c > 1)) return prev
+      return prev.map((b) => (b.createdAt && counts[b.createdAt] > 1 ? { ...b, createdAt: undefined } : b))
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const direction = SCREEN_ORDER.indexOf(screen) >= SCREEN_ORDER.indexOf(prevScreen) ? 1 : -1
 

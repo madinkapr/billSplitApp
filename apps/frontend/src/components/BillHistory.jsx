@@ -3,11 +3,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrency } from '../hooks/useCurrency'
-
-function formatBillDate(createdAt, language) {
-  if (!createdAt) return null
-  return new Date(createdAt).toLocaleDateString(language, { day: 'numeric', month: 'short' })
-}
+import { formatShortDate } from '../utils/formatDate'
 
 export default function BillHistory({ recentBills, onBack, onViewBill }) {
   const { t, i18n } = useTranslation()
@@ -45,7 +41,7 @@ export default function BillHistory({ recentBills, onBack, onViewBill }) {
                   <p className="font-semibold text-gray-900 text-sm">{bill.crewName || t('home.quickSplit')}</p>
                   <p className="text-xs text-gray-400">
                     {t('billHistory.peopleCount', { count: bill.activeMembers?.length || 0 })} · {fmt(bill.grandTotal || 0)}
-                    {formatBillDate(bill.createdAt, i18n.language) && ` · ${formatBillDate(bill.createdAt, i18n.language)}`}
+                    {formatShortDate(bill.createdAt, i18n.language) && ` · ${formatShortDate(bill.createdAt, i18n.language)}`}
                   </p>
                 </div>
                 <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
