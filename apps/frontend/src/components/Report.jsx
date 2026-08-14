@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Copy, Check, ChevronDown, ChevronUp, HandCoins } from 'lucide-react'
+import { Copy, Check, ChevronDown, ChevronUp, Share2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getItemShares } from '../utils/math'
 import { copyText } from '../utils/clipboard'
 import { useCurrency } from '../hooks/useCurrency'
 import { useBillSummary } from '../hooks/useBillSummary'
+import { useSettleShare } from '../hooks/useSettleShare'
+import SettleShareMenu from './SettleShareMenu'
 
 function PersonCard({ result, index }) {
   const { t } = useTranslation()
@@ -51,12 +53,13 @@ function PersonCard({ result, index }) {
   )
 }
 
-export default function Report({ bill, onSettleUp }) {
+export default function Report({ bill }) {
   const { t } = useTranslation()
   const { fmt } = useCurrency()
   const [copied, setCopied] = useState(false)
 
   const summary = useBillSummary(bill)
+  const share = useSettleShare({ bill, results: summary?.results ?? [] })
 
   if (!bill || !summary) return null
 
@@ -156,14 +159,17 @@ export default function Report({ bill, onSettleUp }) {
           {copied ? <><Check size={18} /> {t('report.copied')}</> : <><Copy size={18} /> {t('report.copySummary')}</>}
         </motion.button>
 
-        {onSettleUp && (
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={onSettleUp}
-            className="btn-secondary w-full text-base"
-          >
-            <HandCoins size={18} /> {bill.settleBillId ? t('report.viewSettleStatus') : t('report.settleUp')}
-          </motion.button>
+        {share.canShare && (
+          <div className="relative">
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={share.toggle}
+              className="btn-secondary w-full text-base"
+            >
+              <Share2 size={18} /> {t('settleUp.share')}
+            </motion.button>
+            <SettleShareMenu share={share} />
+          </div>
         )}
       </div>
     </div>

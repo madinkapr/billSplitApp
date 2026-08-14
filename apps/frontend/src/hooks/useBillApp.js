@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react'
 import { useLocalStorage } from './useLocalStorage'
 import { generateId } from '../utils/math'
 
-export const SCREENS = { HOME: 'home', CREWS: 'crews', SETUP: 'setup', ITEMS: 'items', REPORT: 'report', SETTLE: 'settle', HISTORY: 'history' }
+export const SCREENS = { HOME: 'home', CREWS: 'crews', SETUP: 'setup', ITEMS: 'items', REPORT: 'report', HISTORY: 'history' }
 
-export const SCREEN_ORDER = [SCREENS.HOME, SCREENS.CREWS, SCREENS.SETUP, SCREENS.ITEMS, SCREENS.REPORT, SCREENS.SETTLE, SCREENS.HISTORY]
+export const SCREEN_ORDER = [SCREENS.HOME, SCREENS.CREWS, SCREENS.SETUP, SCREENS.ITEMS, SCREENS.REPORT, SCREENS.HISTORY]
 
 export function useBillApp() {
   const [crews, setCrews] = useLocalStorage('tabup_crews', [])

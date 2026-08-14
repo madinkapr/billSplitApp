@@ -9,7 +9,6 @@ import DesktopHistory from './components/DesktopHistory'
 import DesktopBillSetup from './components/DesktopBillSetup'
 import DesktopItemizer from './components/DesktopItemizer'
 import DesktopSummary from './components/DesktopSummary'
-import SettleUp from '../components/SettleUp'
 
 export default function DesktopApp({ crews, setCrews, recentBills, screen, bill, setBill, navigate, startNewBillWithCrew, saveBillToRecent, onOpenStats }) {
   const [collapsed, setCollapsed] = useLocalStorage('tabup_sidebar_collapsed', false)
@@ -22,7 +21,7 @@ export default function DesktopApp({ crews, setCrews, recentBills, screen, bill,
   return (
     <div className="h-screen flex bg-desktop-content font-desktop overflow-hidden">
       <Sidebar
-        screen={screen === SCREENS.SETUP || screen === SCREENS.ITEMS || screen === SCREENS.REPORT || screen === SCREENS.SETTLE ? null : screen}
+        screen={screen === SCREENS.SETUP || screen === SCREENS.ITEMS || screen === SCREENS.REPORT ? null : screen}
         onNavigate={navFromSidebar}
         collapsed={collapsed}
         onToggleCollapse={() => setCollapsed((p) => !p)}
@@ -72,30 +71,11 @@ export default function DesktopApp({ crews, setCrews, recentBills, screen, bill,
             onBack={(updatedBill) => navigate(SCREENS.SETUP, updatedBill)}
             onNext={(updatedBill) => saveBillToRecent(updatedBill)}
             onChange={(updatedBill) => setBill(updatedBill)}
-            onSettleUp={() => navigate(SCREENS.SETTLE, bill)}
           />
         )}
 
         {screen === SCREENS.REPORT && (
-          <DesktopSummary
-            bill={bill}
-            onSettleUp={() => navigate(SCREENS.SETTLE, bill)}
-          />
-        )}
-
-        {screen === SCREENS.SETTLE && (
-          <div className="flex justify-center" style={{ padding: '40px 44px' }}>
-            <div className="w-full max-w-[500px] bg-white rounded-2xl shadow-sm border border-desktop-cardBorder overflow-hidden [&>div]:min-h-0">
-              <SettleUp
-                bill={bill}
-                onBack={() => navigate(SCREENS.REPORT, bill)}
-                onChange={(updatedBill) => {
-                  setBill(updatedBill)
-                  saveBillToRecent(updatedBill)
-                }}
-              />
-            </div>
-          </div>
+          <DesktopSummary bill={bill} />
         )}
       </div>
     </div>

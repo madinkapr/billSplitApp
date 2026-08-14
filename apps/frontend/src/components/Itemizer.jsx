@@ -1,20 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { ArrowLeft, Plus, Copy, Check, HandCoins } from 'lucide-react'
+import { ArrowLeft, Plus, Copy, Check, Share2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { generateId, getItemShares } from '../utils/math'
 import { getRemainingUnits, isItemComplete } from '../utils/itemizerState'
 import { useCurrency } from '../hooks/useCurrency'
 import { useBillSummary } from '../hooks/useBillSummary'
+import { useSettleShare } from '../hooks/useSettleShare'
 import { copyText } from '../utils/clipboard'
 import MemberCard from './MemberCard'
 import ItemChip, { ItemChipPreview } from './ItemChip'
 import ItemDetailSheet from './ItemDetailSheet'
+import SettleShareMenu from './SettleShareMenu'
 
 const EVERYONE_ID = 'everyone'
 
-export default function Itemizer({ bill, onBack, onNext, onChange, onSettleUp }) {
+export default function Itemizer({ bill, onBack, onNext, onChange }) {
   const { t } = useTranslation()
   const { fmt, symbol } = useCurrency()
   const [copied, setCopied] = useState(false)
@@ -144,6 +146,7 @@ export default function Itemizer({ bill, onBack, onNext, onChange, onSettleUp })
 
   // Live final split (tip/discount-adjusted)
   const summary = useBillSummary({ ...bill, items })
+  const share = useSettleShare({ bill, results: summary.results })
 
   useEffect(() => {
     if (allAssigned && isBalanced) {
@@ -342,10 +345,13 @@ export default function Itemizer({ bill, onBack, onNext, onChange, onSettleUp })
               >
                 {copied ? <><Check size={18} /> {t('report.copied')}</> : <><Copy size={18} /> {t('report.copySummary')}</>}
               </motion.button>
-              {onSettleUp && (
-                <motion.button whileTap={{ scale: 0.97 }} onClick={onSettleUp} className="btn-secondary w-full text-base">
-                  <HandCoins size={18} /> {bill.settleBillId ? t('report.viewSettleStatus') : t('report.settleUp')}
-                </motion.button>
+              {share.canShare && (
+                <div className="relative">
+                  <motion.button whileTap={{ scale: 0.97 }} onClick={share.toggle} className="btn-secondary w-full text-base">
+                    <Share2 size={18} /> {t('settleUp.share')}
+                  </motion.button>
+                  <SettleShareMenu share={share} />
+                </div>
               )}
             </>
           ) : (

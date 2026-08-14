@@ -1,14 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDraggable, useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { ArrowLeft, Plus, Check, GripVertical, X, Copy, HandCoins } from 'lucide-react'
+import { ArrowLeft, Plus, Check, GripVertical, X, Copy, Share2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { generateId, getItemShares } from '../../utils/math'
 import { getRemainingUnits, isItemComplete, getUnitPrice, getAssignedUnits, getTotalUnits, getItemState } from '../../utils/itemizerState'
 import { useCurrency } from '../../hooks/useCurrency'
 import { useBillSummary } from '../../hooks/useBillSummary'
+import { useSettleShare } from '../../hooks/useSettleShare'
 import { copyText } from '../../utils/clipboard'
 import QuantityStepper from '../../components/QuantityStepper'
+import SettleShareMenu from '../../components/SettleShareMenu'
 
 const EVERYONE_ID = 'everyone'
 
@@ -132,7 +134,7 @@ function DesktopItemCard({ item, onTap }) {
   )
 }
 
-export default function DesktopItemizer({ bill, onBack, onNext, onChange, onSettleUp }) {
+export default function DesktopItemizer({ bill, onBack, onNext, onChange }) {
   const { t } = useTranslation()
   const { fmt, symbol } = useCurrency()
   const [copied, setCopied] = useState(false)
@@ -249,6 +251,7 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange, onSett
 
   // Live final split (tip/discount-adjusted) for the sticky summary panel
   const summary = useBillSummary({ ...bill, items })
+  const share = useSettleShare({ bill, results: summary.results })
 
   useEffect(() => {
     if (allAssigned && isBalanced) {
@@ -413,13 +416,16 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange, onSett
                   >
                     {copied ? <><Check size={18} /> {t('report.copied')}</> : <><Copy size={18} /> {t('report.copySummary')}</>}
                   </button>
-                  {onSettleUp && (
-                    <button
-                      onClick={onSettleUp}
-                      className="w-full rounded-xl bg-white border border-desktop-cardBorder text-desktop-text font-bold text-sm py-3 flex items-center justify-center gap-2"
-                    >
-                      <HandCoins size={18} /> {bill.settleBillId ? t('report.viewSettleStatus') : t('report.settleUp')}
-                    </button>
+                  {share.canShare && (
+                    <div className="relative">
+                      <button
+                        onClick={share.toggle}
+                        className="w-full rounded-xl bg-white border border-desktop-cardBorder text-desktop-text font-bold text-sm py-3 flex items-center justify-center gap-2"
+                      >
+                        <Share2 size={18} /> {t('settleUp.share')}
+                      </button>
+                      <SettleShareMenu share={share} />
+                    </div>
                   )}
                 </>
               ) : (

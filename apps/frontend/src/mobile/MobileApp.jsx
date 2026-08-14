@@ -8,7 +8,6 @@ import BillSetup from '../components/BillSetup'
 import Itemizer from '../components/Itemizer'
 import Report from '../components/Report'
 import BillHistory from '../components/BillHistory'
-import SettleUp from '../components/SettleUp'
 
 const slide = {
   initial: (dir) => ({ x: dir > 0 ? '100%' : '-100%', opacity: 0 }),
@@ -76,30 +75,13 @@ export default function MobileApp({ crews, setCrews, recentBills, screen, bill, 
                 onBack={(updatedBill) => navigate(SCREENS.SETUP, updatedBill)}
                 onNext={(updatedBill) => saveBillToRecent(updatedBill)}
                 onChange={(updatedBill) => setBill(updatedBill)}
-                onSettleUp={() => navigate(SCREENS.SETTLE, bill)}
               />
             </motion.div>
           )}
 
           {screen === SCREENS.REPORT && (
             <motion.div key="report" custom={direction} {...slide} className="absolute inset-0 overflow-y-auto">
-              <Report
-                bill={bill}
-                onSettleUp={() => navigate(SCREENS.SETTLE, bill)}
-              />
-            </motion.div>
-          )}
-
-          {screen === SCREENS.SETTLE && (
-            <motion.div key="settle" custom={direction} {...slide} className="absolute inset-0 overflow-y-auto">
-              <SettleUp
-                bill={bill}
-                onBack={() => navigate(SCREENS.REPORT, bill)}
-                onChange={(updatedBill) => {
-                  setBill(updatedBill)
-                  saveBillToRecent(updatedBill)
-                }}
-              />
+              <Report bill={bill} />
             </motion.div>
           )}
         </AnimatePresence>

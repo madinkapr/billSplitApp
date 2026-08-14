@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
-import { Copy, Check, ChevronDown, ChevronUp, HandCoins } from 'lucide-react'
+import { Copy, Check, ChevronDown, ChevronUp, Share2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getItemShares } from '../../utils/math'
 import { copyText } from '../../utils/clipboard'
 import { useCurrency } from '../../hooks/useCurrency'
 import { useBillSummary } from '../../hooks/useBillSummary'
+import { useSettleShare } from '../../hooks/useSettleShare'
+import SettleShareMenu from '../../components/SettleShareMenu'
 
 function PersonCard({ result }) {
   const { t } = useTranslation()
@@ -37,12 +39,13 @@ function PersonCard({ result }) {
   )
 }
 
-export default function DesktopSummary({ bill, onSettleUp }) {
+export default function DesktopSummary({ bill }) {
   const { t } = useTranslation()
   const { fmt } = useCurrency()
   const [copied, setCopied] = useState(false)
 
   const summary = useBillSummary(bill)
+  const share = useSettleShare({ bill, results: summary?.results ?? [] })
 
   if (!bill || !summary) return null
 
@@ -140,10 +143,16 @@ export default function DesktopSummary({ bill, onSettleUp }) {
               {copied ? <><Check size={18} /> {t('report.copied')}</> : <><Copy size={18} /> {t('report.copySummary')}</>}
             </button>
 
-            {onSettleUp && (
-              <button onClick={onSettleUp} className="w-full rounded-xl bg-white border border-desktop-cardBorder text-desktop-text font-bold text-sm py-3 flex items-center justify-center gap-2">
-                <HandCoins size={18} /> {bill.settleBillId ? t('report.viewSettleStatus') : t('report.settleUp')}
-              </button>
+            {share.canShare && (
+              <div className="relative">
+                <button
+                  onClick={share.toggle}
+                  className="w-full rounded-xl bg-white border border-desktop-cardBorder text-desktop-text font-bold text-sm py-3 flex items-center justify-center gap-2"
+                >
+                  <Share2 size={18} /> {t('settleUp.share')}
+                </button>
+                <SettleShareMenu share={share} />
+              </div>
             )}
           </div>
         </div>
