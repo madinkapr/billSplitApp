@@ -85,6 +85,39 @@ export function calculateSplits({ items, members, grandTotal }) {
   }))
 }
 
+/**
+ * Attribute each item's estimated calories to the members who share it.
+ *
+ * Mirrors calculateSplits' per-item share/fallback loop above (same "no shares → split
+ * evenly among everyone" fallback, which also covers everyone:true items), but for
+ * calories instead of price, and skips the ratio-correction/rounding steps since
+ * there's no authoritative grand total to reconcile against — a straight sum is fine.
+ */
+export function attributeCalories({ items, members, caloriesById }) {
+  const totals = {}
+  members.forEach((m) => { totals[m.id] = 0 })
+
+  items.forEach((item) => {
+    const cal = caloriesById[item.id] || 0
+    if (cal <= 0) return
+
+    const shares = {}
+    Object.entries(getItemShares(item)).forEach(([id, count]) => {
+      if (members.some((m) => m.id === id)) shares[id] = count
+    })
+    const ids = Object.keys(shares)
+    if (ids.length > 0) {
+      const totalCount = ids.reduce((s, id) => s + shares[id], 0)
+      ids.forEach((id) => { totals[id] += cal * (shares[id] / totalCount) })
+    } else {
+      const share = cal / members.length
+      members.forEach((m) => { totals[m.id] += share })
+    }
+  })
+
+  return totals
+}
+
 export function generateId() {
   return Math.random().toString(36).slice(2, 10)
 }

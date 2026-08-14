@@ -160,6 +160,13 @@
     "dishesLabel": "Dishes",
     "copySummary": "Copy Summary",
     "copied": "Copied!",
+    "caloriesHeader": "Estimated Calories",
+    "caloriesLine": "~{{calories}} kcal — about {{steps}} steps ({{walkDuration}} walk) to burn off",
+    "caloriesLoading": "Estimating calories…",
+    "caloriesUnavailable": "Calorie estimate unavailable.",
+    "durationMinutes": "{{minutes}} min",
+    "durationHours": "{{hours}} hr",
+    "durationHoursMinutes": "{{hours}}h {{minutes}}min",
     "summaryHeader": "💸 schet.uz Bill Split — {{crew}}",
     "summarySplitBy": "Split by schet.uz 💸",
     "summaryVerification": "Verification: {{sum}} / {{total}} {{check}}"

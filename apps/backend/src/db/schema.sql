@@ -92,3 +92,13 @@ CREATE TABLE IF NOT EXISTS bot_starts (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_bot_starts_created_at ON bot_starts (created_at);
+
+-- AI-estimated calories per dish name, keyed by a normalized (lowercased/trimmed) name —
+-- not per bill line — so the same dish ordered again in any future bill resolves instantly
+-- without another Gemini call. See services/calorieService.js.
+CREATE TABLE IF NOT EXISTS calorie_cache (
+  name_key          TEXT PRIMARY KEY,
+  calories_per_unit NUMERIC(8,2) NOT NULL,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_used_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

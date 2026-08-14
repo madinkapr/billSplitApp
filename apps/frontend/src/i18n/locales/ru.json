@@ -164,6 +164,13 @@
     "dishesLabel": "Блюда",
     "copySummary": "Скопировать сводку",
     "copied": "Скопировано!",
+    "caloriesHeader": "Примерная калорийность",
+    "caloriesLine": "~{{calories}} ккал — чтобы сжечь, нужно пройти ~{{steps}} шагов ({{walkDuration}} ходьбы)",
+    "caloriesLoading": "Подсчитываем калории…",
+    "caloriesUnavailable": "Оценка калорий недоступна.",
+    "durationMinutes": "{{minutes}} мин",
+    "durationHours": "{{hours}} ч",
+    "durationHoursMinutes": "{{hours}} ч {{minutes}} мин",
     "summaryHeader": "💸 Разделение счёта schet.uz — {{crew}}",
     "summarySplitBy": "Разделено с schet.uz 💸",
     "summaryVerification": "Проверка: {{sum}} / {{total}} {{check}}"

@@ -160,6 +160,13 @@
     "dishesLabel": "Taomlar",
     "copySummary": "Xulosani nusxalash",
     "copied": "Nusxalandi!",
+    "caloriesHeader": "Taxminiy kaloriya",
+    "caloriesLine": "~{{calories}} kkal — buni yoqotish uchun ~{{steps}} qadam ({{walkDuration}}) yurish kerak",
+    "caloriesLoading": "Kaloriya hisoblanmoqda…",
+    "caloriesUnavailable": "Kaloriya bahosi mavjud emas.",
+    "durationMinutes": "{{minutes}} daqiqa",
+    "durationHours": "{{hours}} soat",
+    "durationHoursMinutes": "{{hours}} soat {{minutes}} daqiqa",
     "summaryHeader": "💸 schet.uz hisob bo'linishi — {{crew}}",
     "summarySplitBy": "schet.uz orqali bo'lindi 💸",
     "summaryVerification": "Tekshiruv: {{sum}} / {{total}} {{check}}"

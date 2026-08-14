@@ -9,6 +9,7 @@ const ocrRouter = require('./routes/ocr')
 const settleRouter = require('./routes/settle')
 const analyticsRouter = require('./routes/analytics')
 const adminAuthRouter = require('./routes/adminAuth')
+const caloriesRouter = require('./routes/calories')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -24,6 +25,7 @@ app.use('/api/ocr', ocrRouter)
 app.use('/api/settle', settleRouter)
 app.use('/api/analytics', analyticsRouter)
 app.use('/api/admin', adminAuthRouter)
+app.use('/api/calories', caloriesRouter)
 
 async function initDb() {
   const schema = fs.readFileSync(path.join(__dirname, 'db/schema.sql'), 'utf8')

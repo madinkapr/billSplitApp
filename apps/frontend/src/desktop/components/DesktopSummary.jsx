@@ -6,7 +6,9 @@ import { copyText } from '../../utils/clipboard'
 import { useCurrency } from '../../hooks/useCurrency'
 import { useBillSummary } from '../../hooks/useBillSummary'
 import { useSettleShare } from '../../hooks/useSettleShare'
+import { useCalorieEstimate } from '../../hooks/useCalorieEstimate'
 import SettleShareMenu from '../../components/SettleShareMenu'
+import CalorieEstimate from '../../components/CalorieEstimate'
 
 function PersonCard({ result }) {
   const { t } = useTranslation()
@@ -46,6 +48,7 @@ export default function DesktopSummary({ bill }) {
 
   const summary = useBillSummary(bill)
   const share = useSettleShare({ bill, results: summary?.results ?? [] })
+  const calorieEstimate = useCalorieEstimate({ bill, activeMembers: summary?.activeMembers ?? [] })
 
   if (!bill || !summary) return null
 
@@ -125,6 +128,10 @@ export default function DesktopSummary({ bill }) {
                 })}
               </div>
             </div>
+          )}
+
+          {bill.items && bill.items.length > 0 && (
+            <CalorieEstimate estimate={calorieEstimate} theme="desktop" />
           )}
         </div>
 
