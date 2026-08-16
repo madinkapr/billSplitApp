@@ -81,7 +81,7 @@ export default function MobileApp({ crews, setCrews, recentBills, screen, bill, 
 
           {screen === SCREENS.REPORT && (
             <motion.div key="report" custom={direction} {...slide} className="absolute inset-0 overflow-y-auto">
-              <Report bill={bill} />
+              <Report bill={bill} onBack={() => navigate(SCREENS.HOME)} />
             </motion.div>
           )}
         </AnimatePresence>

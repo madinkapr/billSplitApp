@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Copy, Check, ChevronDown, ChevronUp, Share2 } from 'lucide-react'
+import { Home, Copy, Check, ChevronDown, ChevronUp, Share2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getItemShares } from '../utils/math'
 import { copyText } from '../utils/clipboard'
@@ -55,7 +55,7 @@ function PersonCard({ result, index }) {
   )
 }
 
-export default function Report({ bill }) {
+export default function Report({ bill, onBack }) {
   const { t } = useTranslation()
   const { fmt } = useCurrency()
   const [copied, setCopied] = useState(false)
@@ -80,7 +80,16 @@ export default function Report({ bill }) {
       <div className="bg-indigo-600 px-5 pt-14 pb-6 text-white">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xl">{bill.crewEmoji || '🍽️'}</span>
-          <h1 className="text-xl font-bold">{bill.crewName || t('report.billSplitFallback')}</h1>
+          <h1 className="text-xl font-bold flex-1 min-w-0 truncate">{bill.crewName || t('report.billSplitFallback')}</h1>
+          {onBack && (
+            <button
+              onClick={onBack}
+              aria-label={t('common.back')}
+              className="w-9 h-9 -mr-2 flex-shrink-0 flex items-center justify-center rounded-xl hover:bg-white/10"
+            >
+              <Home size={20} />
+            </button>
+          )}
         </div>
         <p className="text-indigo-200 text-sm">{t('report.grandTotal', { amount: fmt(grandTotal) })}</p>
       </div>
