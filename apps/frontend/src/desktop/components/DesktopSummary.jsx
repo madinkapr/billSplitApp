@@ -143,13 +143,6 @@ export default function DesktopSummary({ bill }) {
           ))}
 
           <div className="flex flex-col gap-2.5 mt-2">
-            <button
-              onClick={copyToClipboard}
-              className={`w-full rounded-xl text-white font-bold text-sm py-3 flex items-center justify-center gap-2 transition-colors ${copied ? 'bg-desktop-successText' : 'bg-desktop-primary'}`}
-            >
-              {copied ? <><Check size={18} /> {t('report.copied')}</> : <><Copy size={18} /> {t('report.copySummary')}</>}
-            </button>
-
             {share.canShare && (
               <div className="relative">
                 <button
@@ -161,6 +154,13 @@ export default function DesktopSummary({ bill }) {
                 <SettleShareMenu share={share} />
               </div>
             )}
+
+            <button
+              onClick={copyToClipboard}
+              className={`w-full rounded-xl text-white font-bold text-sm py-3 flex items-center justify-center gap-2 transition-colors ${copied ? 'bg-desktop-successText' : 'bg-desktop-primary'}`}
+            >
+              {copied ? <><Check size={18} /> {t('report.copied')}</> : <><Copy size={18} /> {t('report.copySummary')}</>}
+            </button>
           </div>
         </div>
       </div>

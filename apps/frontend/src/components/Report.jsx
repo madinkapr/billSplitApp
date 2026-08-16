@@ -158,14 +158,6 @@ export default function Report({ bill }) {
         )}
 
         {/* Actions */}
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={copyToClipboard}
-          className={`btn-primary w-full text-base transition-colors ${copied ? 'bg-green-500 hover:bg-green-600' : ''}`}
-        >
-          {copied ? <><Check size={18} /> {t('report.copied')}</> : <><Copy size={18} /> {t('report.copySummary')}</>}
-        </motion.button>
-
         {share.canShare && (
           <div className="relative">
             <motion.button
@@ -178,6 +170,14 @@ export default function Report({ bill }) {
             <SettleShareMenu share={share} />
           </div>
         )}
+
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={copyToClipboard}
+          className={`btn-primary w-full text-base transition-colors ${copied ? 'bg-green-500 hover:bg-green-600' : ''}`}
+        >
+          {copied ? <><Check size={18} /> {t('report.copied')}</> : <><Copy size={18} /> {t('report.copySummary')}</>}
+        </motion.button>
       </div>
     </div>
   )
