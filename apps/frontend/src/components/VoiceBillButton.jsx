@@ -14,7 +14,9 @@ import { voiceErrorMessage } from '../utils/voiceErrors'
 // ended up there after the reflow, not on this (now relocated) button.
 export default function VoiceBillButton({ onResult }) {
   const { t } = useTranslation()
-  const { state, errorCode, startRecording, stopRecording, cancelRecording } = useVoiceInput('/api/voice/bill', { timeout: 45000 })
+  // The whole-bill dictation is the longest recording and the biggest upload of the
+  // three voice endpoints — give it the most headroom for slow connections.
+  const { state, errorCode, startRecording, stopRecording, cancelRecording } = useVoiceInput('/api/voice/bill', { timeout: 90000 })
 
   function handlePress(e) {
     e.currentTarget.setPointerCapture?.(e.pointerId)

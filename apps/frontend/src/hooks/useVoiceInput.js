@@ -2,7 +2,10 @@ import { useRef, useState } from 'react'
 import { WavRecorder } from '../utils/wavRecorder'
 
 const MIN_RECORDING_MS = 400
-const DEFAULT_TIMEOUT = 30000
+// Generous margins because the upload itself (not just Gemini's response) has to fit
+// inside this window — a real recording is an uncompressed WAV, so a 20-30s dictation
+// is a multi-MB upload that can take a while on a slow/throttled mobile connection.
+const DEFAULT_TIMEOUT = 45000
 
 // state: 'idle' | 'recording' | 'processing' | 'error'
 export function useVoiceInput(endpoint, { timeout: timeoutMs = DEFAULT_TIMEOUT } = {}) {
@@ -49,6 +52,7 @@ export function useVoiceInput(endpoint, { timeout: timeoutMs = DEFAULT_TIMEOUT }
     try {
       const fd = new FormData()
       fd.append('audio', blob, 'recording.wav')
+      console.log('[useVoiceInput] uploading', { endpoint, blobBytes: blob.size, durationMs })
 
       const res = await fetch(endpoint, { method: 'POST', body: fd, signal: controller.signal })
 
@@ -69,6 +73,10 @@ export function useVoiceInput(endpoint, { timeout: timeoutMs = DEFAULT_TIMEOUT }
       const isTimeout = err.name === 'AbortError' || controller.signal.aborted
       const code = isTimeout ? 'TIMEOUT' : err.errorCode || 'NETWORK_ERROR'
       const message = isTimeout ? 'Took too long. Try again.' : err.errorCode ? err.message : 'Connection error. Please try again.'
+      // Previously swallowed silently — the underlying cause (a plain fetch failure,
+      // a CORS/mixed-content block, etc.) never showed up anywhere, only the generic
+      // UI message. Logging it is what makes the next failure actually diagnosable.
+      console.error('[useVoiceInput] request failed:', { endpoint, name: err.name, message: err.message, errorCode: err.errorCode, err })
       setErrorCode(code)
       setError(message)
       setState('error')

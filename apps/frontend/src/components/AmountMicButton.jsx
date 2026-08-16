@@ -6,7 +6,7 @@ import { useVoiceInput } from '../hooks/useVoiceInput'
 // missed (e.g. a forgotten grand total or item price) without redoing the
 // whole VoiceBillReviewModal dictation.
 export default function AmountMicButton({ onResult }) {
-  const { state, startRecording, stopRecording, cancelRecording } = useVoiceInput('/api/voice/amount', { timeout: 15000 })
+  const { state, startRecording, stopRecording, cancelRecording } = useVoiceInput('/api/voice/amount', { timeout: 30000 })
 
   function handlePress(e) {
     e.currentTarget.setPointerCapture?.(e.pointerId)
