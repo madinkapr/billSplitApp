@@ -1,18 +1,27 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Trash2, AlertTriangle, UserPlus } from 'lucide-react'
+import { X, Trash2, AlertTriangle, UserPlus, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { generateId } from '../utils/math'
 import { useCurrency } from '../hooks/useCurrency'
+import AmountMicButton from './AmountMicButton'
 
 function PersonalItemCard({ item, members, onChange, onDelete }) {
   const { t } = useTranslation()
   const { fmt, symbol } = useCurrency()
   const unitPrice = parseFloat(item.unitPrice) || 0
   const totalQty = Object.values(item.shares).reduce((s, q) => s + q, 0)
+  const [addMemberId, setAddMemberId] = useState('')
+  const [addQty, setAddQty] = useState('1')
+
+  // People the dictation missed for this dish (e.g. Gemini heard 2 of 3 names) —
+  // added here rather than requiring a cancel-and-redo.
+  const availableMembers = members.filter((m) => !(m.id in item.shares))
 
   function setUnitPrice(value) {
-    onChange({ ...item, unitPrice: value })
+    // Once the person confirms/corrects this price (typed or via the mic), it's no
+    // longer "uncertain" — stop showing the amber "please check" warning for it.
+    onChange({ ...item, unitPrice: value, unitPriceUncertain: false })
   }
 
   function setShare(memberId, qty) {
@@ -20,6 +29,13 @@ function PersonalItemCard({ item, members, onChange, onDelete }) {
     if (qty <= 0) delete shares[memberId]
     else shares[memberId] = qty
     onChange({ ...item, shares })
+  }
+
+  function addMemberShare() {
+    if (!addMemberId) return
+    setShare(addMemberId, Math.max(1, parseInt(addQty) || 1))
+    setAddMemberId('')
+    setAddQty('1')
   }
 
   return (
@@ -31,21 +47,32 @@ function PersonalItemCard({ item, members, onChange, onDelete }) {
           onChange={(e) => onChange({ ...item, name: e.target.value })}
           className="flex-1 min-w-0 border border-gray-200 rounded-lg px-2 py-1.5 text-sm font-medium focus:outline-none focus:border-indigo-400"
         />
-        <div className="flex items-center flex-shrink-0 border border-gray-200 rounded-lg overflow-hidden">
-          <span className="pl-2 text-gray-400 text-xs whitespace-nowrap">{symbol}</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={item.unitPrice}
-            onChange={(e) => setUnitPrice(e.target.value)}
-            className="w-20 px-1 py-1.5 text-sm focus:outline-none bg-transparent"
-          />
+        <div className="flex flex-col items-end flex-shrink-0">
+          <div className="flex items-center gap-1">
+            <div className={`flex items-center border rounded-lg overflow-hidden ${item.unitPriceUncertain ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}>
+              <span className="pl-2 text-gray-400 text-xs whitespace-nowrap">{symbol}</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={item.unitPrice}
+                onChange={(e) => setUnitPrice(e.target.value)}
+                className="w-20 px-1 py-1.5 text-sm focus:outline-none bg-transparent"
+              />
+            </div>
+            <AmountMicButton onResult={(amount) => setUnitPrice(amount.toString())} />
+          </div>
+          <span className="text-[10px] text-gray-400 mt-0.5">{t('voiceReview.perUnitPrice')}</span>
         </div>
         <button onClick={onDelete} className="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
           <Trash2 size={14} />
         </button>
       </div>
+      {item.unitPriceUncertain && (
+        <p className="text-[11px] text-amber-600 flex items-center gap-1 -mt-1">
+          <AlertTriangle size={11} /> {unitPrice > 0 ? t('voiceReview.priceUncertain') : t('voiceReview.priceUnknown')}
+        </p>
+      )}
       <div className="flex flex-wrap gap-1.5">
         {Object.entries(item.shares).map(([memberId, qty]) => {
           const member = members.find((m) => m.id === memberId)
@@ -66,6 +93,34 @@ function PersonalItemCard({ item, members, onChange, onDelete }) {
           )
         })}
       </div>
+      {availableMembers.length > 0 && (
+        <div className="flex items-center gap-1.5">
+          <select
+            value={addMemberId}
+            onChange={(e) => setAddMemberId(e.target.value)}
+            className="flex-1 min-w-0 text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:border-indigo-400"
+          >
+            <option value="">{t('voiceReview.addPersonToItem')}</option>
+            {availableMembers.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+          <input
+            type="number"
+            min="1"
+            value={addQty}
+            onChange={(e) => setAddQty(e.target.value)}
+            className="w-12 text-xs text-center border border-gray-200 rounded-lg py-1.5 flex-shrink-0"
+          />
+          <button
+            onClick={addMemberShare}
+            disabled={!addMemberId}
+            className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center disabled:opacity-40 flex-shrink-0"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+      )}
       <p className="text-xs text-gray-400 text-right">{t('voiceReview.itemLineTotal', { amount: fmt(unitPrice * totalQty) })}</p>
     </div>
   )
@@ -137,6 +192,47 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
   const showMismatch = grandNum > 0 && Math.abs(itemsTotal - foodBudget) > 0.5
 
   const unresolvedNames = new Set(voiceData.warnings || [])
+
+  // If the grand total itself was never said (or the user cleared it), but every
+  // item's price is now known (dictated, backend-inferred, or hand-fixed), work it
+  // out the same way a person would: items + tip - discount. Stops re-computing the
+  // moment the field has any value, so it never fights something the user typed.
+  useEffect(() => {
+    if (grandTotal !== '') return
+    if (items.length === 0) return
+    if (items.some((i) => i.unitPriceUncertain)) return
+    const computed = itemsTotal + (parseFloat(tipAmount) || 0) - (parseFloat(discountAmount) || 0)
+    if (computed > 0) setGrandTotal(computed.toFixed(2))
+  }, [grandTotal, items, itemsTotal, tipAmount, discountAmount])
+
+  // The mirror case: grand total is now known (typed, or via the mic) but exactly
+  // one item's price still isn't — solve for that one item the same way the backend
+  // does at dictation time (§ normalizeBillVoice), just live so filling in the total
+  // here also finishes the job.
+  useEffect(() => {
+    if (!grandNum) return
+    const unresolved = items.filter((i) => i.unitPriceUncertain || (parseFloat(i.unitPrice) || 0) <= 0)
+    if (unresolved.length !== 1) return
+
+    const target = unresolved[0]
+    const knownItemsTotal = items
+      .filter((i) => i.id !== target.id)
+      .reduce((sum, i) => {
+        const unitPrice = parseFloat(i.unitPrice) || 0
+        const qty = i.everyone ? (parseInt(i.quantity) || 1) : Object.values(i.shares).reduce((s, q) => s + q, 0)
+        return sum + unitPrice * qty
+      }, 0)
+    const targetQty = target.everyone ? (parseInt(target.quantity) || 1) : Object.values(target.shares).reduce((s, q) => s + q, 0)
+    const remaining = foodBudget - knownItemsTotal
+
+    if (remaining > 0 && targetQty > 0) {
+      const computedPrice = remaining / targetQty
+      // Guard against re-triggering itself: only write when the value actually moves.
+      if (Math.abs((parseFloat(target.unitPrice) || 0) - computedPrice) > 0.01) {
+        updateItem(target.id, { ...target, unitPrice: computedPrice.toFixed(2), unitPriceUncertain: true })
+      }
+    }
+  }, [grandNum, foodBudget, items])
 
   function updateItem(id, updated) {
     setItems((prev) => prev.map((i) => (i.id === id ? updated : i)))
@@ -313,16 +409,19 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
             {/* Totals */}
             <div>
               <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">{t('ocrReview.grandTotal')}</label>
-              <div className={`flex items-center border-2 rounded-xl ${!grandTotal ? 'border-amber-400 bg-amber-50' : 'border-gray-200'} focus-within:border-indigo-500 focus-within:bg-white transition-colors`}>
-                <span className="pl-4 text-gray-400 font-medium whitespace-nowrap">{symbol}</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  value={grandTotal}
-                  onChange={(e) => setGrandTotal(e.target.value)}
-                  className="flex-1 px-2 py-3 text-sm bg-transparent outline-none font-semibold"
-                />
+              <div className="flex items-center gap-1.5">
+                <div className={`flex-1 flex items-center border-2 rounded-xl ${!grandTotal ? 'border-amber-400 bg-amber-50' : 'border-gray-200'} focus-within:border-indigo-500 focus-within:bg-white transition-colors`}>
+                  <span className="pl-4 text-gray-400 font-medium whitespace-nowrap">{symbol}</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={grandTotal}
+                    onChange={(e) => setGrandTotal(e.target.value)}
+                    className="flex-1 px-2 py-3 text-sm bg-transparent outline-none font-semibold"
+                  />
+                </div>
+                <AmountMicButton onResult={(amount) => setGrandTotal(amount.toString())} />
               </div>
             </div>
 

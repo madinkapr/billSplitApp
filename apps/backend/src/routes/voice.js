@@ -1,6 +1,6 @@
 const express = require('express')
 const multer = require('multer')
-const { ERROR_MAP, runVoiceMembers, runVoiceBill } = require('../services/voiceService')
+const { ERROR_MAP, runVoiceAmount, runVoiceMembers, runVoiceBill } = require('../services/voiceService')
 
 const router = express.Router()
 
@@ -28,6 +28,17 @@ function handleUpload(req, res, next) {
     next()
   })
 }
+
+router.post('/amount', handleUpload, async (req, res) => {
+  const { result, errorCode } = await runVoiceAmount(req.file.buffer, req.file.mimetype)
+
+  if (errorCode) {
+    const mapped = ERROR_MAP[errorCode] || { status: 500, error: 'An unexpected error occurred.' }
+    return res.status(mapped.status).json({ success: false, errorCode, error: mapped.error })
+  }
+
+  return res.json({ success: true, data: result })
+})
 
 router.post('/members', handleUpload, async (req, res) => {
   const { result, errorCode } = await runVoiceMembers(req.file.buffer, req.file.mimetype)
