@@ -1,10 +1,15 @@
 import React, { useRef, useState } from 'react'
-import { ArrowLeft, ArrowRight, UserPlus, Trash2, ScanLine, Image, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { ArrowLeft, ArrowRight, UserPlus, Trash2, ScanLine, Image, Loader2, CheckCircle2, AlertCircle, RefreshCw, Mic, MicOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { generateId } from '../../utils/math'
 import { useOcr } from '../../hooks/useOcr'
 import { useCurrency } from '../../hooks/useCurrency'
+import { useVoiceInput } from '../../hooks/useVoiceInput'
+import { voiceErrorMessage } from '../../utils/voiceErrors'
 import OcrReviewModal from '../../components/OcrReviewModal'
+import VoiceBillButton from '../../components/VoiceBillButton'
+import VoiceBillReviewModal from '../../components/VoiceBillReviewModal'
 
 const TIP_PRESETS = [15, 18, 20]
 
@@ -38,7 +43,7 @@ function ScanCards({ scanState, errorMessage, onScan, onRetry, onRescan }) {
 
   if (scanState === 'scanning') {
     return (
-      <div className="flex items-center gap-3 rounded-2xl bg-desktop-tileHome border-2 border-desktop-primary/30" style={{ padding: '18px 20px' }}>
+      <div className="col-span-3 flex items-center gap-3 rounded-2xl bg-desktop-tileHome border-2 border-desktop-primary/30" style={{ padding: '18px 20px' }}>
         <Loader2 size={20} className="text-desktop-primary animate-spin flex-shrink-0" />
         <div>
           <p className="text-sm font-semibold text-desktop-primary">{t('billSetup.scanning')}</p>
@@ -50,7 +55,7 @@ function ScanCards({ scanState, errorMessage, onScan, onRetry, onRescan }) {
 
   if (scanState === 'success') {
     return (
-      <div className="flex items-center justify-between gap-3 rounded-2xl bg-desktop-successBg border-2 border-desktop-successText2/30" style={{ padding: '18px 20px' }}>
+      <div className="col-span-3 flex items-center justify-between gap-3 rounded-2xl bg-desktop-successBg border-2 border-desktop-successText2/30" style={{ padding: '18px 20px' }}>
         <div className="flex items-center gap-3">
           <CheckCircle2 size={20} className="text-desktop-successText flex-shrink-0" />
           <div>
@@ -67,7 +72,7 @@ function ScanCards({ scanState, errorMessage, onScan, onRetry, onRescan }) {
 
   if (scanState === 'error') {
     return (
-      <div className="flex items-center justify-between gap-3 rounded-2xl bg-red-50 border-2 border-red-200" style={{ padding: '18px 20px' }}>
+      <div className="col-span-3 flex items-center justify-between gap-3 rounded-2xl bg-red-50 border-2 border-red-200" style={{ padding: '18px 20px' }}>
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <AlertCircle size={20} className="text-red-400 flex-shrink-0" />
           <div className="min-w-0">
@@ -83,32 +88,26 @@ function ScanCards({ scanState, errorMessage, onScan, onRetry, onRescan }) {
   }
 
   return (
-    <div className="flex gap-4">
+    <>
       <button
         onClick={() => cameraRef.current?.click()}
-        className="flex-1 flex items-center gap-3 rounded-2xl text-white text-left"
-        style={{ padding: '18px 20px', background: 'linear-gradient(135deg, #3e8ee8, #114f9e)' }}
+        className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-indigo-500 text-white text-center"
+        style={{ padding: '18px 20px' }}
       >
         <ScanLine size={20} className="flex-shrink-0" />
-        <span>
-          <p className="text-sm font-semibold">{t('billSetup.scanCamera')}</p>
-          <p className="text-xs text-white/75">{t('billSetup.scanSubtitle')}</p>
-        </span>
+        <p className="text-sm font-semibold">{t('billSetup.scanCameraShort')}</p>
         <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
       </button>
       <button
         onClick={() => galleryRef.current?.click()}
-        className="flex-1 flex items-center gap-3 rounded-2xl bg-desktop-tileHome text-left"
+        className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-indigo-500 text-white text-center"
         style={{ padding: '18px 20px' }}
       >
-        <Image size={20} className="text-desktop-primary flex-shrink-0" />
-        <span>
-          <p className="text-sm font-semibold text-desktop-primary">{t('billSetup.scanGallery')}</p>
-          <p className="text-xs text-desktop-primary/60">{t('billSetup.scanSubtitle')}</p>
-        </span>
+        <Image size={20} className="flex-shrink-0" />
+        <p className="text-sm font-semibold">{t('billSetup.scanGalleryShort')}</p>
         <input ref={galleryRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
       </button>
-    </div>
+    </>
   )
 }
 
@@ -138,8 +137,10 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
 
   const [scanState, setScanState] = useState('idle')
   const [ocrData, setOcrData] = useState(null)
+  const [voiceBillData, setVoiceBillData] = useState(null)
 
   const { scanReceipt, retry, error: ocrError } = useOcr()
+  const memberVoice = useVoiceInput('/api/voice/members')
 
   const grandNum = parseFloat(grandTotal) || 0
   const tipAmount = tipMode === 'percent'
@@ -191,17 +192,85 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
     setScanState('idle')
   }
 
+  function handleVoiceBillConfirm(confirmed) {
+    setVoiceBillData(null)
+
+    // The spoken "isMe" member folds into whichever member is already flagged
+    // isMe (never a second "Me"); everyone else matches by name or is appended.
+    const idMap = {}
+    const nextAdhoc = [...adhocMembers]
+    const nextActive = [...activeMembers]
+
+    confirmed.members.forEach((m) => {
+      if (m.isMe) {
+        const meEntry = nextAdhoc.find((x) => x.isMe)
+        if (meEntry) {
+          idMap[m.id] = meEntry.id
+          return
+        }
+      }
+      const existing = nextAdhoc.find((x) => x.name.toLowerCase() === m.name.toLowerCase())
+      if (existing) {
+        idMap[m.id] = existing.id
+        return
+      }
+      const newM = { id: generateId(), name: m.name, isMe: false }
+      nextAdhoc.push(newM)
+      nextActive.push(newM.id)
+      idMap[m.id] = newM.id
+    })
+
+    const items = confirmed.items.map((item) => {
+      const shares = {}
+      Object.entries(item.shares || {}).forEach(([tempId, qty]) => {
+        const finalId = idMap[tempId]
+        if (finalId) shares[finalId] = (shares[finalId] || 0) + qty
+      })
+      return { ...item, shares }
+    })
+
+    onNext({
+      ...bill,
+      _adhocMembers: nextAdhoc,
+      activeMembers: nextActive,
+      grandTotal: confirmed.grandTotal,
+      tipMode: confirmed.tipAmount > 0 ? 'amount' : 'percent',
+      tipPercent: confirmed.tipAmount > 0 ? null : confirmed.tipPercent,
+      tipAmount: confirmed.tipAmount,
+      discountAmount: confirmed.discountAmount || 0,
+      items,
+    })
+  }
+
+  function handleVoiceBillCancel() {
+    setVoiceBillData(null)
+  }
+
   function toggleMember(id) {
     setActiveMembers((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
-  function addAdhocMember() {
-    const trimmed = newMemberName.trim()
+  function addAdhocMemberByName(rawName) {
+    const trimmed = rawName.trim()
     if (!trimmed) return
+    if (adhocMembers.some((m) => m.name.toLowerCase() === trimmed.toLowerCase())) return
     const newM = { id: generateId(), name: trimmed, isMe: false }
     setAdhocMembers((prev) => [...prev, newM])
     setActiveMembers((prev) => [...prev, newM.id])
+  }
+
+  function addAdhocMember() {
+    addAdhocMemberByName(newMemberName)
     setNewMemberName('')
+  }
+
+  async function handleMemberVoiceRelease() {
+    try {
+      const data = await memberVoice.stopRecording()
+      if (data?.members) data.members.forEach(addAdhocMemberByName)
+    } catch {
+      // error surfaced via memberVoice.error
+    }
   }
 
   function removeAdhocMember(id) {
@@ -242,13 +311,16 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
       </div>
 
       <div className="flex flex-col gap-5">
-        <ScanCards
-          scanState={scanState}
-          errorMessage={ocrError}
-          onScan={handleScan}
-          onRetry={handleRetry}
-          onRescan={() => setScanState('idle')}
-        />
+        <div className="grid grid-cols-3 gap-4">
+          <ScanCards
+            scanState={scanState}
+            errorMessage={ocrError}
+            onScan={handleScan}
+            onRetry={handleRetry}
+            onRescan={() => setScanState('idle')}
+          />
+          <VoiceBillButton onResult={setVoiceBillData} />
+        </div>
 
         <div className="flex gap-5 items-start">
           {/* Bill Totals */}
@@ -396,6 +468,32 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
                 onKeyDown={(e) => e.key === 'Enter' && addAdhocMember()}
                 maxLength={25}
               />
+              <motion.button
+                whileTap={{ scale: memberVoice.state === 'idle' || memberVoice.state === 'error' ? 0.9 : 1 }}
+                animate={memberVoice.state === 'recording' ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+                transition={memberVoice.state === 'recording' ? { duration: 0.8, repeat: Infinity } : undefined}
+                onPointerDown={() => (memberVoice.state === 'idle' || memberVoice.state === 'error') && memberVoice.startRecording()}
+                onPointerUp={handleMemberVoiceRelease}
+                onPointerLeave={memberVoice.cancelRecording}
+                onPointerCancel={memberVoice.cancelRecording}
+                disabled={memberVoice.state === 'processing'}
+                aria-label={t('billSetup.addSomeoneVoice')}
+                className={`w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0 select-none touch-none transition-colors ${
+                  memberVoice.state === 'recording'
+                    ? 'bg-red-500 text-white'
+                    : memberVoice.state === 'error'
+                      ? 'bg-red-50 text-red-400'
+                      : 'bg-desktop-tileHome text-desktop-primary'
+                }`}
+              >
+                {memberVoice.state === 'processing' ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : memberVoice.state === 'error' ? (
+                  <MicOff size={16} />
+                ) : (
+                  <Mic size={16} />
+                )}
+              </motion.button>
               <button
                 onClick={addAdhocMember}
                 disabled={!newMemberName.trim()}
@@ -404,6 +502,9 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
                 <UserPlus size={16} />
               </button>
             </div>
+            {memberVoice.state === 'error' && (
+              <p className="text-xs text-red-400 mt-1.5">{voiceErrorMessage(t, memberVoice.errorCode)}</p>
+            )}
           </div>
         </div>
 
@@ -418,6 +519,10 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
       </div>
 
       {ocrData && <OcrReviewModal ocrData={ocrData} onConfirm={handleOcrConfirm} onCancel={handleOcrCancel} />}
+
+      {voiceBillData && (
+        <VoiceBillReviewModal voiceData={voiceBillData} onConfirm={handleVoiceBillConfirm} onCancel={handleVoiceBillCancel} />
+      )}
     </div>
   )
 }

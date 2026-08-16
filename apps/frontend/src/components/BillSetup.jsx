@@ -1,12 +1,16 @@
 import React, { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ArrowRight, UserPlus, Trash2, ScanLine, Image, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
+import { ArrowLeft, ArrowRight, UserPlus, Trash2, ScanLine, Image, Loader2, CheckCircle2, AlertCircle, RefreshCw, Mic, MicOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { generateId } from '../utils/math'
 import { useOcr } from '../hooks/useOcr'
 import { useCurrency } from '../hooks/useCurrency'
+import { useVoiceInput } from '../hooks/useVoiceInput'
+import { voiceErrorMessage } from '../utils/voiceErrors'
 import { trackManualEntry } from '../utils/analytics'
 import OcrReviewModal from './OcrReviewModal'
+import VoiceBillButton from './VoiceBillButton'
+import VoiceBillReviewModal from './VoiceBillReviewModal'
 
 const TIP_PRESETS = [15, 18, 20]
 
@@ -44,45 +48,33 @@ function ScanBanner({ scanState, errorMessage, onScan, onRetry, onRescan }) {
 
   if (scanState === 'idle') {
     return (
-      <div className="flex flex-col gap-2">
+      <>
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => cameraRef.current?.click()}
-          className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl bg-indigo-500 text-white shadow-md shadow-indigo-200"
+          className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-2xl bg-indigo-500 text-white shadow-md shadow-indigo-200 text-center"
         >
-          <div className="flex items-center gap-3">
-            <ScanLine size={20} />
-            <div className="text-left">
-              <p className="text-sm font-semibold">{t('billSetup.scanCamera')}</p>
-              <p className="text-xs text-indigo-200">{t('billSetup.scanSubtitle')}</p>
-            </div>
-          </div>
-          <ArrowRight size={16} className="opacity-70" />
+          <ScanLine size={20} />
+          <p className="text-xs font-semibold leading-tight">{t('billSetup.scanCameraShort')}</p>
           <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
         </motion.button>
 
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => galleryRef.current?.click()}
-          className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl bg-indigo-50 text-indigo-700"
+          className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-2xl bg-indigo-500 text-white shadow-md shadow-indigo-200 text-center"
         >
-          <div className="flex items-center gap-3">
-            <Image size={20} />
-            <div className="text-left">
-              <p className="text-sm font-semibold">{t('billSetup.scanGallery')}</p>
-              <p className="text-xs text-indigo-400">{t('billSetup.scanSubtitle')}</p>
-            </div>
-          </div>
-          <ArrowRight size={16} className="opacity-70" />
+          <Image size={20} />
+          <p className="text-xs font-semibold leading-tight">{t('billSetup.scanGalleryShort')}</p>
           <input ref={galleryRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
         </motion.button>
-      </div>
+      </>
     )
   }
 
   if (scanState === 'scanning') {
     return (
-      <div className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl bg-indigo-50 border-2 border-indigo-200">
+      <div className="col-span-3 w-full flex items-center gap-3 px-5 py-4 rounded-2xl bg-indigo-50 border-2 border-indigo-200">
         <Loader2 size={20} className="text-indigo-500 animate-spin flex-shrink-0" />
         <div>
           <p className="text-sm font-semibold text-indigo-700">{t('billSetup.scanning')}</p>
@@ -94,7 +86,7 @@ function ScanBanner({ scanState, errorMessage, onScan, onRetry, onRescan }) {
 
   if (scanState === 'success') {
     return (
-      <div className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl bg-green-50 border-2 border-green-200">
+      <div className="col-span-3 w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl bg-green-50 border-2 border-green-200">
         <div className="flex items-center gap-3">
           <CheckCircle2 size={20} className="text-green-500 flex-shrink-0" />
           <div>
@@ -114,7 +106,7 @@ function ScanBanner({ scanState, errorMessage, onScan, onRetry, onRescan }) {
 
   // error state
   return (
-    <div className="w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl bg-red-50 border-2 border-red-200">
+    <div className="col-span-3 w-full flex items-center justify-between gap-3 px-5 py-4 rounded-2xl bg-red-50 border-2 border-red-200">
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <AlertCircle size={20} className="text-red-400 flex-shrink-0" />
         <div className="min-w-0">
@@ -158,8 +150,10 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
 
   const [scanState, setScanState] = useState('idle')
   const [ocrData, setOcrData] = useState(null)
+  const [voiceBillData, setVoiceBillData] = useState(null)
 
   const { scanReceipt, retry, error: ocrError } = useOcr()
+  const memberVoice = useVoiceInput('/api/voice/members')
 
   const grandNum = parseFloat(grandTotal) || 0
   const tipAmount = tipMode === 'percent'
@@ -215,19 +209,87 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
     setScanState('idle')
   }
 
+  function handleVoiceBillConfirm(confirmed) {
+    setVoiceBillData(null)
+
+    // The spoken "isMe" member folds into whichever member is already flagged
+    // isMe (never a second "Me"); everyone else matches by name or is appended.
+    const idMap = {}
+    const nextAdhoc = [...adhocMembers]
+    const nextActive = [...activeMembers]
+
+    confirmed.members.forEach((m) => {
+      if (m.isMe) {
+        const meEntry = nextAdhoc.find((x) => x.isMe)
+        if (meEntry) {
+          idMap[m.id] = meEntry.id
+          return
+        }
+      }
+      const existing = nextAdhoc.find((x) => x.name.toLowerCase() === m.name.toLowerCase())
+      if (existing) {
+        idMap[m.id] = existing.id
+        return
+      }
+      const newM = { id: generateId(), name: m.name, isMe: false }
+      nextAdhoc.push(newM)
+      nextActive.push(newM.id)
+      idMap[m.id] = newM.id
+    })
+
+    const items = confirmed.items.map((item) => {
+      const shares = {}
+      Object.entries(item.shares || {}).forEach(([tempId, qty]) => {
+        const finalId = idMap[tempId]
+        if (finalId) shares[finalId] = (shares[finalId] || 0) + qty
+      })
+      return { ...item, shares }
+    })
+
+    onNext({
+      ...bill,
+      _adhocMembers: nextAdhoc,
+      activeMembers: nextActive,
+      grandTotal: confirmed.grandTotal,
+      tipMode: confirmed.tipAmount > 0 ? 'amount' : 'percent',
+      tipPercent: confirmed.tipAmount > 0 ? null : confirmed.tipPercent,
+      tipAmount: confirmed.tipAmount,
+      discountAmount: confirmed.discountAmount || 0,
+      items,
+    })
+  }
+
+  function handleVoiceBillCancel() {
+    setVoiceBillData(null)
+  }
+
   function toggleMember(id) {
     setActiveMembers((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     )
   }
 
-  function addAdhocMember() {
-    const trimmed = newMemberName.trim()
+  function addAdhocMemberByName(rawName) {
+    const trimmed = rawName.trim()
     if (!trimmed) return
+    if (adhocMembers.some((m) => m.name.toLowerCase() === trimmed.toLowerCase())) return
     const newM = { id: generateId(), name: trimmed, isMe: false }
     setAdhocMembers((prev) => [...prev, newM])
     setActiveMembers((prev) => [...prev, newM.id])
+  }
+
+  function addAdhocMember() {
+    addAdhocMemberByName(newMemberName)
     setNewMemberName('')
+  }
+
+  async function handleMemberVoiceRelease() {
+    try {
+      const data = await memberVoice.stopRecording()
+      if (data?.members) data.members.forEach(addAdhocMemberByName)
+    } catch {
+      // error surfaced via memberVoice.error
+    }
   }
 
   function removeAdhocMember(id) {
@@ -269,14 +331,17 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
       </div>
 
       <div className="px-5 flex flex-col gap-5">
-        {/* Scan Receipt Banner */}
-        <ScanBanner
-          scanState={scanState}
-          errorMessage={ocrError}
-          onScan={handleScan}
-          onRetry={handleRetry}
-          onRescan={() => setScanState('idle')}
-        />
+        {/* Scan Receipt / Dictate whole bill by voice */}
+        <div className="grid grid-cols-3 gap-2">
+          <ScanBanner
+            scanState={scanState}
+            errorMessage={ocrError}
+            onScan={handleScan}
+            onRetry={handleRetry}
+            onRescan={() => setScanState('idle')}
+          />
+          <VoiceBillButton onResult={setVoiceBillData} />
+        </div>
 
         {/* Totals */}
         <div className="card p-5">
@@ -444,6 +509,32 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
               onKeyDown={(e) => e.key === 'Enter' && addAdhocMember()}
               maxLength={25}
             />
+            <motion.button
+              whileTap={{ scale: memberVoice.state === 'idle' || memberVoice.state === 'error' ? 0.9 : 1 }}
+              animate={memberVoice.state === 'recording' ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+              transition={memberVoice.state === 'recording' ? { duration: 0.8, repeat: Infinity } : undefined}
+              onPointerDown={() => (memberVoice.state === 'idle' || memberVoice.state === 'error') && memberVoice.startRecording()}
+              onPointerUp={handleMemberVoiceRelease}
+              onPointerLeave={memberVoice.cancelRecording}
+              onPointerCancel={memberVoice.cancelRecording}
+              disabled={memberVoice.state === 'processing'}
+              aria-label={t('billSetup.addSomeoneVoice')}
+              className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 select-none touch-none transition-colors ${
+                memberVoice.state === 'recording'
+                  ? 'bg-red-500 text-white'
+                  : memberVoice.state === 'error'
+                    ? 'bg-red-50 text-red-400'
+                    : 'bg-indigo-50 text-indigo-500'
+              }`}
+            >
+              {memberVoice.state === 'processing' ? (
+                <Loader2 size={17} className="animate-spin" />
+              ) : memberVoice.state === 'error' ? (
+                <MicOff size={17} />
+              ) : (
+                <Mic size={17} />
+              )}
+            </motion.button>
             <button
               onClick={addAdhocMember}
               disabled={!newMemberName.trim()}
@@ -452,6 +543,9 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
               <UserPlus size={17} />
             </button>
           </div>
+          {memberVoice.state === 'error' && (
+            <p className="text-xs text-red-400 mt-1.5">{voiceErrorMessage(t, memberVoice.errorCode)}</p>
+          )}
         </div>
 
         <motion.button
@@ -469,6 +563,14 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
           ocrData={ocrData}
           onConfirm={handleOcrConfirm}
           onCancel={handleOcrCancel}
+        />
+      )}
+
+      {voiceBillData && (
+        <VoiceBillReviewModal
+          voiceData={voiceBillData}
+          onConfirm={handleVoiceBillConfirm}
+          onCancel={handleVoiceBillCancel}
         />
       )}
     </div>

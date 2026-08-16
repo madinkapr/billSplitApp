@@ -57,6 +57,9 @@
     "title": "Hisobni sozlash",
     "scanCamera": "Chekni skanerlash (kamera)",
     "scanGallery": "Chekni skanerlash (galereya)",
+    "scanCameraShort": "Kamera",
+    "scanGalleryShort": "Galereya",
+    "voiceDictateShort": "Ovoz",
     "scanSubtitle": "Summalar va mahsulotlarni avtomatik to'ldirish",
     "scanning": "Chek skanerlanmoqda…",
     "scanningSubtitle": "Bir necha soniya vaqt olishi mumkin",
@@ -75,7 +78,18 @@
     "addDiscount": "+ Chegirma qo'shish",
     "whosHere": "Kim bor?",
     "addSomeone": "Kimnidir qo'shish…",
-    "addItems": "Mahsulotlar qo'shish"
+    "addSomeoneVoice": "Ovoz orqali qo'shish",
+    "addItems": "Mahsulotlar qo'shish",
+    "voiceDictate": "Hisobni aytib berish",
+    "voiceDictateSubtitle": "Kim nima yeganini ayting",
+    "voiceListening": "Tinglanmoqda…",
+    "voiceListeningSubtitle": "Tugagach qo'yib yuboring",
+    "voiceProcessing": "Tushunilmoqda…",
+    "voiceProcessingSubtitle": "Bir necha soniya vaqt olishi mumkin",
+    "voiceFailed": "Tushunilmadi",
+    "voiceNothingHeard": "Gap eshitilmadi. Qayta urinib ko'ring.",
+    "voiceMicDenied": "Mikrofonga ruxsat berilmadi.",
+    "voiceErrorGeneric": "Nimadir xato ketdi. Qayta urinib ko'ring."
   },
   "itemizer": {
     "title": "Mahsulotlar qo'shish",
@@ -139,6 +153,19 @@
     "itemNamePlaceholder": "Mahsulot nomi",
     "enterManually": "Qo'lda kiritish",
     "confirm": "Tasdiqlash"
+  },
+  "voiceReview": {
+    "title": "Aytilgan hisobni tekshiring",
+    "subtitle": "Noto'g'ri eshitilgan narsalarni tuzating",
+    "unresolvedNameWarning": "Bu ismlar hech kimga mos kelmadi: {{names}} — tekshirib ko'ring",
+    "membersHeader": "Odamlar",
+    "addMissingMember": "Odam qo'shish…",
+    "personalItemsHeader": "Shaxsiy taomlar",
+    "sharedItemsHeader": "Umumiy taomlar (hammaga)",
+    "itemLineTotal": "Qator summasi: {{amount}}",
+    "mismatchWarning": "Taomlar summasi ({{itemsTotal}}) kutilgan ovqat byudjeti ({{foodBudget}}) bilan mos kelmayapti",
+    "cancel": "Qo'lda kiritish",
+    "confirm": "Tasdiqlash va davom etish"
   },
   "report": {
     "lunch": "Tushlik",

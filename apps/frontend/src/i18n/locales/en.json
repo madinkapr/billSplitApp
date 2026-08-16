@@ -57,6 +57,9 @@
     "title": "Bill Setup",
     "scanCamera": "Scan Receipt (camera)",
     "scanGallery": "Scan Receipt (gallery)",
+    "scanCameraShort": "Camera",
+    "scanGalleryShort": "Gallery",
+    "voiceDictateShort": "Voice",
     "scanSubtitle": "Auto-fill totals and items",
     "scanning": "Scanning receipt…",
     "scanningSubtitle": "This may take a few seconds",
@@ -75,7 +78,18 @@
     "addDiscount": "+ Add discount",
     "whosHere": "Who's Here?",
     "addSomeone": "Add someone…",
-    "addItems": "Add Items"
+    "addSomeoneVoice": "Add by voice",
+    "addItems": "Add Items",
+    "voiceDictate": "Dictate Bill",
+    "voiceDictateSubtitle": "Speak who ate what",
+    "voiceListening": "Listening…",
+    "voiceListeningSubtitle": "Release when done",
+    "voiceProcessing": "Understanding…",
+    "voiceProcessingSubtitle": "This may take a few seconds",
+    "voiceFailed": "Didn't catch that",
+    "voiceNothingHeard": "No speech detected. Try again.",
+    "voiceMicDenied": "Microphone access denied.",
+    "voiceErrorGeneric": "Something went wrong. Try again."
   },
   "itemizer": {
     "title": "Add Items",
@@ -139,6 +153,19 @@
     "itemNamePlaceholder": "Item name",
     "enterManually": "Enter manually",
     "confirm": "Confirm"
+  },
+  "voiceReview": {
+    "title": "Review Dictated Bill",
+    "subtitle": "Fix anything that was misheard",
+    "unresolvedNameWarning": "Couldn't match these names to anyone: {{names}} — check they're right",
+    "membersHeader": "People",
+    "addMissingMember": "Add person…",
+    "personalItemsHeader": "Individual items",
+    "sharedItemsHeader": "Shared items (everyone)",
+    "itemLineTotal": "Line total: {{amount}}",
+    "mismatchWarning": "Items total ({{itemsTotal}}) doesn't match expected food budget ({{foodBudget}})",
+    "cancel": "Enter Manually",
+    "confirm": "Confirm & Continue"
   },
   "report": {
     "lunch": "Lunch",

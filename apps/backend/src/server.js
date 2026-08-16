@@ -10,6 +10,7 @@ const settleRouter = require('./routes/settle')
 const analyticsRouter = require('./routes/analytics')
 const adminAuthRouter = require('./routes/adminAuth')
 const caloriesRouter = require('./routes/calories')
+const voiceRouter = require('./routes/voice')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -26,6 +27,7 @@ app.use('/api/settle', settleRouter)
 app.use('/api/analytics', analyticsRouter)
 app.use('/api/admin', adminAuthRouter)
 app.use('/api/calories', caloriesRouter)
+app.use('/api/voice', voiceRouter)
 
 async function initDb() {
   const schema = fs.readFileSync(path.join(__dirname, 'db/schema.sql'), 'utf8')

@@ -61,6 +61,9 @@
     "title": "Настройка счёта",
     "scanCamera": "Сканировать чек (камера)",
     "scanGallery": "Сканировать чек (галерея)",
+    "scanCameraShort": "Камера",
+    "scanGalleryShort": "Галерея",
+    "voiceDictateShort": "Голос",
     "scanSubtitle": "Автозаполнение сумм и товаров",
     "scanning": "Сканирование чека…",
     "scanningSubtitle": "Это может занять несколько секунд",
@@ -79,7 +82,18 @@
     "addDiscount": "+ Добавить скидку",
     "whosHere": "Кто здесь?",
     "addSomeone": "Добавить человека…",
-    "addItems": "Добавить товары"
+    "addSomeoneVoice": "Добавить голосом",
+    "addItems": "Добавить товары",
+    "voiceDictate": "Продиктовать счёт",
+    "voiceDictateSubtitle": "Скажите, кто что ел",
+    "voiceListening": "Слушаю…",
+    "voiceListeningSubtitle": "Отпустите, когда закончите",
+    "voiceProcessing": "Распознаю…",
+    "voiceProcessingSubtitle": "Это может занять несколько секунд",
+    "voiceFailed": "Не расслышал",
+    "voiceNothingHeard": "Речь не распознана. Попробуйте снова.",
+    "voiceMicDenied": "Нет доступа к микрофону.",
+    "voiceErrorGeneric": "Что-то пошло не так. Попробуйте снова."
   },
   "itemizer": {
     "title": "Добавить товары",
@@ -143,6 +157,19 @@
     "itemNamePlaceholder": "Название товара",
     "enterManually": "Ввести вручную",
     "confirm": "Подтвердить"
+  },
+  "voiceReview": {
+    "title": "Проверьте счёт",
+    "subtitle": "Исправьте, если что-то расслышано неверно",
+    "unresolvedNameWarning": "Не удалось сопоставить имена: {{names}} — проверьте их",
+    "membersHeader": "Участники",
+    "addMissingMember": "Добавить человека…",
+    "personalItemsHeader": "Личные позиции",
+    "sharedItemsHeader": "Общие позиции (на всех)",
+    "itemLineTotal": "Итого по позиции: {{amount}}",
+    "mismatchWarning": "Сумма позиций ({{itemsTotal}}) не совпадает с ожидаемой суммой за еду ({{foodBudget}})",
+    "cancel": "Ввести вручную",
+    "confirm": "Подтвердить и продолжить"
   },
   "report": {
     "lunch": "Обед",
