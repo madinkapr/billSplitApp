@@ -47,7 +47,7 @@ export default function DesktopSummary({ bill }) {
   const [copied, setCopied] = useState(false)
 
   const summary = useBillSummary(bill)
-  const share = useSettleShare({ bill, results: summary?.results ?? [] })
+  const share = useSettleShare({ bill, results: summary?.results ?? [], tipAmount: summary?.tipAmount ?? 0, tipLabel: summary?.tipLabel ?? '' })
   const calorieEstimate = useCalorieEstimate({ bill, activeMembers: summary?.activeMembers ?? [] })
 
   if (!bill || !summary) return null

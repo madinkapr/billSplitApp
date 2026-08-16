@@ -4,8 +4,10 @@ import { useLocalStorage } from './useLocalStorage'
 import { useIsDesktop } from './useIsDesktop'
 import { useCurrency } from './useCurrency'
 import { copyText } from '../utils/clipboard'
+import { getItemShares } from '../utils/math'
+import { getUnitPrice } from '../utils/itemizerState'
 
-export function useSettleShare({ bill, results }) {
+export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '' }) {
   const { t, i18n } = useTranslation()
   const { fmt } = useCurrency()
   const isDesktop = useIsDesktop()
@@ -28,7 +30,48 @@ export function useSettleShare({ bill, results }) {
 
   const participants = results
     .filter((r) => r.id !== effectivePayerId)
-    .map((r) => ({ id: r.id, name: r.name, isMe: r.isMe, amount: r.finalTotal }))
+    .map((r) => ({ id: r.id, name: r.name, isMe: r.isMe, amount: r.finalTotal, subtotal: r.subtotal }))
+
+  const totalSubtotal = results.reduce((s, r) => s + (r.subtotal || 0), 0)
+
+  function personalItemsForMember(memberId) {
+    return (bill.items || [])
+      .filter((item) => getItemShares(item)[memberId] > 0)
+      .map((item) => {
+        const count = getItemShares(item)[memberId]
+        const amount = getUnitPrice(item) * count
+        const label = count > 1 ? `${item.name} ×${count}` : item.name
+        return `${label} - ${fmt(amount)}`
+      })
+  }
+
+  function sharedItems() {
+    return (bill.items || [])
+      .filter((item) => item.everyone === true && Object.keys(getItemShares(item)).length === 0)
+      .map((item) => `${item.name} - ${fmt(item.price / Math.max(results.length, 1))}`)
+  }
+
+  // Same per-person breakdown shown in the "copy summary" text (tip share, dishes,
+  // shared items) — appended under each participant's payment link so the message
+  // doubles as both "here's your link" and "here's what you're paying for".
+  function personDetailLines(p) {
+    const lines = []
+    if (tipAmount > 0 && totalSubtotal > 0) {
+      const personalTip = tipAmount * (p.subtotal / totalSubtotal)
+      lines.push(`${tipLabel}: ${fmt(personalTip)}`)
+    }
+    const personal = personalItemsForMember(p.id)
+    if (personal.length > 0) {
+      lines.push(`${t('report.dishesLabel')}:`)
+      personal.forEach((name) => lines.push(`- ${name}`))
+    }
+    const shared = sharedItems()
+    if (shared.length > 0) {
+      lines.push(`${t('report.everyoneSplitEqually')}:`)
+      shared.forEach((name) => lines.push(`- ${name}`))
+    }
+    return lines
+  }
 
   function open() {
     setIsOpen(true)
@@ -66,9 +109,10 @@ export function useSettleShare({ bill, results }) {
   function buildCombinedText(withLinks) {
     if (withLinks.length === 1) {
       const p = withLinks[0]
-      return `${t('settleUp.shareText', { amount: fmt(p.amount) })} ${p.deepLink}`
+      const lines = [`${t('settleUp.shareText', { amount: fmt(p.amount) })} ${p.deepLink}`, ...personDetailLines(p)]
+      return lines.join('\n')
     }
-    const blocks = withLinks.map((p) => `${p.name} — ${fmt(p.amount)}\n${p.deepLink}`)
+    const blocks = withLinks.map((p) => [`${p.name} — ${fmt(p.amount)}`, p.deepLink, ...personDetailLines(p)].join('\n'))
     return `${t('settleUp.shareTextMultiIntro')}\n\n${blocks.join('\n\n')}`
   }
 
