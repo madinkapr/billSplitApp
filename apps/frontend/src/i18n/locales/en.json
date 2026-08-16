@@ -162,6 +162,7 @@
     "copied": "Copied!",
     "caloriesHeader": "Estimated Calories",
     "caloriesLine": "~{{calories}} kcal — about {{steps}} steps ({{walkDuration}} walk) to burn off",
+    "caloriesLineCovered": "~{{calories}} kcal — your body burns this off at rest, no extra walking needed",
     "caloriesLoading": "Estimating calories…",
     "caloriesUnavailable": "Calorie estimate unavailable.",
     "durationMinutes": "{{minutes}} min",

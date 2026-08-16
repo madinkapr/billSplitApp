@@ -166,6 +166,7 @@
     "copied": "Скопировано!",
     "caloriesHeader": "Примерная калорийность",
     "caloriesLine": "~{{calories}} ккал — чтобы сжечь, нужно пройти ~{{steps}} шагов ({{walkDuration}} ходьбы)",
+    "caloriesLineCovered": "~{{calories}} ккал — организм сжигает это в состоянии покоя, дополнительная ходьба не нужна",
     "caloriesLoading": "Подсчитываем калории…",
     "caloriesUnavailable": "Оценка калорий недоступна.",
     "durationMinutes": "{{minutes}} мин",

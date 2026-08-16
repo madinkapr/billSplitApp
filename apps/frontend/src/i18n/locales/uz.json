@@ -162,6 +162,7 @@
     "copied": "Nusxalandi!",
     "caloriesHeader": "Taxminiy kaloriya",
     "caloriesLine": "~{{calories}} kkal — buni yoqotish uchun ~{{steps}} qadam ({{walkDuration}}) yurish kerak",
+    "caloriesLineCovered": "~{{calories}} kkal — tananingiz buni tinch holatda o'zi yoqadi, qo'shimcha yurish shart emas",
     "caloriesLoading": "Kaloriya hisoblanmoqda…",
     "caloriesUnavailable": "Kaloriya bahosi mavjud emas.",
     "durationMinutes": "{{minutes}} daqiqa",

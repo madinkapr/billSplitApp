@@ -43,11 +43,13 @@ export default function CalorieEstimate({ estimate, theme = 'mobile' }) {
             <div className="flex-1 min-w-0">
               <p className={`text-sm font-medium truncate ${textBody}`}>{p.name}{p.isMe ? t('common.you') : ''}</p>
               <p className={`text-xs ${textMuted}`}>
-                {t('report.caloriesLine', {
-                  calories: p.calories.toLocaleString(),
-                  steps: p.steps.toLocaleString(),
-                  walkDuration: formatWalkDuration(p.walkMinutes, t),
-                })}
+                {p.steps > 0
+                  ? t('report.caloriesLine', {
+                      calories: p.calories.toLocaleString(),
+                      steps: p.steps.toLocaleString(),
+                      walkDuration: formatWalkDuration(p.walkMinutes, t),
+                    })
+                  : t('report.caloriesLineCovered', { calories: p.calories.toLocaleString() })}
               </p>
             </div>
           </div>

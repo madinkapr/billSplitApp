@@ -9,6 +9,11 @@ const FETCH_TIMEOUT = 55000
 const KCAL_PER_KM = 60
 const WALK_KMH = 5
 const STEPS_PER_KM = 1300
+// The body burns calories at rest regardless of exercise (BMR), so a whole dish's
+// calories don't need to be walked off — only the portion above what resting
+// metabolism already covers over a typical meal. ~1600 kcal/day average adult BMR
+// split across ~3 meals ≈ 530 kcal/meal, rounded down for a conservative estimate.
+const BMR_CREDIT_PER_MEAL = 500
 
 export function useCalorieEstimate({ bill, activeMembers }) {
   const [loading, setLoading] = useState(false)
@@ -75,7 +80,8 @@ export function useCalorieEstimate({ bill, activeMembers }) {
     const totals = attributeCalories({ items, members: activeMembers, caloriesById })
     return activeMembers.map((m) => {
       const calories = Math.round(totals[m.id] || 0)
-      const walkKm = calories / KCAL_PER_KM
+      const netCalories = Math.max(0, calories - BMR_CREDIT_PER_MEAL)
+      const walkKm = netCalories / KCAL_PER_KM
       const walkMinutes = Math.round((walkKm / WALK_KMH) * 60)
       const steps = Math.round(walkKm * STEPS_PER_KM)
       return { id: m.id, name: m.name, isMe: m.isMe, calories, steps, walkMinutes }
