@@ -292,17 +292,34 @@ function normalizeBillVoice(parsed) {
     items.push({ id: uuidv4(), name, unitPrice: totalPrice / quantity, quantity, price: totalPrice, shares: {}, everyone: true })
   })
 
-  const grandTotal = parsed.grandTotal != null ? parseFloat(parsed.grandTotal) : null
+  let grandTotal = parsed.grandTotal != null ? parseFloat(parsed.grandTotal) : null
   const tipAmount = parsed.tipAmount != null ? parseFloat(parsed.tipAmount) : null
   const tipPercent = parsed.tipPercent != null ? parseFloat(parsed.tipPercent) : null
   const discountAmount = parsed.discountAmount != null ? Math.abs(parseFloat(parsed.discountAmount)) : null
   const detectedLanguage = parsed.detectedLanguage || 'unknown'
 
-  // Exactly one item with an unstated (0) price, everything else known — solve for it
-  // the way a person doing the math by hand would: grand total minus tip minus every
-  // other item's price is what's left for this one. Ambiguous (2+ unknowns) cases are
-  // left alone; the user fixes those directly in the review modal.
-  const uncertainIds = new Set(items.filter((i) => i.unitPrice <= 0).map((i) => i.id))
+  grandTotal = applyPriceInference(items, grandTotal, tipAmount, discountAmount)
+
+  const itemsTotal = items.reduce((s, i) => s + i.price, 0)
+  const foodBudget = grandTotal != null ? grandTotal - (tipAmount || 0) + (discountAmount || 0) : null
+  const mismatch = foodBudget != null && Math.abs(itemsTotal - foodBudget) > 0.5
+
+  return { members, items, grandTotal, tipAmount, tipPercent, discountAmount, detectedLanguage, warnings, mismatch, itemsTotal, foodBudget }
+}
+
+// Given items where a genuinely-unstated price was recorded as 0 (see BILL_PROMPT's
+// "never guess a price" rule), back-solve the ONE such item from the grand total once
+// everything else is known — grand total minus tip minus every other item's price is
+// what's left for it. Ambiguous (2+ unknowns) cases are left alone. Shared by the
+// initial dictation (normalizeBillVoice) and a later voice correction (mergeBillVoiceFix)
+// so both apply the identical inference instead of two copies drifting apart.
+//
+// Also runs the reverse: if every item's price IS known but no grand total was ever
+// stated, the total is just the sum of the items (plus tip, minus discount) — no need
+// to make the speaker repeat a number that's already fully implied. Returns the
+// (possibly inferred) grand total since callers need to persist it onto their result.
+function applyPriceInference(items, grandTotal, tipAmount, discountAmount) {
+  const uncertainIds = new Set(items.filter((i) => !(i.unitPrice > 0)).map((i) => i.id))
   if (uncertainIds.size === 1 && grandTotal != null) {
     const unknown = items.find((i) => uncertainIds.has(i.id))
     const knownItemsTotal = items.filter((i) => i.id !== unknown.id).reduce((s, i) => s + i.price, 0)
@@ -311,17 +328,155 @@ function normalizeBillVoice(parsed) {
     if (remaining > 0 && unknown.quantity > 0) {
       unknown.unitPrice = remaining / unknown.quantity
       unknown.price = remaining
+      uncertainIds.delete(unknown.id)
     }
   }
   items.forEach((i) => {
     if (uncertainIds.has(i.id)) i.unitPriceUncertain = true
   })
 
+  if (grandTotal == null && items.length > 0 && uncertainIds.size === 0) {
+    const itemsTotal = items.reduce((s, i) => s + i.price, 0)
+    return itemsTotal + (tipAmount || 0) - (discountAmount || 0)
+  }
+  return grandTotal
+}
+
+// Merges a short follow-up voice correction (same BILL_SCHEMA shape) into an
+// already-normalized bill result — used both when the initial dictation missed a name
+// or a price (fills the gap) and when it heard something wrong (e.g. misheard "non
+// 12000" as 120000) and the speaker re-says just that one thing to correct it. Because
+// this is a dedicated "fix" utterance, anything it explicitly restates — a price, a
+// person's quantity for a named dish, the grand total — overwrites the old value rather
+// than being ignored; only fields NOT mentioned in the fix are left untouched. Then
+// re-runs the same price inference in case the fix unblocked it.
+function mergeBillVoiceFix(pending, parsed) {
+  if (typeof parsed !== 'object' || parsed === null) throw Object.assign(new Error(), { code: 'PARSE_ERROR' })
+  if (parsed.understood === false) throw Object.assign(new Error('Nothing heard'), { code: 'NOTHING_HEARD' })
+
+  const members = pending.members.map((m) => ({ ...m }))
+  const nameToId = new Map(members.map((m) => [m.name.toLowerCase(), m.id]))
+  const warnings = [...pending.warnings]
+
+  function resolveMemberId(rawName) {
+    const name = (rawName || '').trim().slice(0, 25)
+    const key = name.toLowerCase()
+    if (nameToId.has(key)) return nameToId.get(key)
+    const id = uuidv4()
+    nameToId.set(key, id)
+    members.push({ id, name: name || 'Unknown', isMe: false })
+    return id
+  }
+
+  const rawNewMembers = Array.isArray(parsed.members) ? parsed.members : []
+  rawNewMembers.forEach((m) => {
+    const entry = typeof m === 'string' ? { name: m, isMe: false } : m || {}
+    const name = (entry.name || '').trim().slice(0, 25)
+    if (name) resolveMemberId(name)
+  })
+
+  const items = pending.items.map((i) => ({ ...i, shares: { ...i.shares } }))
+
+  const rawFixPersonal = Array.isArray(parsed.personalItems) ? parsed.personalItems : []
+  rawFixPersonal.forEach((entry) => {
+    const name = (entry?.name || '').trim()
+    if (!name) return
+    const unitPrice = parseFloat(entry?.unitPrice) || 0
+    const perMember = Array.isArray(entry?.perMember) ? entry.perMember : []
+
+    let target = items.find((i) => !i.everyone && i.name.toLowerCase() === name.toLowerCase())
+    if (!target) {
+      // If this name existed as a shared item before but the fix now gives
+      // per-person quantities for it, that's new information upgrading it to a
+      // personal item — reuse the same item rather than creating a duplicate.
+      const existingShared = items.find((i) => i.everyone && i.name.toLowerCase() === name.toLowerCase())
+      if (existingShared && perMember.length > 0) {
+        existingShared.everyone = false
+        existingShared.shares = {}
+        target = existingShared
+      } else {
+        target = { id: uuidv4(), name, unitPrice: 0, quantity: 0, price: 0, shares: {} }
+        items.push(target)
+      }
+    }
+    if (unitPrice > 0) {
+      target.unitPrice = unitPrice
+      target.unitPriceUncertain = false
+    }
+    perMember.forEach((p) => {
+      const qty = Math.max(0, parseInt(p?.quantity) || 0)
+      if (qty <= 0) return
+      const id = resolveMemberId(p?.member)
+      target.shares[id] = qty
+    })
+    target.quantity = Object.values(target.shares).reduce((s, q) => s + q, 0)
+    target.price = target.unitPrice * target.quantity
+  })
+
+  const rawFixShared = Array.isArray(parsed.sharedItems) ? parsed.sharedItems : []
+  rawFixShared.forEach((entry) => {
+    const name = (entry?.name || '').trim()
+    if (!name) return
+    const totalPrice = parseFloat(entry?.totalPrice) || 0
+    const quantity = Math.max(1, parseInt(entry?.quantity) || 1)
+
+    // A bare "name + price" fix utterance (no per-person split repeated) reads as a
+    // shared item to Gemini in isolation — but if this name already exists as a
+    // personal item (with its per-member breakdown already known from the original
+    // dictation), the fix is filling THAT item's price, not describing a new,
+    // separate shared item of the same name.
+    const existingPersonal = items.find((i) => !i.everyone && i.name.toLowerCase() === name.toLowerCase())
+    if (existingPersonal) {
+      if (totalPrice > 0) {
+        const impliedUnitPrice = totalPrice / quantity
+        existingPersonal.unitPrice = impliedUnitPrice
+        existingPersonal.price = impliedUnitPrice * existingPersonal.quantity
+        existingPersonal.unitPriceUncertain = false
+      }
+      return
+    }
+
+    let target = items.find((i) => i.everyone && i.name.toLowerCase() === name.toLowerCase())
+    if (!target) {
+      target = { id: uuidv4(), name, unitPrice: 0, quantity, price: 0, shares: {}, everyone: true }
+      items.push(target)
+    }
+    if (totalPrice > 0) {
+      target.quantity = quantity
+      target.unitPrice = totalPrice / quantity
+      target.price = totalPrice
+      target.unitPriceUncertain = false
+    }
+  })
+
+  let grandTotal = pending.grandTotal
+  if (parsed.grandTotal != null) grandTotal = parseFloat(parsed.grandTotal)
+  let tipAmount = pending.tipAmount
+  if (parsed.tipAmount != null) tipAmount = parseFloat(parsed.tipAmount)
+  let tipPercent = pending.tipPercent
+  if (parsed.tipPercent != null) tipPercent = parseFloat(parsed.tipPercent)
+  let discountAmount = pending.discountAmount
+  if (parsed.discountAmount != null) discountAmount = Math.abs(parseFloat(parsed.discountAmount))
+
+  grandTotal = applyPriceInference(items, grandTotal, tipAmount, discountAmount)
+
   const itemsTotal = items.reduce((s, i) => s + i.price, 0)
   const foodBudget = grandTotal != null ? grandTotal - (tipAmount || 0) + (discountAmount || 0) : null
   const mismatch = foodBudget != null && Math.abs(itemsTotal - foodBudget) > 0.5
 
-  return { members, items, grandTotal, tipAmount, tipPercent, discountAmount, detectedLanguage, warnings, mismatch }
+  return {
+    members,
+    items,
+    grandTotal,
+    tipAmount,
+    tipPercent,
+    discountAmount,
+    detectedLanguage: pending.detectedLanguage,
+    warnings,
+    mismatch,
+    itemsTotal,
+    foodBudget,
+  }
 }
 
 async function runVoiceAmount(audioBuffer, mimetype) {
@@ -384,9 +539,30 @@ async function runVoiceBill(audioBuffer, mimetype) {
   return { result, errorCode }
 }
 
+async function runVoiceBillFix(audioBuffer, mimetype, pending) {
+  let errorCode = null
+  let result = null
+
+  try {
+    let rawText
+    try {
+      rawText = await transcribe(audioBuffer, mimetype, BILL_PROMPT, BILL_SCHEMA, 30000)
+    } catch (geminiErr) {
+      errorCode = mapGeminiError(geminiErr)
+      throw geminiErr
+    }
+    result = mergeBillVoiceFix(pending, parseJson(rawText))
+  } catch (err) {
+    if (!errorCode) errorCode = err.code || 'GEMINI_SERVER_ERROR'
+  }
+
+  return { result, errorCode }
+}
+
 module.exports = {
   ERROR_MAP,
   runVoiceAmount,
   runVoiceMembers,
   runVoiceBill,
+  runVoiceBillFix,
 }

@@ -2,15 +2,20 @@ const { getBot, getMessages, langFromTelegramCode } = require('./telegramBot')
 const { getSession, saveSession, clearSession } = require('./session')
 const pool = require('../db')
 const { CURRENCIES, isValidCurrency, formatAmount } = require('../services/currency')
-const { generateId, calculateSplits, getTotalUnits, getAssignedUnits, getRemainingUnits } = require('../services/splitCalculator')
+const { generateId, calculateSplits, getTotalUnits, getAssignedUnits, getRemainingUnits, getItemShares, getUnitPrice } = require('../services/splitCalculator')
 const { createSettleBill } = require('../routes/settle')
 const { runOcr, saveReceiptRecord } = require('../services/ocrService')
+const { runVoiceBill, runVoiceBillFix, runVoiceMembers } = require('../services/voiceService')
 
 const STATES = {
   AWAITING_LANGUAGE: 'awaiting_language',
   AWAITING_CURRENCY: 'awaiting_currency',
+  AWAITING_ENTRY_METHOD: 'awaiting_entry_method',
   AWAITING_TOTAL: 'awaiting_total',
   AWAITING_OCR_CONFIRM: 'awaiting_ocr_confirm',
+  AWAITING_VOICE_BILL: 'awaiting_voice_bill',
+  AWAITING_VOICE_CONFIRM: 'awaiting_voice_confirm',
+  AWAITING_VOICE_FIX: 'awaiting_voice_fix',
   AWAITING_TIP: 'awaiting_tip',
   AWAITING_CUSTOM_TIP_PERCENT: 'awaiting_custom_tip_percent',
   AWAITING_TIP_AMOUNT: 'awaiting_tip_amount',
@@ -21,6 +26,8 @@ const STATES = {
   AWAITING_REPORT: 'awaiting_report',
   AWAITING_PAYER_CONTACT: 'awaiting_payer_contact',
 }
+
+const MAX_VOICE_FILE_SIZE = 15 * 1024 * 1024
 
 const MAX_MEMBER_NAME_LENGTH = 25
 const MAX_ITEM_NAME_LENGTH = 40
@@ -134,6 +141,16 @@ function currencyKeyboard() {
   }
 }
 
+function entryMethodKeyboard(msgs) {
+  return {
+    inline_keyboard: [
+      [{ text: msgs.newBill.buttons.entryReceipt, callback_data: 'entry:receipt' }],
+      [{ text: msgs.newBill.buttons.entryVoice, callback_data: 'entry:voice' }],
+      [{ text: msgs.newBill.buttons.entryManual, callback_data: 'entry:manual' }],
+    ],
+  }
+}
+
 function ocrConfirmKeyboard(msgs) {
   return {
     inline_keyboard: [[
@@ -143,7 +160,9 @@ function ocrConfirmKeyboard(msgs) {
   }
 }
 
-async function downloadTelegramPhoto(bot, fileId) {
+// Generic — works for photos and voice notes alike (node-telegram-bot-api's
+// getFileLink is file-type-agnostic; it just resolves file_id -> a download URL).
+async function downloadTelegramFile(bot, fileId) {
   const link = await bot.getFileLink(fileId)
   const res = await fetch(link)
   const arrayBuffer = await res.arrayBuffer()
@@ -176,7 +195,7 @@ async function handleReceiptPhoto(bot, chatId, msg, session, msgs) {
   let ocrResult = null
   let errorCode = null
   try {
-    const buffer = await downloadTelegramPhoto(bot, photo.file_id)
+    const buffer = await downloadTelegramFile(bot, photo.file_id)
     const result = await runOcr(buffer, 'image/jpeg')
     ocrResult = result.ocrResult
     errorCode = result.errorCode
@@ -215,6 +234,189 @@ async function handleReceiptPhoto(bot, chatId, msg, session, msgs) {
   await saveSession(chatId, STATES.AWAITING_OCR_CONFIRM, draft)
   await bot.sendMessage(chatId, buildOcrSummaryText(msgs, currency, ocrResult), {
     reply_markup: ocrConfirmKeyboard(msgs),
+  })
+}
+
+// Collects what's still missing/uncertain from a voice-dictated bill — driven off the
+// same fields VoiceBillReviewModal.jsx flags in the web app (unresolved names, an
+// item price the backend couldn't infer, a still-unknown grand total). Reused for both
+// the confirmation summary text and deciding whether to show the "🎤 Fix" button.
+function voiceIssueLines(msgs, currency, result) {
+  const v = msgs.newBill.voice
+  const issues = []
+  result.warnings.forEach((name) => issues.push(v.issueUnresolvedName(name)))
+  result.items.forEach((item) => {
+    if (item.unitPriceUncertain && !(item.unitPrice > 0)) issues.push(v.issuePriceUnknown(item.name))
+  })
+  if (!(result.grandTotal > 0)) issues.push(v.issueTotalUnknown)
+  // Items summed up to a different amount than the stated total implies (after
+  // backing out tip/discount) — e.g. total+tip were dictated but an item got missed,
+  // or a number was misheard. Surfaced so it can be caught before confirming instead
+  // of only showing up as a confusing number on the final settle-up report.
+  if (result.mismatch) {
+    issues.push(v.issueMismatch(formatAmount(result.itemsTotal, currency), formatAmount(result.foodBudget, currency)))
+  }
+  return issues
+}
+
+function buildVoiceBillSummaryText(msgs, currency, result) {
+  const v = msgs.newBill.voice
+  const fmt = (n) => formatAmount(n, currency)
+  const lines = [v.confirmHeader, '']
+
+  if (result.members.length > 0) {
+    lines.push(v.membersLine(result.members.map((m) => m.name).join(', ')), '')
+  }
+
+  result.items.forEach((item) => {
+    if (item.everyone) {
+      lines.push(msgs.newBill.ocr.summaryItemLine(item.name, fmt(item.price), item.quantity))
+    } else {
+      lines.push(v.personalItemLine(item.name, fmt(item.unitPrice)))
+      Object.entries(item.shares).forEach(([memberId, qty]) => {
+        const member = result.members.find((m) => m.id === memberId)
+        lines.push(v.personalShareLine(member?.name || '?', qty))
+      })
+    }
+  })
+
+  lines.push('')
+  if (result.grandTotal != null) lines.push(msgs.newBill.ocr.summaryTotal(fmt(result.grandTotal)))
+  if (result.tipAmount > 0) lines.push(msgs.newBill.ocr.summaryTip(fmt(result.tipAmount)))
+  if (result.discountAmount > 0) lines.push(msgs.newBill.ocr.summaryDiscount(fmt(result.discountAmount)))
+
+  const issues = voiceIssueLines(msgs, currency, result)
+  if (issues.length > 0) lines.push('', v.issuesHeader, ...issues)
+
+  lines.push('', v.confirmFooter)
+  return lines.join('\n')
+}
+
+// The Fix button is always offered, not just when voiceIssueLines() flagged something —
+// Gemini can confidently mishear a number (e.g. "12000" heard as "120000") without
+// leaving any gap for the issue-detector to notice, so the speaker still needs a way to
+// correct a value the bot thinks is already fine.
+function voiceConfirmKeyboard(msgs) {
+  return {
+    inline_keyboard: [
+      [{ text: msgs.newBill.buttons.voiceConfirm, callback_data: 'voice:confirm' }],
+      [{ text: msgs.newBill.buttons.voiceFix, callback_data: 'voice:fix' }],
+      [{ text: msgs.newBill.buttons.ocrManual, callback_data: 'voice:manual' }],
+    ],
+  }
+}
+
+// Triggered by a voice note in AWAITING_VOICE_BILL (the "🎤 By voice" entry-method
+// choice) — the whole bill dictated in one message, same Gemini call the web app's
+// big mic button uses. Lands in AWAITING_VOICE_CONFIRM with a text summary + a "Fix"
+// option (see handleVoiceBillFix) when anything came back uncertain.
+async function handleVoiceBillDictation(bot, chatId, msg, session, msgs) {
+  const currency = session.draft.currency
+  if (msg.voice.file_size && msg.voice.file_size > MAX_VOICE_FILE_SIZE) {
+    await bot.sendMessage(chatId, msgs.newBill.voice.tooLarge)
+    return
+  }
+
+  await bot.sendMessage(chatId, msgs.newBill.voice.listening)
+
+  let result = null
+  let errorCode = null
+  try {
+    const buffer = await downloadTelegramFile(bot, msg.voice.file_id)
+    const run = await runVoiceBill(buffer, 'audio/ogg')
+    result = run.result
+    errorCode = run.errorCode
+  } catch (err) {
+    console.error('Bot voice bill failed:', err.message)
+    errorCode = 'GEMINI_SERVER_ERROR'
+  }
+
+  if (errorCode || !result) {
+    await bot.sendMessage(chatId, msgs.newBill.voice.failed, {
+      reply_markup: { inline_keyboard: [[{ text: msgs.newBill.buttons.ocrManual, callback_data: 'voice:manual' }]] },
+    })
+    return
+  }
+
+  const draft = { ...session.draft, voicePending: result }
+  await saveSession(chatId, STATES.AWAITING_VOICE_CONFIRM, draft)
+  await bot.sendMessage(chatId, buildVoiceBillSummaryText(msgs, currency, result), {
+    reply_markup: voiceConfirmKeyboard(msgs),
+  })
+}
+
+// Triggered by a voice note sent while on the confirm summary — either after tapping
+// "🎤 Fix" (AWAITING_VOICE_FIX) or sent directly from AWAITING_VOICE_CONFIRM without
+// pressing anything, so a misheard value can be corrected with just another voice note.
+// A short follow-up utterance naming just the wrong/missing piece (a name or an amount)
+// is merged into the existing voicePending draft, then re-shown as an updated summary.
+async function handleVoiceBillFix(bot, chatId, msg, session, msgs) {
+  const currency = session.draft.currency
+  if (msg.voice.file_size && msg.voice.file_size > MAX_VOICE_FILE_SIZE) {
+    await bot.sendMessage(chatId, msgs.newBill.voice.tooLarge)
+    return
+  }
+
+  await bot.sendMessage(chatId, msgs.newBill.voice.listening)
+
+  let result = null
+  let errorCode = null
+  try {
+    const buffer = await downloadTelegramFile(bot, msg.voice.file_id)
+    const run = await runVoiceBillFix(buffer, 'audio/ogg', session.draft.voicePending)
+    result = run.result
+    errorCode = run.errorCode
+  } catch (err) {
+    console.error('Bot voice fix failed:', err.message)
+    errorCode = 'GEMINI_SERVER_ERROR'
+  }
+
+  if (errorCode || !result) {
+    await bot.sendMessage(chatId, msgs.newBill.voice.fixFailed, {
+      reply_markup: { inline_keyboard: [[{ text: msgs.newBill.buttons.ocrManual, callback_data: 'voice:manual' }]] },
+    })
+    return // stays in AWAITING_VOICE_FIX — session/draft untouched, so nothing already fixed is lost
+  }
+
+  const draft = { ...session.draft, voicePending: result }
+  await saveSession(chatId, STATES.AWAITING_VOICE_CONFIRM, draft)
+  await bot.sendMessage(chatId, buildVoiceBillSummaryText(msgs, currency, result), {
+    reply_markup: voiceConfirmKeyboard(msgs),
+  })
+}
+
+// Triggered by a voice note in AWAITING_MEMBERS — the "say everyone's name in one
+// message" alternative to typing them one at a time. Reuses parseMemberName so a
+// voice-transcribed name is held to the exact same validation as a typed one.
+async function handleVoiceMembers(bot, chatId, msg, session, msgs) {
+  if (msg.voice.file_size && msg.voice.file_size > MAX_VOICE_FILE_SIZE) {
+    await bot.sendMessage(chatId, msgs.newBill.voice.tooLarge)
+    return
+  }
+
+  let result = null
+  let errorCode = null
+  try {
+    const buffer = await downloadTelegramFile(bot, msg.voice.file_id)
+    const run = await runVoiceMembers(buffer, 'audio/ogg')
+    result = run.result
+    errorCode = run.errorCode
+  } catch (err) {
+    console.error('Bot voice members failed:', err.message)
+    errorCode = 'GEMINI_SERVER_ERROR'
+  }
+
+  if (errorCode || !result) {
+    await bot.sendMessage(chatId, msgs.newBill.voice.failed, { reply_markup: membersKeyboard(msgs) })
+    return
+  }
+
+  const newNames = result.members.map((n) => parseMemberName(n)).filter(Boolean)
+  const members = [...(session.draft.members || []), ...newNames.map((name) => ({ id: generateId(), name }))]
+  const draft = { ...session.draft, members }
+  await saveSession(chatId, STATES.AWAITING_MEMBERS, draft)
+  await bot.sendMessage(chatId, msgs.newBill.memberAdded(members.map((m) => m.name).join(', ')), {
+    reply_markup: membersKeyboard(msgs),
   })
 }
 
@@ -285,20 +487,74 @@ async function askForNextItem(bot, chatId, draft, msgs, isFirst) {
   await askForItemInput(bot, chatId, draft, msgs, isFirst)
 }
 
+// Every personal item this member has a share of, formatted as "Name ×qty - price".
+// Mirrors useBillSummary.js/useSettleShare.js's personalItemsForMember() on the frontend.
+function personalItemsForMember(items, memberId) {
+  return (items || [])
+    .filter((item) => getItemShares(item)[memberId] > 0)
+    .map((item) => {
+      const count = getItemShares(item)[memberId]
+      const amount = getUnitPrice(item) * count
+      const label = count > 1 ? `${item.name} ×${count}` : item.name
+      return { label, amount }
+    })
+}
+
+// Items marked "everyone" with no explicit per-person shares — split evenly across
+// every active member. Mirrors the frontend's sharedItems() helper.
+function sharedItemsList(items, memberCount) {
+  return (items || [])
+    .filter((item) => item.everyone === true && Object.keys(getItemShares(item)).length === 0)
+    .map((item) => ({ label: item.name, amount: item.price / Math.max(memberCount, 1) }))
+}
+
+// The "what am I actually paying for" block under one person's total — their share of
+// the tip, their personal dishes, and their cut of anything split evenly. Reused by both
+// the full report (buildReportText) and the per-participant payment-link message
+// (buildSettleText) so the breakdown is identical wherever a person's total appears.
+function personBreakdownLines(msgs, currency, r, items, sharedList, tipAmount, totalSubtotal, tipMode, tipPercent) {
+  const rmsgs = msgs.newBill.report
+  const fmt = (n) => formatAmount(n, currency)
+  const lines = []
+  if (tipAmount > 0 && totalSubtotal > 0) {
+    const personalTip = tipAmount * (r.subtotal / totalSubtotal)
+    lines.push(`  ${rmsgs.tipShareLabel(tipMode === 'percent' ? tipPercent : null)}: ${fmt(personalTip)}`)
+  }
+  const personal = personalItemsForMember(items, r.id)
+  if (personal.length > 0) {
+    const isMe = r.isMe === true || r.name === 'Me'
+    lines.push(`  ${isMe ? rmsgs.ateLabel : rmsgs.dishesLabel}:`)
+    personal.forEach((p) => lines.push(`  - ${p.label} - ${fmt(p.amount)}`))
+  }
+  if (sharedList.length > 0) {
+    lines.push(`  ${rmsgs.everyoneSplitEqually}:`)
+    sharedList.forEach((s) => lines.push(`  - ${s.label} - ${fmt(s.amount)}`))
+  }
+  return lines
+}
+
 // Mirrors Report.jsx's buildTextSummary(): grandTotal is already tip/discount-inclusive,
 // so "food" is derived by backing the tip out and adding the discount back in for display.
+// Each person's line is followed by their tip share and what they actually ate (see
+// personBreakdownLines) instead of just the bottom-line total.
 function buildReportText(msgs, draft, results) {
-  const { grandTotal, tipMode, tipPercent, tipAmount, discountAmount, currency } = draft
+  const { grandTotal, tipMode, tipPercent, tipAmount, discountAmount, currency, items, members } = draft
   const r = msgs.newBill.report
   const fmt = (n) => formatAmount(n, currency)
   const foodTotal = grandTotal - (tipAmount || 0) + (discountAmount || 0)
+  const totalSubtotal = results.reduce((s, x) => s + x.subtotal, 0)
+  const sharedList = sharedItemsList(items, (members || []).length)
 
   const lines = [`📋 ${r.header}`, '─'.repeat(28), r.totalLine(fmt(grandTotal))]
   lines.push('  ' + (tipMode === 'amount' ? r.tipAmountLine(fmt(tipAmount || 0)) : r.tipPercentLine(tipPercent || 0, fmt(tipAmount || 0))))
   lines.push('  ' + r.foodLine(fmt(foodTotal)))
   if (discountAmount > 0) lines.push('  ' + r.discountLine(fmt(discountAmount)))
   lines.push('─'.repeat(28))
-  results.forEach((res) => lines.push(r.personLine(res.name, fmt(res.finalTotal))))
+  results.forEach((res, i) => {
+    if (i > 0) lines.push('')
+    lines.push(r.personLine(res.name, fmt(res.finalTotal)))
+    lines.push(...personBreakdownLines(msgs, currency, res, items, sharedList, tipAmount, totalSubtotal, tipMode, tipPercent))
+  })
   lines.push('─'.repeat(28))
   const sum = results.reduce((s, res) => s + res.finalTotal, 0)
   lines.push(r.verifiedLine(fmt(sum)))
@@ -324,10 +580,23 @@ async function askForReport(bot, chatId, draft, msgs) {
   await bot.sendMessage(chatId, buildReportText(msgs, draft, results), { reply_markup: settleStartKeyboard(msgs) })
 }
 
-function buildSettleText(msgs, participants, currency) {
+// Appends the same per-person breakdown (tip share, dishes, shared items) used in
+// buildReportText under each participant's payment link, so the message doubles as
+// both "here's your link" and "here's what you're paying for" — mirrors
+// useSettleShare.js's personDetailLines() on the frontend. `results` is the full
+// calculateSplits() output (every member, payer included) so tip-share proportions
+// match the report exactly; `participants` (a subset, payer excluded) only supplies
+// the amount/deepLink actually shown per line.
+function buildSettleText(msgs, participants, currency, draft, results) {
   const lines = [msgs.newBill.settle.createdHeader, '']
+  const totalSubtotal = results.reduce((s, x) => s + x.subtotal, 0)
+  const sharedList = sharedItemsList(draft.items, (draft.members || []).length)
   participants.forEach((p) => {
     lines.push(msgs.newBill.settle.participantLine(p.name, formatAmount(p.amount, currency), p.deepLink))
+    const res = results.find((r) => r.id === p.localId)
+    if (res) {
+      lines.push(...personBreakdownLines(msgs, currency, res, draft.items, sharedList, draft.tipAmount, totalSubtotal, draft.tipMode, draft.tipPercent))
+    }
     lines.push('')
   })
   return lines.join('\n').trim()
@@ -369,6 +638,20 @@ async function handleMessage(bot, msg) {
       const photoSession = await getSession(chatId)
       if (photoSession && photoSession.state === STATES.AWAITING_TOTAL) {
         await handleReceiptPhoto(bot, chatId, msg, photoSession, getMessages(photoSession.draft.language))
+      }
+      return
+    }
+
+    if (msg.voice) {
+      const voiceSession = await getSession(chatId)
+      if (!voiceSession) return
+      const voiceMsgs = getMessages(voiceSession.draft.language)
+      if (voiceSession.state === STATES.AWAITING_VOICE_BILL) {
+        await handleVoiceBillDictation(bot, chatId, msg, voiceSession, voiceMsgs)
+      } else if (voiceSession.state === STATES.AWAITING_VOICE_FIX || voiceSession.state === STATES.AWAITING_VOICE_CONFIRM) {
+        await handleVoiceBillFix(bot, chatId, msg, voiceSession, voiceMsgs)
+      } else if (voiceSession.state === STATES.AWAITING_MEMBERS) {
+        await handleVoiceMembers(bot, chatId, msg, voiceSession, voiceMsgs)
       }
       return
     }
@@ -493,7 +776,7 @@ async function handleMessage(bot, msg) {
         currency,
       })
 
-      await bot.sendMessage(chatId, buildSettleText(msgs, participants, currency))
+      await bot.sendMessage(chatId, buildSettleText(msgs, participants, currency, draft, results))
       await clearSession(chatId)
     }
 }
@@ -529,12 +812,88 @@ async function handleCallbackQuery(bot, query) {
         return
       }
 
-      await saveSession(chatId, STATES.AWAITING_TOTAL, { ...session.draft, currency: code })
+      await saveSession(chatId, STATES.AWAITING_ENTRY_METHOD, { ...session.draft, currency: code })
       await bot.answerCallbackQuery(query.id, { text: msgs.newBill.currencySelected(code) })
-      await bot.editMessageText(msgs.newBill.currencySet(code), {
+      await bot.editMessageText(msgs.newBill.entryMethodPrompt(code), {
         chat_id: chatId,
         message_id: query.message.message_id,
+        reply_markup: entryMethodKeyboard(msgs),
       })
+      return
+    }
+
+    if (namespace === 'entry') {
+      if (!session || session.state !== STATES.AWAITING_ENTRY_METHOD) return bot.answerCallbackQuery(query.id)
+      const [kind] = rest
+      await bot.answerCallbackQuery(query.id)
+      await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id }).catch(() => {})
+
+      if (kind === 'voice') {
+        await saveSession(chatId, STATES.AWAITING_VOICE_BILL, session.draft)
+        await bot.sendMessage(chatId, msgs.newBill.voice.billPrompt)
+        return
+      }
+
+      // kind === 'receipt' | 'manual' — both land in AWAITING_TOTAL, which already
+      // accepts either a photo or a typed amount, so there's nothing to branch on here.
+      await saveSession(chatId, STATES.AWAITING_TOTAL, session.draft)
+      await bot.sendMessage(chatId, msgs.newBill.currencySet(session.draft.currency))
+      return
+    }
+
+    if (namespace === 'voice') {
+      const [kind] = rest
+
+      if (kind === 'manual') {
+        const bailableStates = [STATES.AWAITING_VOICE_CONFIRM, STATES.AWAITING_VOICE_BILL, STATES.AWAITING_VOICE_FIX]
+        if (!session || !bailableStates.includes(session.state)) {
+          return bot.answerCallbackQuery(query.id)
+        }
+        const draft = { ...session.draft }
+        delete draft.voicePending
+        await saveSession(chatId, STATES.AWAITING_TOTAL, draft)
+        await bot.answerCallbackQuery(query.id)
+        await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id }).catch(() => {})
+        await bot.sendMessage(chatId, msgs.newBill.currencySet(draft.currency))
+        return
+      }
+
+      if (!session || session.state !== STATES.AWAITING_VOICE_CONFIRM) return bot.answerCallbackQuery(query.id)
+
+      if (kind === 'fix') {
+        await saveSession(chatId, STATES.AWAITING_VOICE_FIX, session.draft)
+        await bot.answerCallbackQuery(query.id)
+        await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id }).catch(() => {})
+        await bot.sendMessage(chatId, msgs.newBill.voice.fixPrompt)
+        return
+      }
+
+      // kind === 'confirm' — a still-missing total or zero members would make
+      // calculateSplits produce a meaningless (or NaN) result, so route those
+      // straight to the fix flow instead of "confirming" a broken report.
+      const { voicePending } = session.draft
+      if (!(voicePending.grandTotal > 0) || voicePending.members.length === 0) {
+        await saveSession(chatId, STATES.AWAITING_VOICE_FIX, session.draft)
+        await bot.answerCallbackQuery(query.id, { text: msgs.newBill.voice.issueTotalUnknown })
+        await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id }).catch(() => {})
+        await bot.sendMessage(chatId, msgs.newBill.voice.fixPrompt)
+        return
+      }
+
+      const { voicePending: pending, ...restDraft } = session.draft
+      const draft = {
+        ...restDraft,
+        members: pending.members,
+        items: pending.items,
+        grandTotal: pending.grandTotal,
+        tipMode: pending.tipAmount > 0 ? 'amount' : 'percent',
+        tipPercent: pending.tipPercent || null,
+        tipAmount: pending.tipAmount || 0,
+        discountAmount: pending.discountAmount || 0,
+      }
+      await bot.answerCallbackQuery(query.id)
+      await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id }).catch(() => {})
+      await askForReport(bot, chatId, draft, msgs)
       return
     }
 
