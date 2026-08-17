@@ -1,5 +1,5 @@
 {
-  "name": "tabup",
+  "name": "schet.uz",
   "private": true,
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
