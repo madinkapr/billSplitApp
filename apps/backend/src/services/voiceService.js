@@ -39,16 +39,54 @@ Rules:
 - members = every person mentioned. If the speaker refers to themselves in first person ("men"/"я"/"I"), set that member's name to "Me" and isMe=true. Everyone else isMe=false.
 - personalItems = a dish where DIFFERENT people ate DIFFERENT quantities of the SAME dish (e.g. "men to'rtta shashlik, Eldor uchta shashlik yedi" => one personalItems entry named "Shashlik" with unitPrice, and perMember=[{"member":"Me","quantity":4},{"member":"Eldor","quantity":3}]).
   - Every "member" string inside perMember MUST be copied exactly from the members list above (use "Me" for the speaker) — never paraphrase, translate, or add words to it.
-  - IMPORTANT — do not drop anyone: if several names were listed together earlier (e.g. "Men Eldor, Elyor, Elbek bilan bordik"), all of them must appear in the top-level members list, and you must listen through the ENTIRE recording for what EACH of those specific people ate — people are often listed quickly in a row near the start but their food quantities come later, one at a time. Before finalizing perMember for a dish, re-check: does every name from the members list who was said to eat that dish actually have an entry here? A rushed or fast-spoken list of names is exactly where names get missed — slow down and re-listen rather than stopping after the first few matches.
+  - IMPORTANT — do not drop anyone: if several names were listed together earlier (e.g. "Men Eldor, Elyor, Elbek bilan bordik"), all of them must appear in the top-level members list, and you must listen through the ENTIRE recording for what EACH of those specific people ate — people are often listed quickly in a row near the start but their food quantities come later, one at a time, sometimes all in one dense sentence (e.g. "Men to'rtta, Eldor uchta, Elyor uchta, Elbek to'rtta shashlik yedi" names FOUR people back to back — all four need a perMember entry, not just the first two). Before finalizing perMember for a dish, run this self-check: count how many names are in the top-level members list, then count how many perMember entries you produced for that dish — if a member was said to eat that dish and your count is short, you stopped listening too early; go back through the whole recording again rather than submitting a partial list.
 - sharedItems = a dish or drink shared evenly by everyone, or where no per-person quantity was mentioned (e.g. "choy va non hammaga" => sharedItems entries for tea and bread with the TOTAL quantity purchased and TOTAL price for that line). Never try to compute each person's portion yourself — the app splits sharedItems evenly automatically.
 - unitPrice/totalPrice: numbers only, in the currency spoken (no symbols). Uzbek number words: "-ta" count suffix (e.g. "to'rtta"=4, "uchta"=3); "ming" multiplies by 1000 (e.g. "5 ming"=5000, "120 ming"=120000); "million" multiplies by 1000000. Russian: "тысяча"/"тыс"=×1000, "миллион"=×1000000. English: "thousand"=×1000, "million"=×1000000.
-- IMPORTANT — never guess a price: if a personalItems or sharedItems price was genuinely never stated anywhere in the recording, do NOT reuse or estimate from a price mentioned for a different item — put 0 for that unitPrice/totalPrice instead. It's expected and fine for at most one item to end up with an unknown (0) price; a separate system works out its real price afterward from the grand total once every other amount is known, so 0 there is the honest answer, not a failure.
+- IMPORTANT — never guess a price, and never let one item's price bleed into another's: each number spoken in the recording belongs to exactly ONE item — the one it was said next to. Before writing a unitPrice/totalPrice, find the specific words in the recording that state THIS item's price; if you can't point to those words for this exact item, the number belongs to a different item (or to the grand total/tip) and does NOT apply here — put 0 instead of copying a number you found elsewhere. Concretely: hearing ".. ikkita non 12 ming so'm bo'ldi" states NON's total price, not the price of any other dish mentioned earlier or later in the same recording — a dish whose own price was never stated must get 0 even if some other number was said somewhere in the audio. It's expected and fine for at most one item to end up with an unknown (0) price; a separate system works out its real price afterward from the grand total once every other amount is known, so 0 there is the honest answer, not a failure.
 - grandTotal = the total amount the speaker says was charged, if mentioned.
 - tipAmount = a service charge / tip / "xizmat haqi" / "чаевые" amount if mentioned, as a currency amount (not a percent).
 - tipPercent = a tip/service percentage if mentioned instead of (or in addition to) an amount.
 - discountAmount = any discount mentioned, as a positive number.
 - Use null for any of grandTotal/tipAmount/tipPercent/discountAmount that wasn't mentioned. Use empty arrays for personalItems/sharedItems/members that weren't mentioned.
 - IMPORTANT: if the audio is empty, silent, unclear, or an accidental tap with nothing usable spoken, do NOT invent any members, items, or totals — return { "understood": false, "detectedLanguage": "unknown", "members": [], "personalItems": [], "sharedItems": [], "grandTotal": null, "tipAmount": null, "tipPercent": null, "discountAmount": null }.`
+
+// A correction utterance is short and assumes the listener already knows the bill —
+// e.g. just "Elyor to'rtta" ("Elyor, four") with no dish name repeated, because from
+// the speaker's point of view it's obvious which dish that refers to. BILL_PROMPT alone
+// has no idea a bill already exists, so a bare correction like that gives it no dish
+// name to hang the quantity on and it likely returns nothing for that person at all —
+// the fix would then silently do nothing. Appending the pending bill's current state
+// (who's on it, what dishes exist and who's already assigned to them) lets Gemini
+// resolve "just a name and a number" against the one dish it's obviously about.
+function buildFixPrompt(pending) {
+  const memberNames = (pending.members || []).map((m) => m.name)
+  const personalLines = (pending.items || [])
+    .filter((i) => !i.everyone)
+    .map((i) => {
+      const shareParts = Object.entries(i.shares || {}).map(([id, qty]) => {
+        const m = (pending.members || []).find((mm) => mm.id === id)
+        return `${m?.name || '?'}=${qty}`
+      })
+      const priceNote = i.unitPrice > 0 ? `${i.unitPrice}/dona` : 'price unknown'
+      return `  - "${i.name}" (${priceNote}): ${shareParts.length > 0 ? shareParts.join(', ') : 'no one recorded yet'}`
+    })
+  const sharedLines = (pending.items || [])
+    .filter((i) => i.everyone)
+    .map((i) => `  - "${i.name}" (shared by everyone, total ${i.price})`)
+
+  return `${BILL_PROMPT}
+
+CONTEXT — this is a short spoken CORRECTION or ADDITION to a bill that was already dictated once, not a fresh full dictation. The speaker is only fixing or adding the ONE thing they're saying now:
+- People already on the bill: ${memberNames.length > 0 ? memberNames.join(', ') : '(none yet)'}
+- Personal dishes already on the bill:
+${personalLines.length > 0 ? personalLines.join('\n') : '  (none yet)'}
+- Shared dishes already on the bill:
+${sharedLines.length > 0 ? sharedLines.join('\n') : '  (none yet)'}
+
+Extra rules for this correction:
+- If the speaker names a person and just a quantity WITHOUT repeating a dish name (e.g. "Elyor to'rtta" / "Элёр четыре" / "Elyor, four"), do NOT return an empty personalItems just because no dish name was spoken. If there is exactly one personal dish already on the bill, attribute the quantity to THAT dish. If there are several, attribute it to whichever one is missing that exact person or whose count for them looks wrong, based on the context above.
+- The prices shown in the context above are only so you understand what's already on the bill — they are NOT something the speaker said in this recording. Only put a non-zero unitPrice/totalPrice in your output if a price was actually spoken in THIS audio; otherwise use 0, exactly per the "never guess a price" rule, even for a dish whose price is already listed above.`
+}
 
 // Constrains Gemini's output to this exact shape (responseSchema), rather than relying
 // on the prompt's prose description alone — BILL_PROMPT's nested arrays-of-objects are
@@ -403,6 +441,14 @@ function mergeBillVoiceFix(pending, parsed) {
       target.unitPrice = unitPrice
       target.unitPriceUncertain = false
     }
+    const addsQuantity = perMember.some((p) => Math.max(0, parseInt(p?.quantity) || 0) > 0)
+    // The item's current unitPrice was never actually spoken — it was only back-solved
+    // (applyPriceInference) from the OLD quantity. Now that this fix is changing the
+    // quantity, that number is stale (e.g. it was divided across 10 units and is about
+    // to become 14), so it must be re-derived below rather than kept as if it were fact.
+    if (addsQuantity && !(unitPrice > 0) && target.unitPriceUncertain) {
+      target.unitPrice = 0
+    }
     perMember.forEach((p) => {
       const qty = Math.max(0, parseInt(p?.quantity) || 0)
       if (qty <= 0) return
@@ -546,7 +592,7 @@ async function runVoiceBillFix(audioBuffer, mimetype, pending) {
   try {
     let rawText
     try {
-      rawText = await transcribe(audioBuffer, mimetype, BILL_PROMPT, BILL_SCHEMA, 30000)
+      rawText = await transcribe(audioBuffer, mimetype, buildFixPrompt(pending), BILL_SCHEMA, 30000)
     } catch (geminiErr) {
       errorCode = mapGeminiError(geminiErr)
       throw geminiErr
