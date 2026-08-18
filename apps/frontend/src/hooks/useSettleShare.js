@@ -118,7 +118,19 @@ export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '' }) 
 
   // One combined message covers everyone selected, so this only ever opens a single
   // window/share-sheet per click — no per-recipient popup-blocking issue on any channel.
-  function buildCombinedText(withLinks) {
+  function buildCombinedText(withLinks, { includeDetails = true } = {}) {
+    if (!includeDetails) {
+      // SMS: no translated sentence at all — the UI language may be Cyrillic (e.g. Russian),
+      // and even one non-GSM-7 character forces the whole SMS into UCS-2 encoding (70 chars/
+      // segment instead of 160), which is enough on its own to push a short message into MMS
+      // territory. Keep it to amount + link (+ name when there's more than one recipient) so
+      // the body stays locale-independent and GSM-7-safe.
+      if (withLinks.length === 1) {
+        return `${fmt(withLinks[0].amount)}\n${withLinks[0].deepLink}`
+      }
+      return withLinks.map((p) => `${p.name}: ${fmt(p.amount)}\n${p.deepLink}`).join('\n\n')
+    }
+
     const payerBlock = payerBlockText()
     if (withLinks.length === 1) {
       const p = withLinks[0]
@@ -163,7 +175,7 @@ export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '' }) 
       const session = await createSession(selected)
       const byLocalId = new Map(session.participants.map((p) => [p.localId, p]))
       const withLinks = selected.map((p) => ({ ...p, deepLink: byLocalId.get(p.id)?.deepLink }))
-      const combinedText = buildCombinedText(withLinks)
+      const combinedText = buildCombinedText(withLinks, { includeDetails: method !== 'sms' })
 
       if (method === 'sms') {
         window.location.href = `sms:?body=${encodeURIComponent(combinedText)}`
