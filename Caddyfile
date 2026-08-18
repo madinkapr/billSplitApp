@@ -1,7 +1,17 @@
 www.schet.uz {
+    tls {
+        issuer acme {
+            disable_http_challenge
+        }
+    }
     redir https://schet.uz{uri} permanent
 }
 
 schet.uz {
+    tls {
+        issuer acme {
+            disable_http_challenge
+        }
+    }
     reverse_proxy frontend:80
 }

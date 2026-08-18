@@ -61,20 +61,30 @@ Fill in:
 
 **Prerequisites:** Docker + Docker Compose, and `.env` set up (above).
 
+### Production (real domain, HTTPS via Caddy)
+
 ```bash
 # Build and start
-docker compose up --build
-
-# Run in background
 docker compose up --build -d
 
 # Stop
 docker compose down
 ```
 
-Open [http://localhost:8890](http://localhost:8890).
+`caddy` terminates HTTPS for the domain configured in `Caddyfile` and reverse-proxies to `frontend`. This only works on a server reachable at that domain — Caddy needs to complete an ACME challenge to get a certificate, which will fail on a local machine.
 
-Docker Compose runs everything for you — `frontend` (nginx, proxies `/api` to the backend), `backend` (Express + the Settle Up bot, if `TELEGRAM_BOT_TOKEN` is set), and `db` (PostgreSQL). You don't need a local Postgres install; `DATABASE_URL` in `.env` is overridden internally to point at the `db` service.
+### Local testing (no domain, no HTTPS, no Caddy)
+
+Copy the override template — Compose loads `docker-compose.override.yml` automatically if it exists, and it's gitignored so it never accidentally ships to a server:
+
+```bash
+cp docker-compose.override.yml.example docker-compose.override.yml
+docker compose up --build -d
+```
+
+This skips `caddy` entirely and exposes `frontend` directly on [http://localhost:8080](http://localhost:8080). Delete `docker-compose.override.yml` (or just don't create it) when running for real deployment.
+
+Either way, Docker Compose runs everything for you — `frontend` (nginx, proxies `/api` to the backend), `backend` (Express + the Settle Up bot, if `TELEGRAM_BOT_TOKEN` is set), and `db` (PostgreSQL). You don't need a local Postgres install; `DATABASE_URL` in `.env` is overridden internally to point at the `db` service.
 
 ---
 
