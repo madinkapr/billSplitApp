@@ -338,13 +338,6 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
                     : t('report.roundingDiff', { amount: fmt(Math.abs(summary.verificationSum - summary.grandTotal)) })}
                 </span>
               </div>
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={copySummary}
-                className={`btn-primary w-full text-base transition-colors ${copied ? 'bg-green-500 hover:bg-green-600' : ''}`}
-              >
-                {copied ? <><Check size={18} /> {t('report.copied')}</> : <><Copy size={18} /> {t('report.copySummary')}</>}
-              </motion.button>
               {share.canShare && (
                 <div className="relative">
                   <motion.button whileTap={{ scale: 0.97 }} onClick={share.toggle} className="btn-secondary w-full text-base">
@@ -353,6 +346,13 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
                   <SettleShareMenu share={share} />
                 </div>
               )}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={copySummary}
+                className={`btn-primary w-full text-base transition-colors ${copied ? 'bg-green-500 hover:bg-green-600' : ''}`}
+              >
+                {copied ? <><Check size={18} /> {t('report.copied')}</> : <><Copy size={18} /> {t('report.copySummary')}</>}
+              </motion.button>
             </>
           ) : (
             items.length > 0 && (

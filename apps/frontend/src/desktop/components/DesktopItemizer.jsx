@@ -410,12 +410,6 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange }) {
                         : t('report.roundingDiff', { amount: fmt(Math.abs(summary.verificationSum - summary.grandTotal)) })}
                     </span>
                   </div>
-                  <button
-                    onClick={copySummary}
-                    className={`w-full rounded-xl text-white font-bold text-sm py-3 flex items-center justify-center gap-2 transition-colors ${copied ? 'bg-desktop-successText' : 'bg-desktop-primary'}`}
-                  >
-                    {copied ? <><Check size={18} /> {t('report.copied')}</> : <><Copy size={18} /> {t('report.copySummary')}</>}
-                  </button>
                   {share.canShare && (
                     <div className="relative">
                       <button
@@ -427,6 +421,12 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange }) {
                       <SettleShareMenu share={share} />
                     </div>
                   )}
+                  <button
+                    onClick={copySummary}
+                    className={`w-full rounded-xl text-white font-bold text-sm py-3 flex items-center justify-center gap-2 transition-colors ${copied ? 'bg-desktop-successText' : 'bg-desktop-primary'}`}
+                  >
+                    {copied ? <><Check size={18} /> {t('report.copied')}</> : <><Copy size={18} /> {t('report.copySummary')}</>}
+                  </button>
                 </>
               ) : (
                 items.length > 0 && (

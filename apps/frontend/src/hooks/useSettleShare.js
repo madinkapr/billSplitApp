@@ -62,7 +62,8 @@ export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '' }) 
     }
     const personal = personalItemsForMember(p.id)
     if (personal.length > 0) {
-      lines.push(`${t('report.dishesLabel')}:`)
+      const dishesLabel = p.isMe ? t('report.ateLabel') : t('report.dishesLabel')
+      lines.push(`${dishesLabel}:`)
       personal.forEach((name) => lines.push(`- ${name}`))
     }
     const shared = sharedItems()
@@ -71,6 +72,17 @@ export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '' }) 
       shared.forEach((name) => lines.push(`- ${name}`))
     }
     return lines
+  }
+
+  // The payer has no payment link (they're the one getting paid), but recipients
+  // still benefit from seeing the payer's own share for context — same breakdown
+  // the payer already sees in their own "copy summary" text.
+  function payerBlockText() {
+    const payerResult = results.find((r) => r.id === effectivePayerId)
+    if (!payerResult) return null
+    const p = { id: payerResult.id, name: payerResult.name, isMe: payerResult.isMe, amount: payerResult.finalTotal, subtotal: payerResult.subtotal }
+    const header = `${p.name}${p.isMe ? t('common.you') : ''} — ${fmt(p.amount)}`
+    return [header, ...personDetailLines(p)].join('\n')
   }
 
   function open() {
@@ -107,13 +119,16 @@ export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '' }) 
   // One combined message covers everyone selected, so this only ever opens a single
   // window/share-sheet per click — no per-recipient popup-blocking issue on any channel.
   function buildCombinedText(withLinks) {
+    const payerBlock = payerBlockText()
     if (withLinks.length === 1) {
       const p = withLinks[0]
       const lines = [`${t('settleUp.shareText', { amount: fmt(p.amount) })} ${p.deepLink}`, ...personDetailLines(p)]
-      return lines.join('\n')
+      const text = lines.join('\n')
+      return payerBlock ? `${text}\n\n${payerBlock}` : text
     }
-    const blocks = withLinks.map((p) => [`${p.name} — ${fmt(p.amount)}`, p.deepLink, ...personDetailLines(p)].join('\n'))
-    return `${t('settleUp.shareTextMultiIntro')}\n\n${blocks.join('\n\n')}`
+    const blocks = withLinks.map((p) => [`${p.name}${p.isMe ? t('common.you') : ''} — ${fmt(p.amount)}`, p.deepLink, ...personDetailLines(p)].join('\n'))
+    const allBlocks = payerBlock ? [payerBlock, ...blocks] : blocks
+    return `${t('settleUp.shareTextMultiIntro')}\n\n${allBlocks.join('\n\n')}`
   }
 
   async function createSession(selected) {
@@ -138,10 +153,6 @@ export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '' }) 
   }
 
   async function shareVia(method) {
-    if (!payerName.trim() || !payerContact.trim()) {
-      setSubmitError(t('settleUp.submitError'))
-      return
-    }
     const selected = participants.filter((p) => selectedIds.has(p.id))
     if (selected.length === 0) return
 

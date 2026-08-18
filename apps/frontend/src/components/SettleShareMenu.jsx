@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef, useState } from 'react'
-import { Send, MessageCircle, MessageSquare, MoreHorizontal, Check, Loader2 } from 'lucide-react'
+import { Send, MessageCircle, MessageSquare, MoreHorizontal, Check, Loader2, AlertTriangle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrency } from '../hooks/useCurrency'
 
@@ -73,6 +73,22 @@ export default function SettleShareMenu({ share }) {
             maxLength={40}
             inputMode="numeric"
           />
+          {(() => {
+            const nameMissing = !share.payerName.trim()
+            const contactMissing = !share.payerContact.trim()
+            if (!nameMissing && !contactMissing) return null
+            const key = nameMissing && contactMissing
+              ? 'settleUp.nameAndContactMissingWarning'
+              : nameMissing
+                ? 'settleUp.nameMissingWarning'
+                : 'settleUp.contactMissingWarning'
+            return (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+                <AlertTriangle size={13} className="flex-shrink-0 text-amber-500" />
+                {t(key)}
+              </p>
+            )
+          })()}
         </div>
 
         {/* Participant checklist */}
