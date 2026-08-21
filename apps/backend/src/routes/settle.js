@@ -6,6 +6,8 @@ const { isValidCurrency, DEFAULT_CURRENCY } = require('../services/currency')
 
 const router = express.Router()
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 function deepLink(token) {
   const username = getBotUsername()
   return username ? `https://t.me/${username}?start=${token}` : null
@@ -54,18 +56,20 @@ const SUPPORTED_LANGUAGES = ['uz', 'ru', 'en']
 
 // Shared by POST /bills below and the bot's /newbill flow (newBillHandlers.js) — both
 // need to create a bill + participants and get back per-participant deep links.
-async function createSettleBill({ localId, crewName, grandTotal, tipAmount, tipPercent, payerName, payerContact, payerContactType, participants, language, createdByChatId, currency }) {
+async function createSettleBill({ localId, receiptId, crewName, grandTotal, tipAmount, tipPercent, payerName, payerContact, payerContactType, participants, language, createdByChatId, currency }) {
   const billLanguage = SUPPORTED_LANGUAGES.includes(language) ? language : 'uz'
   const billCurrency = isValidCurrency(currency) ? currency : DEFAULT_CURRENCY
+  const validReceiptId = typeof receiptId === 'string' && UUID_RE.test(receiptId) ? receiptId : null
 
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
 
     const billResult = await client.query(
-      `INSERT INTO bills (local_id, crew_name, grand_total, tip_amount, tip_percent, payer_name, payer_contact, payer_contact_type, language, created_by_chat_id, currency)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `INSERT INTO bills (local_id, receipt_id, crew_name, grand_total, tip_amount, tip_percent, payer_name, payer_contact, payer_contact_type, language, created_by_chat_id, currency)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        ON CONFLICT (local_id) DO UPDATE SET
+         receipt_id = EXCLUDED.receipt_id,
          crew_name = EXCLUDED.crew_name,
          grand_total = EXCLUDED.grand_total,
          tip_amount = EXCLUDED.tip_amount,
@@ -79,6 +83,7 @@ async function createSettleBill({ localId, crewName, grandTotal, tipAmount, tipP
        RETURNING id`,
       [
         localId,
+        validReceiptId,
         crewName || null,
         grandTotal || null,
         tipAmount || null,
@@ -124,7 +129,7 @@ async function createSettleBill({ localId, crewName, grandTotal, tipAmount, tipP
 }
 
 router.post('/bills', async (req, res) => {
-  const { localId, crewName, grandTotal, tipAmount, tipPercent, payerName, payerContact, payerContactType, participants, language } = req.body
+  const { localId, receiptId, crewName, grandTotal, tipAmount, tipPercent, payerName, payerContact, payerContactType, participants, language } = req.body
 
   if (!localId || !Array.isArray(participants) || participants.length === 0) {
     return res.status(400).json({ error: 'invalid_body' })
@@ -132,7 +137,7 @@ router.post('/bills', async (req, res) => {
 
   try {
     const result = await createSettleBill({
-      localId, crewName, grandTotal, tipAmount, tipPercent, payerName, payerContact, payerContactType, participants, language,
+      localId, receiptId, crewName, grandTotal, tipAmount, tipPercent, payerName, payerContact, payerContactType, participants, language,
     })
     res.json(result)
   } catch (err) {

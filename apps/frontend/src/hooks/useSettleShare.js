@@ -149,6 +149,7 @@ export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '' }) 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         localId: bill.id,
+        receiptId: bill.receiptId,
         crewName: bill.crewName,
         grandTotal: bill.grandTotal,
         tipAmount: bill.tipAmount,

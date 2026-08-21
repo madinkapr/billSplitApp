@@ -137,6 +137,7 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
 
   const [scanState, setScanState] = useState('idle')
   const [ocrData, setOcrData] = useState(null)
+  const [receiptId, setReceiptId] = useState(bill.receiptId || null)
   const [voiceBillData, setVoiceBillData] = useState(null)
 
   const { scanReceipt, retry, error: ocrError } = useOcr()
@@ -153,6 +154,7 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
       const data = await scanReceipt(file)
       setScanState('success')
       setOcrData(data)
+      setReceiptId(data.receiptId || null)
     } catch {
       setScanState('error')
     }
@@ -164,6 +166,7 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
       const data = await retry()
       setScanState('success')
       setOcrData(data)
+      setReceiptId(data.receiptId || null)
     } catch {
       setScanState('error')
     }
@@ -189,6 +192,7 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
 
   function handleOcrCancel() {
     setOcrData(null)
+    setReceiptId(null)
     setScanState('idle')
   }
 
@@ -291,6 +295,7 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
       tipAmount,
       discountAmount: parseFloat(discountAmount) || 0,
       _ocrItems: ocrItems,
+      receiptId,
     })
   }
 

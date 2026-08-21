@@ -133,7 +133,7 @@ export function useOcr() {
         })
       }
 
-      return json.data
+      return { ...json.data, receiptId: json.receiptId }
     } catch (err) {
       let message
       if (err.name === 'AbortError' || controller?.signal.aborted) {
