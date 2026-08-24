@@ -5,26 +5,25 @@ import { useTranslation } from 'react-i18next'
 import { useVoiceInput } from '../hooks/useVoiceInput'
 import { voiceErrorMessage } from '../utils/voiceErrors'
 
-// Hold-to-talk mic button that dictates an entire bill (members, items, per-person
+// Tap-to-toggle mic button that dictates an entire bill (members, items, per-person
 // quantities, tip) in one take. Sits compact (1 grid column) next to the scan
 // buttons while idle, then expands to the full row once recording starts —
-// which visually relocates it (CSS grid wraps it to its own row). Pointer
-// capture on press is what keeps release working through that jump: without
-// it, a finger held at the original press position would land on whatever
-// ended up there after the reflow, not on this (now relocated) button.
+// which visually relocates it (CSS grid wraps it to its own row).
+// Deliberately tap-to-start/tap-to-stop rather than hold-to-talk: this dictation
+// is the longest of the voice endpoints (often 20-30s+), and holding a touchscreen
+// button that long is fragile — an accidental lift mid-sentence silently truncates
+// the recording, which then starves the model of everything said after the drop.
 export default function VoiceBillButton({ onResult }) {
   const { t } = useTranslation()
   // The whole-bill dictation is the longest recording and the biggest upload of the
   // three voice endpoints — give it the most headroom for slow connections.
-  const { state, errorCode, startRecording, stopRecording, cancelRecording } = useVoiceInput('/api/voice/bill', { timeout: 90000 })
+  const { state, errorCode, startRecording, stopRecording } = useVoiceInput('/api/voice/bill', { timeout: 90000 })
 
-  function handlePress(e) {
-    e.currentTarget.setPointerCapture?.(e.pointerId)
-    if (state === 'idle' || state === 'error') startRecording()
-  }
-
-  async function handleRelease(e) {
-    e.currentTarget.releasePointerCapture?.(e.pointerId)
+  async function handleClick() {
+    if (state === 'idle' || state === 'error') {
+      startRecording()
+      return
+    }
     if (state !== 'recording') return
     try {
       const data = await stopRecording()
@@ -71,11 +70,9 @@ export default function VoiceBillButton({ onResult }) {
       whileTap={{ scale: isIdle ? 0.98 : 1 }}
       animate={state === 'recording' ? { scale: [1, 1.02, 1] } : { scale: 1 }}
       transition={state === 'recording' ? { duration: 1, repeat: Infinity } : undefined}
-      onPointerDown={handlePress}
-      onPointerUp={handleRelease}
-      onPointerCancel={cancelRecording}
+      onClick={handleClick}
       disabled={state === 'processing'}
-      className={`select-none touch-none rounded-2xl transition-colors ${style} ${
+      className={`select-none rounded-2xl transition-colors ${style} ${
         isIdle
           ? 'flex flex-col items-center justify-center gap-1.5 px-3 py-4 text-center'
           : 'col-span-3 w-full flex items-center gap-3 px-5 py-4'

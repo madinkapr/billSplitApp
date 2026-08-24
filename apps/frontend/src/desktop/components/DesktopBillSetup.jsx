@@ -268,7 +268,12 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
     setNewMemberName('')
   }
 
-  async function handleMemberVoiceRelease() {
+  async function handleMemberVoiceClick() {
+    if (memberVoice.state === 'idle' || memberVoice.state === 'error') {
+      memberVoice.startRecording()
+      return
+    }
+    if (memberVoice.state !== 'recording') return
     try {
       const data = await memberVoice.stopRecording()
       if (data?.members) data.members.forEach(addAdhocMemberByName)
@@ -299,7 +304,7 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
     })
   }
 
-  const allMembers = bill.crewId ? crewMembers : adhocMembers
+  const allMembers = adhocMembers
   const canProceed = grandNum > 0 && activeMembers.length > 0
 
   return (
@@ -455,7 +460,7 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
               {allMembers.map((member) => (
                 <div key={member.id} className="flex items-center gap-1">
                   <MemberToggle member={member} active={activeMembers.includes(member.id)} onToggle={() => toggleMember(member.id)} />
-                  {!member.isMe && !bill.crewId && (
+                  {!member.isMe && !crewMembers.some((cm) => cm.id === member.id) && (
                     <button onClick={() => removeAdhocMember(member.id)} className="w-8 h-8 flex items-center justify-center text-desktop-textMuted3 hover:text-red-500 flex-shrink-0">
                       <Trash2 size={14} />
                     </button>
@@ -477,13 +482,10 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
                 whileTap={{ scale: memberVoice.state === 'idle' || memberVoice.state === 'error' ? 0.9 : 1 }}
                 animate={memberVoice.state === 'recording' ? { scale: [1, 1.1, 1] } : { scale: 1 }}
                 transition={memberVoice.state === 'recording' ? { duration: 0.8, repeat: Infinity } : undefined}
-                onPointerDown={() => (memberVoice.state === 'idle' || memberVoice.state === 'error') && memberVoice.startRecording()}
-                onPointerUp={handleMemberVoiceRelease}
-                onPointerLeave={memberVoice.cancelRecording}
-                onPointerCancel={memberVoice.cancelRecording}
+                onClick={handleMemberVoiceClick}
                 disabled={memberVoice.state === 'processing'}
                 aria-label={t('billSetup.addSomeoneVoice')}
-                className={`w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0 select-none touch-none transition-colors ${
+                className={`w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0 select-none transition-colors ${
                   memberVoice.state === 'recording'
                     ? 'bg-red-500 text-white'
                     : memberVoice.state === 'error'
