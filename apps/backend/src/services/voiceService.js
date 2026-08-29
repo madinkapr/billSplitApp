@@ -2,6 +2,13 @@ const { GoogleGenAI, Type } = require('@google/genai')
 const { v4: uuidv4 } = require('uuid')
 const { mapGeminiError } = require('./ocrService')
 
+// Kept as two separate knobs (rather than one shared constant) so BILL_MODEL can be
+// tuned independently later if whole-bill dictation ever needs to go even stronger
+// (e.g. gemini-3.5-pro) without also raising cost/latency on the simpler name/amount
+// endpoints. Both currently default to the same tier.
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash'
+const BILL_MODEL = process.env.GEMINI_BILL_MODEL || 'gemini-3.5-flash'
+
 const MEMBERS_PROMPT = `You are transcribing spoken names for a bill-splitting app. The speaker may talk in Uzbek, Russian, or English — detect and parse whichever language is actually spoken, do not force one.
 Return ONLY valid JSON, no markdown, no explanation:
 
@@ -43,6 +50,7 @@ Rules:
   - CRITICAL — do not default anyone in: a member who was never said to eat a given dish must NOT appear in that dish's perMember at all, even if they appear in the top-level members list or ate something else. Never pad a dish's perMember with quantity 1 for people just to "fill up" the member count — only add an entry when that exact person eating that exact dish was actually spoken.
   - Watch for this specific confusion: several people being named back-to-back near the start (e.g. "Men, Ibrohim, Umarjon, Muhammadyusuf kafega bordik") does NOT mean they all shared one dish — it's usually just the guest list. Read on: if each of those people is then followed by their OWN distinct dish+price (e.g. "Men ikkita shashlik yedim 30000 ga. Ibrohim pizza yedi 40000 ga. Umarjon osh yedi 25000 ga."), that is FOUR SEPARATE personalItems entries (Shashlik: perMember=[{"Me",2}]; Pizza: perMember=[{"Ibrohim",1}]; Osh: perMember=[{"Umarjon",1}]; ...) — NOT one shared "Shashlik" entry with all four people's names crammed into its perMember. Only merge people into the same personalItems entry when the SAME dish name is repeated for each of them.
   - IMPORTANT — do not drop anyone either: if several names were listed together earlier (e.g. "Men Eldor, Elyor, Elbek bilan bordik"), all of them must appear in the top-level members list, and you must listen through the ENTIRE recording for what EACH of those specific people ate — people are often listed quickly in a row near the start but their food quantities come later, one at a time, sometimes all in one dense sentence about the SAME dish (e.g. "Men to'rtta, Eldor uchta, Elyor uchta, Elbek to'rtta shashlik yedi" names FOUR people back to back, all eating shashlik — all four need a perMember entry on that one Shashlik item, not just the first two). Before finalizing perMember for a dish, run this self-check: for each person who was actually said to eat THIS SPECIFIC dish, do they have a perMember entry? If one is missing, you stopped listening too early — go back through the whole recording again. But this self-check only adds people who ate that dish; it never justifies adding someone who ate a different dish or wasn't mentioned with this dish at all.
+  - CRITICAL — an item's "name" must always be an actual food/drink word, NEVER a person's name: a personalItems[].name (or sharedItems[].name) that turns out identical to one of the members is a sign you mis-split the sentence into the wrong roles — go back and find the real dish word instead of writing the person's name into the item slot. Example: "Hilolaga somsa, o'n ming so'm; Kamolaga esa kamola pishirig'i, qirq ming so'm" ("for Hilola, somsa, ten thousand; for Kamola, kamola pastry, forty thousand") — WRONG: personalItems=[{"name":"Kamola","unitPrice":40000,"perMember":[{"member":"Kamola","quantity":1}]}] (dropped Hilola entirely, used the person's name as the dish). RIGHT: members includes both Hilola and Kamola; personalItems=[{"name":"Somsa","unitPrice":10000,"perMember":[{"member":"Hilola","quantity":1}]},{"name":"Kamola pishirig'i","unitPrice":40000,"perMember":[{"member":"Kamola","quantity":1}]}] — every person mentioned keeps their own perMember entry under the dish they actually ate, and the dish name is never just their own name.
 - sharedItems = a dish or drink shared evenly by everyone, or where no per-person quantity was mentioned (e.g. "choy va non hammaga" => sharedItems entries for tea and bread with the TOTAL quantity purchased and TOTAL price for that line). Never try to compute each person's portion yourself — the app splits sharedItems evenly automatically.
 - unitPrice/totalPrice: numbers only, in the currency spoken (no symbols). Uzbek number words: "-ta" count suffix (e.g. "to'rtta"=4, "uchta"=3); "ming" multiplies by 1000 (e.g. "5 ming"=5000, "120 ming"=120000); "million" multiplies by 1000000. Russian: "тысяча"/"тыс"=×1000, "миллион"=×1000000. English: "thousand"=×1000, "million"=×1000000.
   - personalItems.unitPrice is ALWAYS a per-single-unit price, never a total — but speakers almost always say a TOTAL for however many units that person ate, not a per-unit price (e.g. "2ta shashlik yedim 30000 ga" = 2 units for 30000 total, NOT 30000 each). Whenever the number spoken is a total covering more than one unit, divide: unitPrice = (spoken total) / (quantity that total covers). Example: "Men ikkita shashlik yedim 30000 ga" with no one else eating shashlik => quantity=2, spoken total=30000, so unitPrice=15000 (NOT unitPrice=30000, and NOT unitPrice=30000 divided by the number of people in the whole bill — divide only by that dish's own quantity). If a dish's perMember quantities add up to N and only one combined total was ever spoken for it, unitPrice must equal that total divided by N — double check this division before finalizing, since getting it wrong silently overcharges or undercharges whoever's on that item.
@@ -187,13 +195,13 @@ const ERROR_MAP = {
   NETWORK_ERROR: { status: 502, error: 'Connection error. Please try again.' },
 }
 
-async function transcribe(audioBuffer, mimetype, promptText, responseSchema, timeoutMs) {
+async function transcribe(audioBuffer, mimetype, promptText, responseSchema, timeoutMs, model) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
     const result = await ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
+      model,
       contents: [
         {
           parts: [
@@ -252,6 +260,16 @@ function normalizeMembers(parsed) {
   }
 
   return { members, detectedLanguage: parsed.detectedLanguage || 'unknown' }
+}
+
+// A personalItems/sharedItems entry named identically to a member is almost
+// certainly BILL_PROMPT mis-splitting "person X ate DISH" into "person X ate
+// PERSON_NAME" (see the CRITICAL rule above) — flag it for review rather than
+// silently trusting it, since dropping or guessing at the real dish name here
+// would be worse than asking the user to fix it themselves.
+function flagItemsNamedAfterMembers(items, members) {
+  const memberNames = new Set(members.map((m) => m.name.toLowerCase()))
+  return items.filter((i) => memberNames.has(i.name.trim().toLowerCase())).map((i) => i.name)
 }
 
 // Converts Gemini's name-keyed voice output into the same `Item[]` shape
@@ -339,13 +357,15 @@ function normalizeBillVoice(parsed) {
   const discountAmount = parsed.discountAmount != null ? Math.abs(parseFloat(parsed.discountAmount)) : null
   const detectedLanguage = parsed.detectedLanguage || 'unknown'
 
-  grandTotal = applyPriceInference(items, grandTotal, tipAmount, discountAmount)
+  grandTotal = applyPriceInference(items, grandTotal, tipAmount, tipPercent, discountAmount)
 
   const itemsTotal = items.reduce((s, i) => s + i.price, 0)
-  const foodBudget = grandTotal != null ? grandTotal - (tipAmount || 0) + (discountAmount || 0) : null
+  const effectiveTip = tipAmount != null ? tipAmount : (tipPercent ? (itemsTotal * tipPercent) / 100 : 0)
+  const foodBudget = grandTotal != null ? grandTotal - effectiveTip + (discountAmount || 0) : null
   const mismatch = foodBudget != null && Math.abs(itemsTotal - foodBudget) > 0.5
+  const itemNameWarnings = flagItemsNamedAfterMembers(items, members)
 
-  return { members, items, grandTotal, tipAmount, tipPercent, discountAmount, detectedLanguage, warnings, mismatch, itemsTotal, foodBudget }
+  return { members, items, grandTotal, tipAmount, tipPercent, discountAmount, detectedLanguage, warnings, itemNameWarnings, mismatch, itemsTotal, foodBudget }
 }
 
 // Given items where a genuinely-unstated price was recorded as 0 (see BILL_PROMPT's
@@ -359,13 +379,23 @@ function normalizeBillVoice(parsed) {
 // stated, the total is just the sum of the items (plus tip, minus discount) — no need
 // to make the speaker repeat a number that's already fully implied. Returns the
 // (possibly inferred) grand total since callers need to persist it onto their result.
-function applyPriceInference(items, grandTotal, tipAmount, discountAmount) {
+function applyPriceInference(items, grandTotal, tipAmount, tipPercent, discountAmount) {
   const uncertainIds = new Set(items.filter((i) => !(i.unitPrice > 0)).map((i) => i.id))
   if (uncertainIds.size === 1 && grandTotal != null) {
     const unknown = items.find((i) => uncertainIds.has(i.id))
     const knownItemsTotal = items.filter((i) => i.id !== unknown.id).reduce((s, i) => s + i.price, 0)
-    const foodBudget = grandTotal - (tipAmount || 0) + (discountAmount || 0)
-    const remaining = foodBudget - knownItemsTotal
+    // The tip may have been spoken as a currency amount (tipAmount) or as a
+    // percentage (tipPercent) of the subtotal — for a percentage tip we can't
+    // just subtract it like an amount because the subtotal itself is what
+    // we're solving for (it still has an unknown item's price in it). Instead
+    // divide it out algebraically: grandTotal = subtotal*(1+percent/100) - discount.
+    const subtotal =
+      tipAmount != null
+        ? grandTotal - tipAmount + (discountAmount || 0)
+        : tipPercent
+          ? (grandTotal + (discountAmount || 0)) / (1 + tipPercent / 100)
+          : grandTotal + (discountAmount || 0)
+    const remaining = subtotal - knownItemsTotal
     if (remaining > 0 && unknown.quantity > 0) {
       unknown.unitPrice = remaining / unknown.quantity
       unknown.price = remaining
@@ -378,7 +408,8 @@ function applyPriceInference(items, grandTotal, tipAmount, discountAmount) {
 
   if (grandTotal == null && items.length > 0 && uncertainIds.size === 0) {
     const itemsTotal = items.reduce((s, i) => s + i.price, 0)
-    return itemsTotal + (tipAmount || 0) - (discountAmount || 0)
+    const tip = tipAmount != null ? tipAmount : tipPercent ? (itemsTotal * tipPercent) / 100 : 0
+    return itemsTotal + tip - (discountAmount || 0)
   }
   return grandTotal
 }
@@ -507,11 +538,13 @@ function mergeBillVoiceFix(pending, parsed) {
   let discountAmount = pending.discountAmount
   if (parsed.discountAmount != null) discountAmount = Math.abs(parseFloat(parsed.discountAmount))
 
-  grandTotal = applyPriceInference(items, grandTotal, tipAmount, discountAmount)
+  grandTotal = applyPriceInference(items, grandTotal, tipAmount, tipPercent, discountAmount)
 
   const itemsTotal = items.reduce((s, i) => s + i.price, 0)
-  const foodBudget = grandTotal != null ? grandTotal - (tipAmount || 0) + (discountAmount || 0) : null
+  const effectiveTip = tipAmount != null ? tipAmount : (tipPercent ? (itemsTotal * tipPercent) / 100 : 0)
+  const foodBudget = grandTotal != null ? grandTotal - effectiveTip + (discountAmount || 0) : null
   const mismatch = foodBudget != null && Math.abs(itemsTotal - foodBudget) > 0.5
+  const itemNameWarnings = flagItemsNamedAfterMembers(items, members)
 
   return {
     members,
@@ -522,6 +555,7 @@ function mergeBillVoiceFix(pending, parsed) {
     discountAmount,
     detectedLanguage: pending.detectedLanguage,
     warnings,
+    itemNameWarnings,
     mismatch,
     itemsTotal,
     foodBudget,
@@ -535,7 +569,7 @@ async function runVoiceAmount(audioBuffer, mimetype) {
   try {
     let rawText
     try {
-      rawText = await transcribe(audioBuffer, mimetype, AMOUNT_PROMPT, AMOUNT_SCHEMA, 15000)
+      rawText = await transcribe(audioBuffer, mimetype, AMOUNT_PROMPT, AMOUNT_SCHEMA, 15000, DEFAULT_MODEL)
     } catch (geminiErr) {
       errorCode = mapGeminiError(geminiErr)
       throw geminiErr
@@ -555,7 +589,7 @@ async function runVoiceMembers(audioBuffer, mimetype) {
   try {
     let rawText
     try {
-      rawText = await transcribe(audioBuffer, mimetype, MEMBERS_PROMPT, MEMBERS_SCHEMA, 20000)
+      rawText = await transcribe(audioBuffer, mimetype, MEMBERS_PROMPT, MEMBERS_SCHEMA, 20000, DEFAULT_MODEL)
     } catch (geminiErr) {
       errorCode = mapGeminiError(geminiErr)
       throw geminiErr
@@ -575,7 +609,7 @@ async function runVoiceBill(audioBuffer, mimetype) {
   try {
     let rawText
     try {
-      rawText = await transcribe(audioBuffer, mimetype, BILL_PROMPT, BILL_SCHEMA, 45000)
+      rawText = await transcribe(audioBuffer, mimetype, BILL_PROMPT, BILL_SCHEMA, 45000, BILL_MODEL)
     } catch (geminiErr) {
       errorCode = mapGeminiError(geminiErr)
       throw geminiErr
@@ -595,7 +629,7 @@ async function runVoiceBillFix(audioBuffer, mimetype, pending) {
   try {
     let rawText
     try {
-      rawText = await transcribe(audioBuffer, mimetype, buildFixPrompt(pending), BILL_SCHEMA, 30000)
+      rawText = await transcribe(audioBuffer, mimetype, buildFixPrompt(pending), BILL_SCHEMA, 30000, BILL_MODEL)
     } catch (geminiErr) {
       errorCode = mapGeminiError(geminiErr)
       throw geminiErr

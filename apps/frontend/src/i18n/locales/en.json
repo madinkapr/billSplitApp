@@ -158,6 +158,8 @@
     "title": "Review Dictated Bill",
     "subtitle": "Fix anything that was misheard",
     "unresolvedNameWarning": "Couldn't match these names to anyone: {{names}} — check they're right",
+    "itemNameWarning": "This item is named the same as a participant ({{names}}) — the real dish name may have been misheard, please check",
+    "itemNameWarningShort": "Item name looks like a participant's name — please check",
     "membersHeader": "People",
     "addMissingMember": "Add person…",
     "personalItemsHeader": "Individual items",

@@ -158,6 +158,8 @@
     "title": "Aytilgan hisobni tekshiring",
     "subtitle": "Noto'g'ri eshitilgan narsalarni tuzating",
     "unresolvedNameWarning": "Bu ismlar hech kimga mos kelmadi: {{names}} — tekshirib ko'ring",
+    "itemNameWarning": "Bu taom nomi ishtirokchining ismi bilan bir xil ({{names}}) — haqiqiy taom nomi noto'g'ri eshitilgan bo'lishi mumkin, tekshiring",
+    "itemNameWarningShort": "Taom nomi ishtirokchi ismiga o'xshaydi — tekshiring",
     "membersHeader": "Odamlar",
     "addMissingMember": "Odam qo'shish…",
     "personalItemsHeader": "Shaxsiy taomlar",

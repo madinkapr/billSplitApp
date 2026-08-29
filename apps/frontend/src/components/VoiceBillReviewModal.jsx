@@ -6,7 +6,7 @@ import { generateId } from '../utils/math'
 import { useCurrency } from '../hooks/useCurrency'
 import AmountMicButton from './AmountMicButton'
 
-function PersonalItemCard({ item, members, onChange, onDelete }) {
+function PersonalItemCard({ item, members, onChange, onDelete, nameSuspicious }) {
   const { t } = useTranslation()
   const { fmt, symbol } = useCurrency()
   const unitPrice = parseFloat(item.unitPrice) || 0
@@ -45,7 +45,7 @@ function PersonalItemCard({ item, members, onChange, onDelete }) {
           type="text"
           value={item.name}
           onChange={(e) => onChange({ ...item, name: e.target.value })}
-          className="flex-1 min-w-0 border border-gray-200 rounded-lg px-2 py-1.5 text-sm font-medium focus:outline-none focus:border-indigo-400"
+          className={`flex-1 min-w-0 border rounded-lg px-2 py-1.5 text-sm font-medium focus:outline-none focus:border-indigo-400 ${nameSuspicious ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}
         />
         <div className="flex flex-col items-end flex-shrink-0">
           <div className="flex items-center gap-1">
@@ -71,6 +71,11 @@ function PersonalItemCard({ item, members, onChange, onDelete }) {
       {item.unitPriceUncertain && (
         <p className="text-[11px] text-amber-600 flex items-center gap-1 -mt-1">
           <AlertTriangle size={11} /> {unitPrice > 0 ? t('voiceReview.priceUncertain') : t('voiceReview.priceUnknown')}
+        </p>
+      )}
+      {nameSuspicious && (
+        <p className="text-[11px] text-amber-600 flex items-center gap-1 -mt-1">
+          <AlertTriangle size={11} /> {t('voiceReview.itemNameWarningShort')}
         </p>
       )}
       <div className="flex flex-wrap gap-1.5">
@@ -126,7 +131,7 @@ function PersonalItemCard({ item, members, onChange, onDelete }) {
   )
 }
 
-function SharedItemRow({ item, onChange, onDelete }) {
+function SharedItemRow({ item, onChange, onDelete, nameSuspicious }) {
   const { t } = useTranslation()
   const { fmt, symbol } = useCurrency()
   const totalPrice = parseFloat(item.unitPrice) * (parseInt(item.quantity) || 1) || 0
@@ -145,12 +150,17 @@ function SharedItemRow({ item, onChange, onDelete }) {
           type="text"
           value={item.name}
           onChange={(e) => onChange({ ...item, name: e.target.value })}
-          className="flex-1 min-w-0 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-indigo-400"
+          className={`flex-1 min-w-0 border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-indigo-400 ${nameSuspicious ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}
         />
         <button onClick={onDelete} className="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
           <Trash2 size={14} />
         </button>
       </div>
+      {nameSuspicious && (
+        <p className="text-[11px] text-amber-600 flex items-center gap-1 -mt-1">
+          <AlertTriangle size={11} /> {t('voiceReview.itemNameWarningShort')}
+        </p>
+      )}
       <div className="flex items-center justify-end gap-2">
         <div className="flex items-center flex-shrink-0 border border-gray-200 rounded-lg overflow-hidden">
           <span className="pl-2 text-gray-400 text-xs whitespace-nowrap">{symbol}</span>
@@ -192,10 +202,18 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
     return sum + unitPrice * qty
   }, 0)
   const grandNum = parseFloat(grandTotal) || 0
-  const foodBudget = grandNum - (parseFloat(tipAmount) || 0) + (parseFloat(discountAmount) || 0)
+  const tipAmountNum = parseFloat(tipAmount) || 0
+  const tipPercentNum = parseFloat(tipPercent) || 0
+  // Tip may be a flat amount or a percentage of the subtotal — when only a
+  // percentage was given, convert it against the current items total so the
+  // mismatch check and "fill in the missing total" logic below both account
+  // for it instead of silently treating a percent-only tip as zero.
+  const effectiveTip = tipAmountNum > 0 ? tipAmountNum : tipPercentNum > 0 ? (itemsTotal * tipPercentNum) / 100 : 0
+  const foodBudget = grandNum - effectiveTip + (parseFloat(discountAmount) || 0)
   const showMismatch = grandNum > 0 && Math.abs(itemsTotal - foodBudget) > 0.5
 
   const unresolvedNames = new Set(voiceData.warnings || [])
+  const itemNameWarnings = new Set(voiceData.itemNameWarnings || [])
 
   // If the grand total itself was never said (or the user cleared it), but every
   // item's price is now known (dictated, backend-inferred, or hand-fixed), work it
@@ -205,9 +223,9 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
     if (grandTotal !== '') return
     if (items.length === 0) return
     if (items.some((i) => i.unitPriceUncertain)) return
-    const computed = itemsTotal + (parseFloat(tipAmount) || 0) - (parseFloat(discountAmount) || 0)
+    const computed = itemsTotal + effectiveTip - (parseFloat(discountAmount) || 0)
     if (computed > 0) setGrandTotal(computed.toFixed(2))
-  }, [grandTotal, items, itemsTotal, tipAmount, discountAmount])
+  }, [grandTotal, items, itemsTotal, effectiveTip, discountAmount])
 
   // The mirror case: grand total is now known (typed, or via the mic) but exactly
   // one item's price still isn't — solve for that one item the same way the backend
@@ -227,7 +245,19 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
         return sum + unitPrice * qty
       }, 0)
     const targetQty = target.everyone ? (parseInt(target.quantity) || 1) : Object.values(target.shares).reduce((s, q) => s + q, 0)
-    const remaining = foodBudget - knownItemsTotal
+    const discountNum = parseFloat(discountAmount) || 0
+    // A percentage tip is a share of the subtotal we're solving for (it still
+    // includes the target's own unknown price), so it must be divided out
+    // algebraically rather than subtracted like a flat amount — mirrors the
+    // backend's applyPriceInference. Using effectiveTip/itemsTotal here would
+    // be circular since the target's price isn't known yet.
+    const subtotal =
+      tipAmountNum > 0
+        ? grandNum - tipAmountNum + discountNum
+        : tipPercentNum > 0
+          ? (grandNum + discountNum) / (1 + tipPercentNum / 100)
+          : grandNum + discountNum
+    const remaining = subtotal - knownItemsTotal
 
     if (remaining > 0 && targetQty > 0) {
       const computedPrice = remaining / targetQty
@@ -236,7 +266,7 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
         updateItem(target.id, { ...target, unitPrice: computedPrice.toFixed(2), unitPriceUncertain: true })
       }
     }
-  }, [grandNum, foodBudget, items])
+  }, [grandNum, tipAmountNum, tipPercentNum, discountAmount, items])
 
   function updateItem(id, updated) {
     setItems((prev) => prev.map((i) => (i.id === id ? updated : i)))
@@ -323,6 +353,15 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
               </div>
             )}
 
+            {itemNameWarnings.size > 0 && (
+              <div className="flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                <AlertTriangle size={13} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-amber-700">
+                  {t('voiceReview.itemNameWarning', { names: [...itemNameWarnings].join(', ') })}
+                </p>
+              </div>
+            )}
+
             {/* Members */}
             <div>
               <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
@@ -376,6 +415,7 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
                       members={members}
                       onChange={(updated) => updateItem(item.id, updated)}
                       onDelete={() => deleteItem(item.id)}
+                      nameSuspicious={itemNameWarnings.has(item.name)}
                     />
                   ))}
                 </div>
@@ -395,6 +435,7 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
                       item={item}
                       onChange={(updated) => updateItem(item.id, updated)}
                       onDelete={() => deleteItem(item.id)}
+                      nameSuspicious={itemNameWarnings.has(item.name)}
                     />
                   ))}
                 </div>
