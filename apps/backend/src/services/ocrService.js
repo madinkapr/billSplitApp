@@ -23,7 +23,6 @@ Return ONLY valid JSON, no markdown, no explanation:
 Rules:
 - grandTotal = the final charged amount (Итого / Jami / Total)
 - items = individual food/drink lines only, NOT tax/tip/subtotal lines
-- Translate item names to English
 - quantity = how many of this item (default 1 if not shown)
 - unitPrice = price per single item; price = quantity x unitPrice
 - Example: "Burger x2 - $25.98" => name="Burger", quantity=2, unitPrice=12.99, price=25.98
@@ -31,7 +30,7 @@ Rules:
 - Use null for any field not found on the receipt
 - IMPORTANT: Each line item on the receipt = exactly one entry in items array. A price number on the receipt belongs to the item on the SAME line, never combine numbers from different lines into one price.
 - IMPORTANT: If an item name spans multiple lines but has only ONE price, it is ONE item. Example: "Pasta di mare\nsiciliana:Spaghetti  1.00 198900.00" => ONE item, name="Pasta di mare Siciliana: Spaghetti", quantity=1, unitPrice=198900. NEVER create two items from one price.
-- IMPORTANT: Do NOT translate item names — keep them exactly as written on the receipt. Only translate if the name is a generic word (e.g. "чай" → "tea"). Proper nouns, brand names, dish names (e.g. "Succo di mela", "Caprese", "Te nero") must be kept as-is.
+- IMPORTANT: NEVER translate item names, not even generic words (e.g. "чай", "нон", "salat") — copy every item name exactly as printed on the receipt, in whatever language and script it appears in (Cyrillic, Latin, etc). Do not convert it to English or any other language under any circumstance.
 - IMPORTANT: quantity must match exactly what is printed on the receipt. If no quantity shown, use 1. Never guess quantity from context.
 - discountAmount = any line with a NEGATIVE amount or labeled as discount/reduction/скидка/chegirma (e.g. "10% -98120.00" => discountAmount=98120, "Скидка -50000" => discountAmount=50000). Store as positive number. If no such line, use null.
 - tipAmount = a POSITIVE service/gratuity charge line (e.g. "Обслуживание 15% +147180" => tipAmount=147180). These are opposite signs — do not confuse them.
@@ -145,9 +144,12 @@ async function runOcr(imageBuffer, mimetype) {
       const result = await ai.models.generateContent({
         // gemini-2.5-* is closed to new API keys ("no longer available to new
         // users", 404) — it only kept working on older grandfathered keys.
-        // Pinned, not gemini-flash-lite-latest: OCR_PROMPT is tuned for this
+        // Pinned, not gemini-flash-latest: OCR_PROMPT is tuned for this
         // model and a floating alias could regress parsing without warning.
-        model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
+        // Using the full flash tier (not flash-lite) — receipts are messy
+        // enough (skewed photos, dense currency formatting) to benefit from
+        // the stronger model, same reasoning as BILL_MODEL in voiceService.js.
+        model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
         contents: [
           {
             parts: [
