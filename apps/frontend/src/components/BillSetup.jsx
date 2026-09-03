@@ -250,6 +250,18 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
       return { ...item, shares }
     })
 
+    // Resolve a percentage tip to a concrete amount here, the same way handleNext
+    // does for the manual flow. Downstream (Itemizer, useBillSummary) only ever
+    // subtracts bill.tipAmount to get the food budget — passing it through as 0
+    // with just a tipPercent leaves the budget overstated by the tip, so nothing
+    // ever balances and the share/summary buttons stay hidden until a round-trip
+    // back through this screen recomputes it.
+    const resolvedTipAmount = confirmed.tipAmount > 0
+      ? confirmed.tipAmount
+      : confirmed.tipPercent > 0 && confirmed.grandTotal > 0
+        ? confirmed.grandTotal - confirmed.grandTotal / (1 + confirmed.tipPercent / 100)
+        : 0
+
     onNext({
       ...bill,
       _adhocMembers: nextAdhoc,
@@ -257,7 +269,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
       grandTotal: confirmed.grandTotal,
       tipMode: confirmed.tipAmount > 0 ? 'amount' : 'percent',
       tipPercent: confirmed.tipAmount > 0 ? null : confirmed.tipPercent,
-      tipAmount: confirmed.tipAmount,
+      tipAmount: resolvedTipAmount,
       discountAmount: confirmed.discountAmount || 0,
       items,
     })
