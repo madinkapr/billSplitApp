@@ -3,7 +3,9 @@ const fs = require('fs')
 const { GoogleGenAI } = require('@google/genai')
 const pool = require('../db')
 
-const UPLOADS_DIR = path.join(__dirname, '../../uploads')
+// Receipt images live under uploads/images/, mirroring uploads/voice/ for voice recordings —
+// both are training-corpus stores, kept in sibling folders so they're easy to sync/export.
+const UPLOADS_DIR = path.join(__dirname, '../../uploads/images')
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true })
 
 const OCR_PROMPT = `You are a receipt OCR parser. The receipt may be in Russian, English, or Uzbek.

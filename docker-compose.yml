@@ -36,7 +36,7 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
     volumes:
-      - ./apps/backend/receipt_uploads:/app/uploads
+      - ./apps/backend/uploads:/app/uploads
     depends_on:
       - db
     restart: unless-stopped

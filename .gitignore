@@ -33,6 +33,5 @@ graphify-out/
 # Local-only compose override (disables Caddy for testing without TLS/domain)
 docker-compose.override.yml
 
-# Receipt uploads (ML training data — not tracked in git)
+# Uploaded receipts + voice recordings (ML training data — not tracked in git)
 apps/backend/uploads/
-apps/backend/receipt_uploads/
