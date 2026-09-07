@@ -9,8 +9,8 @@ CREATE TABLE IF NOT EXISTS receipts (
   ocr_result  JSONB,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
--- Bot-sourced receipts (downloaded from Telegram into memory) never touch local disk,
--- unlike web-app uploads (saved via multer) — so filepath has nothing to store for them.
+-- Bot-sourced receipts are now written to the same uploads dir as web-app uploads,
+-- but filepath stays nullable so a disk-write failure still logs the OCR row.
 ALTER TABLE receipts ALTER COLUMN filepath DROP NOT NULL;
 
 CREATE TABLE IF NOT EXISTS bills (
@@ -92,6 +92,28 @@ CREATE TABLE IF NOT EXISTS bot_starts (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_bot_starts_created_at ON bot_starts (created_at);
+
+-- One row per voice call (web app + bot) across amount/members/bill/bill_fix. Exists purely
+-- to build a training corpus: the audio at `filepath` is the model input, `gemini_response`
+-- (Gemini's raw JSON string, before parseJson/normalize) is the label, and `result` is the
+-- post-processed output kept only for filtering/analysis. `context` holds the pending-bill
+-- state that buildFixPrompt() injected, so bill_fix rows are reproducible. filepath is
+-- nullable: a disk-write failure still logs the row. Logged even on OCR/voice failure.
+CREATE TABLE IF NOT EXISTS voice_recordings (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  filename        TEXT,
+  filepath        TEXT,
+  mimetype        TEXT NOT NULL,
+  kind            TEXT NOT NULL,
+  language        TEXT,
+  gemini_response TEXT,
+  result          JSONB,
+  context         JSONB,
+  error_code      TEXT,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_voice_recordings_created_at ON voice_recordings (created_at);
+CREATE INDEX IF NOT EXISTS idx_voice_recordings_kind ON voice_recordings (kind);
 
 -- AI-estimated calories per dish name, keyed by a normalized (lowercased/trimmed) name —
 -- not per bill line — so the same dish ordered again in any future bill resolves instantly

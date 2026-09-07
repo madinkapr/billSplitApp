@@ -4,7 +4,10 @@ const pool = require('../db')
 const { CURRENCIES, isValidCurrency, formatAmount } = require('../services/currency')
 const { generateId, calculateSplits, getTotalUnits, getAssignedUnits, getRemainingUnits, getItemShares, getUnitPrice } = require('../services/splitCalculator')
 const { createSettleBill } = require('../routes/settle')
-const { runOcr, saveReceiptRecord } = require('../services/ocrService')
+const { runOcr, saveReceiptRecord, UPLOADS_DIR } = require('../services/ocrService')
+const fs = require('fs')
+const path = require('path')
+const { v4: uuidv4 } = require('uuid')
 const { runVoiceBill, runVoiceBillFix, runVoiceMembers } = require('../services/voiceService')
 
 const STATES = {
@@ -199,9 +202,20 @@ async function handleReceiptPhoto(bot, chatId, msg, session, msgs) {
     const result = await runOcr(buffer, 'image/jpeg')
     ocrResult = result.ocrResult
     errorCode = result.errorCode
+
+    // Persist the photo to the same uploads dir the web app uses, so bot-sourced
+    // receipts are available for ML training too.
+    const filename = `${uuidv4()}.jpg`
+    const filepath = path.join(UPLOADS_DIR, filename)
+    try {
+      fs.writeFileSync(filepath, buffer)
+    } catch (writeErr) {
+      console.error('Bot receipt save failed:', writeErr.message)
+    }
+
     await saveReceiptRecord({
-      filename: `${photo.file_id}.jpg`,
-      filepath: null,
+      filename,
+      filepath: fs.existsSync(filepath) ? filepath : null,
       mimetype: 'image/jpeg',
       ocrResult,
     })
