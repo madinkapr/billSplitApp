@@ -260,6 +260,7 @@
     "totalViews": "Всего просмотров",
     "scans": "Сканы чека",
     "manualEntries": "Ручной ввод",
+    "voiceEntries": "Голосовой ввод",
     "trafficSection": "Посещаемость",
     "entrySection": "Способ ввода чека",
     "dateCol": "Дата",

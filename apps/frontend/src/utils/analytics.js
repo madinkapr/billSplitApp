@@ -31,3 +31,9 @@ export function trackManualEntry() {
     // analytics failures should never affect the app
   })
 }
+
+export function trackVoiceEntry() {
+  fetch('/api/analytics/voice-entry', { method: 'POST' }).catch(() => {
+    // analytics failures should never affect the app
+  })
+}

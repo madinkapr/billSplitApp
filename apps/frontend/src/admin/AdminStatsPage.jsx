@@ -7,9 +7,9 @@ import Sidebar from '../desktop/components/Sidebar'
 
 const ADMIN_TOKEN_STORAGE = 'tabup_admin_token'
 const RANGE_OPTIONS = [7, 30, 90]
-const ALL_KEYS = ['uniqueVisitors', 'totalViews', 'scans', 'manualEntries']
+const ALL_KEYS = ['uniqueVisitors', 'totalViews', 'scans', 'manualEntries', 'voiceEntries']
 const TRAFFIC_COLORS = { uniqueVisitors: '#2a78d6', totalViews: '#eb6834' }
-const ENTRY_COLORS = { scans: '#1baf7a', manualEntries: '#eda100' }
+const ENTRY_COLORS = { scans: '#1baf7a', manualEntries: '#eda100', voiceEntries: '#8b5cf6' }
 
 const THEMES = {
   mobile: {
@@ -440,7 +440,7 @@ function StatsBody({ theme, t, days, setDays, rows, error, data, today, periodTo
         data={data}
         today={today}
         periodTotals={periodTotals}
-        keys={['scans', 'manualEntries']}
+        keys={['scans', 'manualEntries', 'voiceEntries']}
         colors={ENTRY_COLORS}
         labels={entryLabels}
       />
@@ -525,7 +525,11 @@ export default function AdminStatsPage({ onBack }) {
     [t]
   )
   const entryLabels = useMemo(
-    () => ({ scans: t('adminStats.scans'), manualEntries: t('adminStats.manualEntries') }),
+    () => ({
+      scans: t('adminStats.scans'),
+      manualEntries: t('adminStats.manualEntries'),
+      voiceEntries: t('adminStats.voiceEntries'),
+    }),
     [t]
   )
 
@@ -574,7 +578,7 @@ export default function AdminStatsPage({ onBack }) {
       data.reduce((acc, d) => {
         for (const k of ALL_KEYS) acc[k] += d[k]
         return acc
-      }, { uniqueVisitors: 0, totalViews: 0, scans: 0, manualEntries: 0 }),
+      }, { uniqueVisitors: 0, totalViews: 0, scans: 0, manualEntries: 0, voiceEntries: 0 }),
     [data]
   )
 

@@ -7,7 +7,7 @@ import { useOcr } from '../hooks/useOcr'
 import { useCurrency } from '../hooks/useCurrency'
 import { useVoiceInput } from '../hooks/useVoiceInput'
 import { voiceErrorMessage } from '../utils/voiceErrors'
-import { trackManualEntry } from '../utils/analytics'
+import { trackManualEntry, trackVoiceEntry } from '../utils/analytics'
 import OcrReviewModal from './OcrReviewModal'
 import VoiceBillButton from './VoiceBillButton'
 import VoiceBillReviewModal from './VoiceBillReviewModal'
@@ -215,6 +215,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
 
   function handleVoiceBillConfirm(confirmed) {
     setVoiceBillData(null)
+    trackVoiceEntry()
 
     // The spoken "isMe" member folds into whichever member is already flagged
     // isMe (never a second "Me"); everyone else matches by name or is appended.

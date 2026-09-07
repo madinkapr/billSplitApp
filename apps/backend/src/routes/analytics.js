@@ -31,6 +31,16 @@ router.post('/manual-entry', async (req, res) => {
   }
 })
 
+router.post('/voice-entry', async (req, res) => {
+  try {
+    await pool.query('INSERT INTO voice_entries DEFAULT VALUES')
+    res.status(204).end()
+  } catch (err) {
+    console.error('Track voice entry failed:', err.message)
+    res.status(500).json({ error: 'server_error' })
+  }
+})
+
 const DAY_QUERY = (table) => `
   SELECT to_char(created_at AT TIME ZONE 'Asia/Tashkent', 'YYYY-MM-DD') AS day, COUNT(*)::int AS count
   FROM ${table}
@@ -42,7 +52,7 @@ router.get('/stats', requireAdmin, async (req, res) => {
   const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 365)
 
   try {
-    const [viewsResult, scansResult, manualResult] = await Promise.all([
+    const [viewsResult, scansResult, manualResult, voiceResult] = await Promise.all([
       pool.query(
         `SELECT
            to_char(created_at AT TIME ZONE 'Asia/Tashkent', 'YYYY-MM-DD') AS day,
@@ -55,11 +65,12 @@ router.get('/stats', requireAdmin, async (req, res) => {
       ),
       pool.query(DAY_QUERY('receipts'), [days]),
       pool.query(DAY_QUERY('manual_entries'), [days]),
+      pool.query(DAY_QUERY('voice_entries'), [days]),
     ])
 
     const byDate = new Map()
     function upsert(day, patch) {
-      const row = byDate.get(day) || { date: day, totalViews: 0, uniqueVisitors: 0, scans: 0, manualEntries: 0 }
+      const row = byDate.get(day) || { date: day, totalViews: 0, uniqueVisitors: 0, scans: 0, manualEntries: 0, voiceEntries: 0 }
       Object.assign(row, patch)
       byDate.set(day, row)
     }
@@ -67,6 +78,7 @@ router.get('/stats', requireAdmin, async (req, res) => {
     viewsResult.rows.forEach((r) => upsert(r.day, { totalViews: r.total_views, uniqueVisitors: r.unique_visitors }))
     scansResult.rows.forEach((r) => upsert(r.day, { scans: r.count }))
     manualResult.rows.forEach((r) => upsert(r.day, { manualEntries: r.count }))
+    voiceResult.rows.forEach((r) => upsert(r.day, { voiceEntries: r.count }))
 
     const daysArr = Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date))
 

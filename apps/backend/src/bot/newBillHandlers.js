@@ -58,6 +58,16 @@ async function trackManualEntry() {
   }
 }
 
+// Mirrors BillSetup.jsx's trackVoiceEntry() — fires when the user confirms a bill they
+// dictated by voice, feeding the same admin dashboard "voice input" counter as the web app.
+async function trackVoiceEntry() {
+  try {
+    await pool.query('INSERT INTO voice_entries DEFAULT VALUES')
+  } catch (err) {
+    console.error('Track voice entry failed:', err.message)
+  }
+}
+
 function parseMemberName(text) {
   const trimmed = String(text || '').trim()
   if (!trimmed || trimmed.length > MAX_MEMBER_NAME_LENGTH) return null
@@ -907,6 +917,7 @@ async function handleCallbackQuery(bot, query) {
       }
       await bot.answerCallbackQuery(query.id)
       await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id }).catch(() => {})
+      trackVoiceEntry()
       await askForReport(bot, chatId, draft, msgs)
       return
     }

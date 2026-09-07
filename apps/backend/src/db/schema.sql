@@ -50,6 +50,15 @@ CREATE TABLE IF NOT EXISTS manual_entries (
 );
 CREATE INDEX IF NOT EXISTS idx_manual_entries_created_at ON manual_entries (created_at);
 
+-- One row per bill entered by dictating the whole bill (web app + bot), inserted when
+-- the user confirms the voice-parsed result. Mirrors manual_entries/page_views — feeds
+-- the admin dashboard's "voice input" counter alongside scans and manual entries.
+CREATE TABLE IF NOT EXISTS voice_entries (
+  id          BIGSERIAL PRIMARY KEY,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_voice_entries_created_at ON voice_entries (created_at);
+
 CREATE TABLE IF NOT EXISTS admins (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   username      TEXT UNIQUE NOT NULL,

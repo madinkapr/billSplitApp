@@ -252,6 +252,7 @@
     "totalViews": "Total views",
     "scans": "Receipt scans",
     "manualEntries": "Manual entries",
+    "voiceEntries": "Voice input",
     "trafficSection": "Traffic",
     "entrySection": "Receipt entry method",
     "dateCol": "Date",
