@@ -1,6 +1,58 @@
+const fs = require('fs')
+const path = require('path')
 const { GoogleGenAI, Type } = require('@google/genai')
 const { v4: uuidv4 } = require('uuid')
+const pool = require('../db')
 const { mapGeminiError } = require('./ocrService')
+
+const VOICE_UPLOADS_DIR = path.join(__dirname, '../../uploads/voice')
+if (!fs.existsSync(VOICE_UPLOADS_DIR)) fs.mkdirSync(VOICE_UPLOADS_DIR, { recursive: true })
+
+const MIME_EXT = {
+  'audio/ogg': '.ogg',
+  'audio/webm': '.webm',
+  'audio/mp4': '.m4a',
+  'audio/mpeg': '.mp3',
+  'audio/wav': '.wav',
+  'audio/x-wav': '.wav',
+}
+
+// Persists every voice call — audio + Gemini's raw response + the normalized result — to
+// build a training corpus for a future in-house model that replaces the Gemini call.
+// Mirrors ocrService.saveReceiptRecord: logged even on failure, and fully best-effort so a
+// disk or DB error here never blocks the voice response the user is waiting on.
+async function saveVoiceRecord({ kind, audioBuffer, mimetype, geminiResponse, result, context, errorCode }) {
+  let filename = null
+  let filepath = null
+  try {
+    filename = `${uuidv4()}${MIME_EXT[mimetype] || '.bin'}`
+    filepath = path.join(VOICE_UPLOADS_DIR, filename)
+    fs.writeFileSync(filepath, audioBuffer)
+  } catch (err) {
+    console.error('[voice] recording save failed:', err.message)
+    filepath = null
+  }
+  try {
+    await pool.query(
+      `INSERT INTO voice_recordings
+         (filename, filepath, mimetype, kind, language, gemini_response, result, context, error_code)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        filename,
+        filepath,
+        mimetype,
+        kind,
+        result?.detectedLanguage || null,
+        geminiResponse || null,
+        result ? JSON.stringify(result) : null,
+        context ? JSON.stringify(context) : null,
+        errorCode || null,
+      ],
+    )
+  } catch (err) {
+    console.error('[voice] db log failed:', err.message)
+  }
+}
 
 // Kept as two separate knobs (rather than one shared constant) so BILL_MODEL can be
 // tuned independently later if whole-bill dictation ever needs to go even stronger
@@ -565,9 +617,9 @@ function mergeBillVoiceFix(pending, parsed) {
 async function runVoiceAmount(audioBuffer, mimetype) {
   let errorCode = null
   let result = null
+  let rawText = null
 
   try {
-    let rawText
     try {
       rawText = await transcribe(audioBuffer, mimetype, AMOUNT_PROMPT, AMOUNT_SCHEMA, 15000, DEFAULT_MODEL)
     } catch (geminiErr) {
@@ -579,15 +631,16 @@ async function runVoiceAmount(audioBuffer, mimetype) {
     if (!errorCode) errorCode = err.code || 'GEMINI_SERVER_ERROR'
   }
 
+  await saveVoiceRecord({ kind: 'amount', audioBuffer, mimetype, geminiResponse: rawText, result, errorCode })
   return { result, errorCode }
 }
 
 async function runVoiceMembers(audioBuffer, mimetype) {
   let errorCode = null
   let result = null
+  let rawText = null
 
   try {
-    let rawText
     try {
       rawText = await transcribe(audioBuffer, mimetype, MEMBERS_PROMPT, MEMBERS_SCHEMA, 20000, DEFAULT_MODEL)
     } catch (geminiErr) {
@@ -599,15 +652,16 @@ async function runVoiceMembers(audioBuffer, mimetype) {
     if (!errorCode) errorCode = err.code || 'GEMINI_SERVER_ERROR'
   }
 
+  await saveVoiceRecord({ kind: 'members', audioBuffer, mimetype, geminiResponse: rawText, result, errorCode })
   return { result, errorCode }
 }
 
 async function runVoiceBill(audioBuffer, mimetype) {
   let errorCode = null
   let result = null
+  let rawText = null
 
   try {
-    let rawText
     try {
       rawText = await transcribe(audioBuffer, mimetype, BILL_PROMPT, BILL_SCHEMA, 45000, BILL_MODEL)
     } catch (geminiErr) {
@@ -619,15 +673,16 @@ async function runVoiceBill(audioBuffer, mimetype) {
     if (!errorCode) errorCode = err.code || 'GEMINI_SERVER_ERROR'
   }
 
+  await saveVoiceRecord({ kind: 'bill', audioBuffer, mimetype, geminiResponse: rawText, result, errorCode })
   return { result, errorCode }
 }
 
 async function runVoiceBillFix(audioBuffer, mimetype, pending) {
   let errorCode = null
   let result = null
+  let rawText = null
 
   try {
-    let rawText
     try {
       rawText = await transcribe(audioBuffer, mimetype, buildFixPrompt(pending), BILL_SCHEMA, 30000, BILL_MODEL)
     } catch (geminiErr) {
@@ -639,11 +694,16 @@ async function runVoiceBillFix(audioBuffer, mimetype, pending) {
     if (!errorCode) errorCode = err.code || 'GEMINI_SERVER_ERROR'
   }
 
+  // `pending` is what buildFixPrompt() folded into the prompt — store it so a bill_fix
+  // row can be replayed without reconstructing that state.
+  await saveVoiceRecord({ kind: 'bill_fix', audioBuffer, mimetype, geminiResponse: rawText, result, context: pending, errorCode })
   return { result, errorCode }
 }
 
 module.exports = {
   ERROR_MAP,
+  VOICE_UPLOADS_DIR,
+  saveVoiceRecord,
   runVoiceAmount,
   runVoiceMembers,
   runVoiceBill,
