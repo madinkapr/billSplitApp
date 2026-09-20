@@ -178,17 +178,19 @@ export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '' }) 
       const withLinks = selected.map((p) => ({ ...p, deepLink: byLocalId.get(p.id)?.deepLink }))
       const combinedText = buildCombinedText(withLinks, { includeDetails: method !== 'sms' })
 
+      const fallbackCopy = async () => {
+        await copyText(combinedText)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 3000)
+      }
+
       if (method === 'sms') {
         window.location.href = `sms:?body=${encodeURIComponent(combinedText)}`
       } else if (method === 'other' && navigator.share) {
         try {
           await navigator.share({ text: combinedText })
         } catch (err) {
-          if (err?.name !== 'AbortError') {
-            await copyText(combinedText)
-            setCopied(true)
-            setTimeout(() => setCopied(false), 3000)
-          }
+          if (err?.name !== 'AbortError') await fallbackCopy()
         }
       } else if (method === 'telegram') {
         // t.me/share/url is what gives Telegram's own "choose a chat" picker — it always requires
@@ -198,12 +200,25 @@ export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '' }) 
         // making it look like it belongs to any one selected participant — everyone's own
         // personal link is still in the message text below it.
         const botProfileUrl = withLinks[0]?.deepLink?.split('?')[0] ?? ''
-        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botProfileUrl)}&text=${encodeURIComponent(combinedText)}`
-        const opened = window.open(shareUrl, '_blank', 'noreferrer')
-        if (!opened) {
-          await copyText(combinedText)
-          setCopied(true)
-          setTimeout(() => setCopied(false), 3000)
+        const webShareUrl = `https://t.me/share/url?url=${encodeURIComponent(botProfileUrl)}&text=${encodeURIComponent(combinedText)}`
+        if (isDesktop) {
+          const opened = window.open(webShareUrl, '_blank', 'noreferrer')
+          if (!opened) await fallbackCopy()
+        } else {
+          // On mobile, go straight into the app via Telegram's own URL scheme instead of the
+          // t.me/share/url web gateway. That gateway is a plain HTTPS request to t.me, and on
+          // some mobile carriers (data-saving/compressing proxies are common on Uzbek carriers)
+          // that request gets intercepted and comes back as a broken/blocked page before it can
+          // hand off to the app — even though the Telegram app itself is reachable fine via its
+          // own protocol. The OS-level share sheet ("other app") works for the same reason: it
+          // never makes that HTTP request at all.
+          window.location.href = `tg://msg_url?url=${encodeURIComponent(botProfileUrl)}&text=${encodeURIComponent(combinedText)}`
+          // If the tg:// scheme has no handler (Telegram not installed), the page never
+          // backgrounds — give it a moment, then fall back to the web gateway so the user isn't
+          // left staring at a dead link.
+          setTimeout(() => {
+            if (!document.hidden) window.open(webShareUrl, '_blank', 'noreferrer')
+          }, 1200)
         }
       } else {
         const shareUrl = `https://wa.me/?text=${encodeURIComponent(combinedText)}`
@@ -211,12 +226,7 @@ export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '' }) 
         // value of window.open() when noopener is set (some return null even on success), which
         // made the popup-blocked check below unreliable. wa.me is a trusted, fixed destination.
         const opened = window.open(shareUrl, '_blank', 'noreferrer')
-        if (!opened) {
-          // popup blocked — fall back to copying the message so it can be pasted manually
-          await copyText(combinedText)
-          setCopied(true)
-          setTimeout(() => setCopied(false), 3000)
-        }
+        if (!opened) await fallbackCopy() // popup blocked — copy the message so it can be pasted manually
       }
 
       setSent(true)
