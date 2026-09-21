@@ -7,7 +7,7 @@ import { useOcr } from '../../hooks/useOcr'
 import { useCurrency } from '../../hooks/useCurrency'
 import { useVoiceInput } from '../../hooks/useVoiceInput'
 import { voiceErrorMessage } from '../../utils/voiceErrors'
-import { trackVoiceEntry } from '../../utils/analytics'
+import { trackManualEntry, trackVoiceEntry } from '../../utils/analytics'
 import OcrReviewModal from '../../components/OcrReviewModal'
 import VoiceBillButton from '../../components/VoiceBillButton'
 import VoiceBillReviewModal from '../../components/VoiceBillReviewModal'
@@ -114,7 +114,7 @@ function ScanCards({ scanState, errorMessage, onScan, onRetry, onRescan }) {
 
 export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
   const { t } = useTranslation()
-  const { fmt, symbol } = useCurrency()
+  const { fmt, roundForCurrency, symbol } = useCurrency()
   const crewMembers = (() => {
     if (bill.crewId) {
       const crew = crews?.find((c) => c.id === bill.crewId)
@@ -146,7 +146,7 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
 
   const grandNum = parseFloat(grandTotal) || 0
   const tipAmount = tipMode === 'percent'
-    ? (tipPercent != null && grandNum > 0 ? grandNum - grandNum / (1 + tipPercent / 100) : 0)
+    ? (tipPercent != null && grandNum > 0 ? roundForCurrency(grandNum - grandNum / (1 + tipPercent / 100)) : 0)
     : (parseFloat(tipAmountInput) || 0)
 
   async function handleScan(file) {
@@ -244,7 +244,7 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
     const resolvedTipAmount = confirmed.tipAmount > 0
       ? confirmed.tipAmount
       : confirmed.tipPercent > 0 && confirmed.grandTotal > 0
-        ? confirmed.grandTotal - confirmed.grandTotal / (1 + confirmed.tipPercent / 100)
+        ? roundForCurrency(confirmed.grandTotal - confirmed.grandTotal / (1 + confirmed.tipPercent / 100))
         : 0
 
     onNext({
@@ -304,6 +304,7 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
   function handleNext() {
     if (!grandTotal || parseFloat(grandTotal) <= 0) return
     if (activeMembers.length === 0) return
+    if (scanState !== 'success') trackManualEntry()
     onNext({
       ...bill,
       _adhocMembers: adhocMembers,

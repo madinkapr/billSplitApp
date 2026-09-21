@@ -1,7 +1,7 @@
 export const CURRENCIES = {
-  UZS: { code: 'UZS', symbol: "so'm", format: (n) => `${Math.round(n).toLocaleString('en-US')} so'm` },
-  RUB: { code: 'RUB', symbol: '₽', format: (n) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB' }).format(n) },
-  USD: { code: 'USD', symbol: '$', format: (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n) },
+  UZS: { code: 'UZS', symbol: "so'm", decimals: 0, format: (n) => `${Math.round(n).toLocaleString('en-US')} so'm` },
+  RUB: { code: 'RUB', symbol: '₽', decimals: 2, format: (n) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB' }).format(n) },
+  USD: { code: 'USD', symbol: '$', decimals: 2, format: (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n) },
 }
 
 function getInitialCurrency() {
@@ -39,4 +39,9 @@ export function subscribeCurrency(cb) {
 
 export function fmt(amount) {
   return CURRENCIES[currency].format(amount)
+}
+
+export function roundForCurrency(amount) {
+  const factor = 10 ** CURRENCIES[currency].decimals
+  return Math.round(amount * factor) / factor
 }
