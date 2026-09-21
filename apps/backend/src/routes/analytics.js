@@ -41,10 +41,10 @@ router.post('/voice-entry', async (req, res) => {
   }
 })
 
-const DAY_QUERY = (table) => `
+const DAY_QUERY = (table, extraWhere = '') => `
   SELECT to_char(created_at AT TIME ZONE 'Asia/Tashkent', 'YYYY-MM-DD') AS day, COUNT(*)::int AS count
   FROM ${table}
-  WHERE created_at >= NOW() - ($1 || ' days')::interval
+  WHERE created_at >= NOW() - ($1 || ' days')::interval${extraWhere ? ` AND ${extraWhere}` : ''}
   GROUP BY day
 `
 
@@ -63,7 +63,7 @@ router.get('/stats', requireAdmin, async (req, res) => {
          GROUP BY day`,
         [days]
       ),
-      pool.query(DAY_QUERY('receipts'), [days]),
+      pool.query(DAY_QUERY('receipts', 'ocr_result IS NOT NULL'), [days]),
       pool.query(DAY_QUERY('manual_entries'), [days]),
       pool.query(DAY_QUERY('voice_entries'), [days]),
     ])
