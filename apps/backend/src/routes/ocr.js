@@ -3,7 +3,7 @@ const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
 const { v4: uuidv4 } = require('uuid')
-const { UPLOADS_DIR, ERROR_MAP, runOcr, saveReceiptRecord } = require('../services/ocrService')
+const { UPLOADS_DIR, ERROR_MAP, resolveMimeType, runOcr, saveReceiptRecord } = require('../services/ocrService')
 
 const router = express.Router()
 
@@ -19,7 +19,10 @@ const upload = multer({
   storage,
   limits: { fileSize: 15 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
+    // Gallery-picked photos (HEIC from an iPhone especially) can arrive with a
+    // generic Content-Type instead of image/*; fall back to the extension before
+    // rejecting, so this doesn't block gallery uploads that camera captures never hit.
+    if (!resolveMimeType(file.mimetype, file.originalname).startsWith('image/')) {
       return cb(Object.assign(new Error('INVALID_FILE_TYPE'), { code: 'INVALID_FILE_TYPE' }))
     }
     cb(null, true)
@@ -40,12 +43,13 @@ router.post('/scan', (req, res) => {
     }
 
     const imageData = fs.readFileSync(req.file.path)
-    const { ocrResult, errorCode } = await runOcr(imageData, req.file.mimetype)
+    const mimetype = resolveMimeType(req.file.mimetype, req.file.originalname)
+    const { ocrResult, errorCode } = await runOcr(imageData, mimetype)
 
     const receiptId = await saveReceiptRecord({
       filename: req.file.filename,
       filepath: req.file.path,
-      mimetype: req.file.mimetype,
+      mimetype,
       ocrResult,
     })
 

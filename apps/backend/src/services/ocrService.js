@@ -40,6 +40,29 @@ Rules:
 - IMPORTANT: quantity and unitPrice are ALWAYS separate columns. If you see "1.00198900.00" on one line, it means quantity=1, unitPrice=198900 — NEVER merge them into one number like 100198900.
 - IMPORTANT: unitPrice is never larger than grandTotal. If a parsed unitPrice seems larger than grandTotal, you have merged quantity and price — re-read and separate them.`
 
+const EXT_MIME_MAP = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.heic': 'image/heic',
+  '.heif': 'image/heif',
+  '.gif': 'image/gif',
+  '.bmp': 'image/bmp',
+}
+
+// Camera captures (capture="environment") always hand back a real JPEG blob with a
+// correct type, but a gallery-picked photo — HEIC from an iPhone especially — often
+// arrives with a generic/missing Content-Type on the multipart part. Without this,
+// those uploads either get rejected by the image/* filter or reach Gemini with a
+// mime type it doesn't recognize (400 INVALID_ARGUMENT), while camera scans keep
+// working — which is why the failure looks gallery-specific.
+function resolveMimeType(mimetype, filename) {
+  if (mimetype && mimetype.startsWith('image/')) return mimetype
+  const ext = path.extname(filename || '').toLowerCase()
+  return EXT_MIME_MAP[ext] || mimetype
+}
+
 const ERROR_MAP = {
   INVALID_FILE_TYPE: { status: 400, error: 'Please upload an image file.' },
   FILE_TOO_LARGE: { status: 413, error: 'Image too large. Max 15MB.' },
@@ -127,6 +150,58 @@ function validateAndNormalize(parsed) {
   return { grandTotal, tipAmount, tipPercent, discountAmount, subtotal, detectedLanguage, items }
 }
 
+// gemini-2.5-* is closed to new API keys ("no longer available to new users",
+// 404) — it only kept working on older grandfathered keys. Pinned, not
+// gemini-flash-latest: OCR_PROMPT is tuned for this model and a floating
+// alias could regress parsing without warning.
+const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash'
+// Falls back to the lighter tier when the full model is unavailable/overloaded
+// (measured: 'gemini-3.5-flash' hanging past 25s / 503 "high demand" while
+// flash-lite answered the same receipt correctly in ~7s) so a Gemini-side
+// outage on one tier doesn't take scanning down entirely.
+const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite'
+const RETRYABLE_ERRORS = new Set(['TIMEOUT', 'GEMINI_SERVER_ERROR', 'GEMINI_MODEL_UNAVAILABLE'])
+
+async function callGemini(model, imageBuffer, mimetype) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 25000)
+
+  try {
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+    const base64 = imageBuffer.toString('base64')
+
+    const result = await ai.models.generateContent({
+      model,
+      contents: [
+        {
+          parts: [
+            { inlineData: { mimeType: mimetype, data: base64 } },
+            { text: OCR_PROMPT },
+          ],
+        },
+      ],
+      // Without this the 25s timer above aborts a controller nothing listens
+      // to: the SDK call keeps running and can hang well past the frontend's
+      // own 30s fetch abort, so the user sees a bare "took too long" with no
+      // server-side error logged at all.
+      config: { abortSignal: controller.signal },
+    })
+    return result.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  } catch (geminiErr) {
+    console.error('[Gemini error]', {
+      model,
+      name: geminiErr?.name,
+      httpStatus: geminiStatusCode(geminiErr),
+      message: geminiErr?.message,
+      // key fingerprint only — never log the key itself
+      keyTail: (process.env.GEMINI_API_KEY || '').slice(-6) || '(unset)',
+    })
+    throw Object.assign(geminiErr, { ocrErrorCode: mapGeminiError(geminiErr) })
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 // Runs the Gemini call + JSON parse + validation on an already-loaded image buffer.
 // Shared by POST /api/ocr/scan (multer-uploaded file) and the bot's photo handler
 // (downloaded from Telegram) — neither cares how the buffer got there.
@@ -135,45 +210,20 @@ async function runOcr(imageBuffer, mimetype) {
   let ocrResult = null
 
   try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 25000)
-
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
-    const base64 = imageBuffer.toString('base64')
-
     let rawText
     try {
-      const result = await ai.models.generateContent({
-        // gemini-2.5-* is closed to new API keys ("no longer available to new
-        // users", 404) — it only kept working on older grandfathered keys.
-        // Pinned, not gemini-flash-latest: OCR_PROMPT is tuned for this
-        // model and a floating alias could regress parsing without warning.
-        // Using the full flash tier (not flash-lite) — receipts are messy
-        // enough (skewed photos, dense currency formatting) to benefit from
-        // the stronger model, same reasoning as BILL_MODEL in voiceService.js.
-        model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
-        contents: [
-          {
-            parts: [
-              { inlineData: { mimeType: mimetype, data: base64 } },
-              { text: OCR_PROMPT },
-            ],
-          },
-        ],
-      })
-      clearTimeout(timeout)
-      rawText = result.candidates?.[0]?.content?.parts?.[0]?.text || ''
-    } catch (geminiErr) {
-      clearTimeout(timeout)
-      console.error('[Gemini error]', {
-        name: geminiErr?.name,
-        httpStatus: geminiStatusCode(geminiErr),
-        message: geminiErr?.message,
-        // key fingerprint only — never log the key itself
-        keyTail: (process.env.GEMINI_API_KEY || '').slice(-6) || '(unset)',
-      })
-      errorCode = mapGeminiError(geminiErr)
-      throw geminiErr
+      rawText = await callGemini(PRIMARY_MODEL, imageBuffer, mimetype)
+    } catch (primaryErr) {
+      if (FALLBACK_MODEL === PRIMARY_MODEL || !RETRYABLE_ERRORS.has(primaryErr.ocrErrorCode)) {
+        errorCode = primaryErr.ocrErrorCode
+        throw primaryErr
+      }
+      try {
+        rawText = await callGemini(FALLBACK_MODEL, imageBuffer, mimetype)
+      } catch (fallbackErr) {
+        errorCode = fallbackErr.ocrErrorCode
+        throw fallbackErr
+      }
     }
 
     const cleaned = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim()
@@ -213,6 +263,7 @@ module.exports = {
   OCR_PROMPT,
   ERROR_MAP,
   mapGeminiError,
+  resolveMimeType,
   validateAndNormalize,
   runOcr,
   saveReceiptRecord,
