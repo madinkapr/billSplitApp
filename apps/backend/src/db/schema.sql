@@ -59,6 +59,15 @@ ALTER TABLE manual_entries ADD COLUMN IF NOT EXISTS bill_data JSONB;
 ALTER TABLE manual_entries ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_manual_entries_local_id ON manual_entries (local_id);
 
+-- Who did what, for the admin activity table: `ip` for web requests (via trust proxy),
+-- `tg_user` (@username, or name/id when the account has none) for bot actions. Rows
+-- written before these columns existed have neither.
+ALTER TABLE page_views ADD COLUMN IF NOT EXISTS ip TEXT;
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS ip TEXT;
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS tg_user TEXT;
+ALTER TABLE manual_entries ADD COLUMN IF NOT EXISTS ip TEXT;
+ALTER TABLE manual_entries ADD COLUMN IF NOT EXISTS tg_user TEXT;
+
 -- One row per bill entered by dictating the whole bill (web app + bot), inserted when
 -- the user confirms the voice-parsed result. Mirrors manual_entries/page_views — feeds
 -- the admin dashboard's "voice input" counter alongside scans and manual entries.
@@ -67,6 +76,8 @@ CREATE TABLE IF NOT EXISTS voice_entries (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_voice_entries_created_at ON voice_entries (created_at);
+ALTER TABLE voice_entries ADD COLUMN IF NOT EXISTS ip TEXT;
+ALTER TABLE voice_entries ADD COLUMN IF NOT EXISTS tg_user TEXT;
 
 CREATE TABLE IF NOT EXISTS admins (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),

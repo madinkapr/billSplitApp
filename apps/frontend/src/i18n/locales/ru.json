@@ -272,7 +272,21 @@
     "invalidCredentials": "Неверный логин или пароль.",
     "login": "Войти",
     "logout": "Выйти",
-    "exportSection": "Скачать файлы",
+    "daySection": "Активность",
+    "allDays": "Все дни",
+    "exportPickDay": "Выберите дату, чтобы скачать",
+    "activityTime": "Дата и время",
+    "activityType": "Тип",
+    "activitySource": "Источник",
+    "activityUser": "IP / пользователь",
+    "activityEmpty": "Активности нет.",
+    "activityTruncated": "Показаны только последние 2000 записей.",
+    "activityTypes": {
+      "visit": "Визит",
+      "scan": "Скан",
+      "manual": "Вручную",
+      "voice": "Голос"
+    },
     "exportDay": "Скачать",
     "exportEmpty": "За этот день файлов нет.",
     "exportError": "Не удалось скачать."

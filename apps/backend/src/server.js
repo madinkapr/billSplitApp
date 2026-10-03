@@ -15,6 +15,11 @@ const voiceRouter = require('./routes/voice')
 const app = express()
 const PORT = process.env.PORT || 3001
 
+// Requests arrive through Caddy → nginx (both on the private Docker network), so trust
+// X-Forwarded-For from private addresses only; req.ip is then the real client IP, which
+// the activity log and express-rate-limit both rely on.
+app.set('trust proxy', 'loopback, linklocal, uniquelocal')
+
 app.use(cors())
 app.use(express.json())
 

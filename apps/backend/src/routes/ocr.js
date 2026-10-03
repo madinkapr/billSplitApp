@@ -4,6 +4,7 @@ const path = require('path')
 const fs = require('fs')
 const { v4: uuidv4 } = require('uuid')
 const { UPLOADS_DIR, ERROR_MAP, resolveMimeType, runOcr, saveReceiptRecord } = require('../services/ocrService')
+const clientIp = require('../middleware/clientIp')
 
 const router = express.Router()
 
@@ -51,6 +52,7 @@ router.post('/scan', (req, res) => {
       filepath: req.file.path,
       mimetype,
       ocrResult,
+      ip: clientIp(req),
     })
 
     if (errorCode) {

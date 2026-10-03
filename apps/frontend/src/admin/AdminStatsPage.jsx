@@ -24,6 +24,7 @@ const THEMES = {
     viewToggleWrap: 'flex bg-gray-100 rounded-lg p-0.5',
     viewToggleActive: 'bg-white shadow-sm',
     viewToggleInactive: 'text-gray-400',
+    compactActivity: true,
   },
   desktop: {
     card: 'bg-white rounded-2xl border border-desktop-cardBorder',
@@ -415,14 +416,156 @@ function ChartCard({ theme, t, keys, colors, labels, data }) {
   )
 }
 
-// Downloads one Tashkent calendar day as a single ZIP: successful scan photos, successful
-// voice recordings, and metadata.json (incl. manual-entry timestamps) — the same rows the
-// entry-method counters above count.
-function ExportSection({ theme, t, onUnauthorized }) {
+const ACTIVITY_COLORS = {
+  visit: TRAFFIC_COLORS.totalViews,
+  scan: ENTRY_COLORS.scans,
+  manual: ENTRY_COLORS.manualEntries,
+  voice: ENTRY_COLORS.voiceEntries,
+}
+const ACTIVITY_TYPES = ['visit', 'scan', 'manual', 'voice']
+
+async function fetchActivity(token, date) {
+  const res = await fetch(date ? `/api/analytics/activity?date=${date}` : '/api/analytics/activity', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (res.status === 401) throw Object.assign(new Error('unauthorized'), { code: 401 })
+  if (!res.ok) throw new Error('server_error')
+  return res.json()
+}
+
+// "03.10.2026 18:42:07" in Tashkent time
+function fmtTashkentDateTime(iso) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: TASHKENT_TZ,
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    })
+      .formatToParts(new Date(iso))
+      .map((p) => [p.type, p.value])
+  )
+  return `${parts.day}.${parts.month}.${parts.year} ${parts.hour}:${parts.minute}:${parts.second}`
+}
+
+const activitySource = (r) => (r.tgUser ? 'Telegram' : r.ip ? 'Web' : '—')
+const activityUser = (r) => r.tgUser || r.ip || '—'
+
+// Phone-width variant of the table: one two-line row per entry instead of four columns,
+// so nothing needs horizontal scrolling.
+function ActivityList({ t, rows }) {
+  return (
+    <div className="overflow-y-auto max-h-[480px] divide-y divide-gray-100">
+      {rows.map((r, i) => (
+        <div key={i} className="py-2.5 flex flex-col gap-0.5">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="inline-flex items-center gap-1.5 font-medium text-gray-800">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ACTIVITY_COLORS[r.type] }} />
+              {t(`adminStats.activityTypes.${r.type}`)}
+            </span>
+            <span className="text-xs text-gray-500 tabular-nums whitespace-nowrap">{fmtTashkentDateTime(r.createdAt)}</span>
+          </div>
+          <div className="text-xs text-gray-500 pl-3.5 break-all">
+            {activitySource(r)} · <span className="text-gray-700 tabular-nums">{activityUser(r)}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Who did what on the selected day: each visit and successful entry with its time, type
+// and who it was — client IP for the web app, @username for the bot. Rows recorded before
+// IPs were stored have neither, shown as "—".
+function ActivityTable({ t, activity, compact }) {
+  if (activity.rows.length === 0) {
+    return <p className="text-sm text-gray-500">{t('adminStats.activityEmpty')}</p>
+  }
+
+  const counts = Object.fromEntries(ACTIVITY_TYPES.map((k) => [k, 0]))
+  activity.rows.forEach((r) => {
+    counts[r.type] += 1
+  })
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-4 flex-wrap text-xs text-gray-600">
+        {ACTIVITY_TYPES.map((k) => (
+          <div key={k} className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ACTIVITY_COLORS[k] }} />
+            {t(`adminStats.activityTypes.${k}`)}: <span className="font-semibold tabular-nums">{counts[k]}</span>
+          </div>
+        ))}
+      </div>
+      {compact ? (
+        <ActivityList t={t} rows={activity.rows} />
+      ) : (
+        <div className="overflow-auto max-h-[480px]">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-white">
+              <tr className="text-left text-gray-500 border-b border-gray-100">
+                <th className="py-2 pr-4 font-medium">{t('adminStats.activityTime')}</th>
+                <th className="py-2 pr-4 font-medium">{t('adminStats.activityType')}</th>
+                <th className="py-2 pr-4 font-medium">{t('adminStats.activitySource')}</th>
+                <th className="py-2 pr-4 font-medium">{t('adminStats.activityUser')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activity.rows.map((r, i) => (
+                <tr key={i} className="border-b border-gray-50">
+                  <td className="py-2 pr-4 text-gray-700 tabular-nums whitespace-nowrap">{fmtTashkentDateTime(r.createdAt)}</td>
+                  <td className="py-2 pr-4 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ACTIVITY_COLORS[r.type] }} />
+                      {t(`adminStats.activityTypes.${r.type}`)}
+                    </span>
+                  </td>
+                  <td className="py-2 pr-4 text-gray-600">{activitySource(r)}</td>
+                  <td className="py-2 pr-4 text-gray-700 tabular-nums">{activityUser(r)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {activity.truncated && <p className="text-xs text-gray-400">{t('adminStats.activityTruncated')}</p>}
+    </div>
+  )
+}
+
+// Everything for one Tashkent calendar day: the activity table, plus a single ZIP of that
+// day's successful scan photos, voice recordings and manual bills (with metadata.json).
+function DaySection({ theme, t, onUnauthorized }) {
   const todayKey = tashkentDateKey(new Date())
-  const [date, setDate] = useState(todayKey)
+  // Empty = no day picked: the table shows the latest activity across all days.
+  const [date, setDate] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
+  const [activity, setActivity] = useState(null)
+  const [activityError, setActivityError] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setActivity(null)
+    setActivityError(false)
+    fetchActivity(localStorage.getItem(ADMIN_TOKEN_STORAGE), date)
+      .then((data) => {
+        if (!cancelled) setActivity(data)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        if (err.code === 401) onUnauthorized()
+        else setActivityError(true)
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date])
 
   async function handleDownload() {
     setLoading(true)
@@ -439,8 +582,8 @@ function ExportSection({ theme, t, onUnauthorized }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className={theme.sectionHeading}>{t('adminStats.exportSection')}</h2>
-      <div className={`${theme.card} p-4 flex flex-col gap-3`}>
+      <h2 className={theme.sectionHeading}>{t('adminStats.daySection')}</h2>
+      <div className={`${theme.card} p-4 flex flex-col gap-4`}>
         <div className="flex items-center gap-3 flex-wrap">
           <input
             type="date"
@@ -450,19 +593,42 @@ function ExportSection({ theme, t, onUnauthorized }) {
               setDate(e.target.value)
               setMessage(null)
             }}
-            className="input-field w-auto"
+            className="input-field !w-auto"
           />
+          {date && (
+            <button
+              type="button"
+              onClick={() => {
+                setDate('')
+                setMessage(null)
+              }}
+              className={`px-3 py-2 text-sm rounded-lg font-medium transition-colors ${theme.pillInactive}`}
+            >
+              {t('adminStats.allDays')}
+            </button>
+          )}
           <button
             type="button"
             onClick={handleDownload}
             disabled={!date || loading}
+            title={date ? undefined : t('adminStats.exportPickDay')}
             className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg font-medium transition-colors disabled:opacity-50 ${theme.pillActive}`}
           >
             {loading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
             {t('adminStats.exportDay')}
           </button>
+          {!date && <span className="text-xs text-gray-400">{t('adminStats.exportPickDay')}</span>}
         </div>
         {message && <p className="text-sm text-gray-500">{message}</p>}
+        {activityError ? (
+          <p className="text-sm text-red-600">{t('adminStats.loadError')}</p>
+        ) : activity ? (
+          <ActivityTable t={t} activity={activity} compact={theme.compactActivity} />
+        ) : (
+          <div className="flex justify-center py-6">
+            <Loader2 className="animate-spin text-gray-400" />
+          </div>
+        )}
       </div>
     </div>
   )
@@ -515,7 +681,7 @@ function StatsBody({ theme, t, days, setDays, rows, error, data, today, periodTo
         colors={ENTRY_COLORS}
         labels={entryLabels}
       />
-      <ExportSection theme={theme} t={t} onUnauthorized={onLogout} />
+      <DaySection theme={theme} t={t} onUnauthorized={onLogout} />
     </>
   )
 }

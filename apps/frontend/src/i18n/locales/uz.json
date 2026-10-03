@@ -264,7 +264,21 @@
     "invalidCredentials": "Login yoki parol noto'g'ri.",
     "login": "Kirish",
     "logout": "Chiqish",
-    "exportSection": "Fayllarni yuklab olish",
+    "daySection": "Faollik",
+    "allDays": "Barcha kunlar",
+    "exportPickDay": "Yuklab olish uchun sanani tanlang",
+    "activityTime": "Sana va vaqt",
+    "activityType": "Tur",
+    "activitySource": "Manba",
+    "activityUser": "IP / foydalanuvchi",
+    "activityEmpty": "Faollik yo'q.",
+    "activityTruncated": "Faqat oxirgi 2000 ta yozuv ko'rsatilgan.",
+    "activityTypes": {
+      "visit": "Tashrif",
+      "scan": "Scan",
+      "manual": "Qo'lda",
+      "voice": "Ovoz"
+    },
     "exportDay": "Yuklab olish",
     "exportEmpty": "Bu kunda fayl yo'q.",
     "exportError": "Yuklab olib bo'lmadi."

@@ -4,6 +4,7 @@ const express = require('express')
 const archiver = require('archiver')
 const pool = require('../db')
 const requireAdmin = require('../middleware/requireAdmin')
+const clientIp = require('../middleware/clientIp')
 const { UPLOADS_DIR } = require('../services/ocrService')
 const { VOICE_UPLOADS_DIR } = require('../services/voiceService')
 
@@ -18,7 +19,7 @@ router.post('/track', async (req, res) => {
   }
 
   try {
-    await pool.query('INSERT INTO page_views (visitor_id) VALUES ($1)', [visitorId])
+    await pool.query('INSERT INTO page_views (visitor_id, ip) VALUES ($1, $2)', [visitorId, clientIp(req)])
     res.status(204).end()
   } catch (err) {
     console.error('Track pageview failed:', err.message)
@@ -31,7 +32,7 @@ const LOCAL_ID_RE = /^[a-zA-Z0-9-]{1,64}$/
 router.post('/manual-entry', async (req, res) => {
   const localId = typeof req.body?.localId === 'string' && LOCAL_ID_RE.test(req.body.localId) ? req.body.localId : null
   try {
-    await pool.query(`INSERT INTO manual_entries (source, local_id) VALUES ('web', $1)`, [localId])
+    await pool.query(`INSERT INTO manual_entries (source, local_id, ip) VALUES ('web', $1, $2)`, [localId, clientIp(req)])
     res.status(204).end()
   } catch (err) {
     console.error('Track manual entry failed:', err.message)
@@ -67,7 +68,7 @@ router.put('/manual-entry/:localId', async (req, res) => {
 
 router.post('/voice-entry', async (req, res) => {
   try {
-    await pool.query('INSERT INTO voice_entries DEFAULT VALUES')
+    await pool.query('INSERT INTO voice_entries (ip) VALUES ($1)', [clientIp(req)])
     res.status(204).end()
   } catch (err) {
     console.error('Track voice entry failed:', err.message)
@@ -237,6 +238,48 @@ router.get('/export', requireAdmin, async (req, res) => {
   })
   archive.append(JSON.stringify(metadata, null, 2), { name: 'metadata.json' })
   archive.finalize()
+})
+
+// Every visit and every successful entry (of one Tashkent calendar day, if given), newest first —
+// same success rules as the /stats counters, so the table adds up to the dashboard.
+const ACTIVITY_LIMIT = 2000
+
+// Without ?date it returns the latest activity across all days.
+router.get('/activity', requireAdmin, async (req, res) => {
+  const date = req.query.date
+  if (date !== undefined && (typeof date !== 'string' || !DATE_RE.test(date))) {
+    return res.status(400).json({ error: 'invalid_date' })
+  }
+  const day = date ? ON_DAY : 'TRUE'
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT created_at, type, ip, tg_user FROM (
+         SELECT created_at, 'visit' AS type, ip, NULL AS tg_user FROM page_views WHERE ${day}
+         UNION ALL
+         SELECT created_at, 'scan', ip, tg_user FROM receipts WHERE ocr_result IS NOT NULL AND ${day}
+         UNION ALL
+         SELECT created_at, 'manual', ip, tg_user FROM manual_entries WHERE ${MANUAL_DONE} AND ${day}
+         UNION ALL
+         SELECT created_at, 'voice', ip, tg_user FROM voice_entries WHERE ${day}
+       ) a
+       ORDER BY created_at DESC
+       LIMIT ${ACTIVITY_LIMIT + 1}`,
+      date ? [date] : []
+    )
+    res.json({
+      truncated: rows.length > ACTIVITY_LIMIT,
+      rows: rows.slice(0, ACTIVITY_LIMIT).map((r) => ({
+        createdAt: r.created_at,
+        type: r.type,
+        ip: r.ip,
+        tgUser: r.tg_user,
+      })),
+    })
+  } catch (err) {
+    console.error('Fetch activity failed:', err.message)
+    res.status(500).json({ error: 'server_error' })
+  }
 })
 
 module.exports = router

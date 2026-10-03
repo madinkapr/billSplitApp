@@ -47,14 +47,23 @@ async function trackBotStart() {
   }
 }
 
+// How a Telegram user is shown in the admin activity table: @username when the account
+// has one, otherwise their name, otherwise the numeric id.
+function tgUserLabel(from) {
+  if (!from) return null
+  if (from.username) return `@${from.username}`
+  const name = [from.first_name, from.last_name].filter(Boolean).join(' ')
+  return name || `id:${from.id}`
+}
+
 // Mirrors BillSetup.jsx's trackManualEntry() (fires when the user proceeds without a
 // successful OCR scan) — feeds the same admin dashboard "Ручной ввод" counter, combined
 // with web-app entries for now (bot vs web breakdown is a later, separate step).
 // Returns the new row's id so the session can carry it and fill in the finished bill
 // later (saveManualEntryBill) — null if the insert failed.
-async function trackManualEntry() {
+async function trackManualEntry(tgUser) {
   try {
-    const { rows } = await pool.query(`INSERT INTO manual_entries (source) VALUES ('bot') RETURNING id`)
+    const { rows } = await pool.query(`INSERT INTO manual_entries (source, tg_user) VALUES ('bot', $1) RETURNING id`, [tgUser])
     return rows[0].id
   } catch (err) {
     console.error('Track manual entry failed:', err.message)
@@ -107,9 +116,9 @@ async function saveManualEntryBill(draft) {
 
 // Mirrors BillSetup.jsx's trackVoiceEntry() — fires when the user confirms a bill they
 // dictated by voice, feeding the same admin dashboard "voice input" counter as the web app.
-async function trackVoiceEntry() {
+async function trackVoiceEntry(tgUser) {
   try {
-    await pool.query('INSERT INTO voice_entries DEFAULT VALUES')
+    await pool.query('INSERT INTO voice_entries (tg_user) VALUES ($1)', [tgUser])
   } catch (err) {
     console.error('Track voice entry failed:', err.message)
   }
@@ -275,6 +284,7 @@ async function handleReceiptPhoto(bot, chatId, msg, session, msgs) {
       filepath: fs.existsSync(filepath) ? filepath : null,
       mimetype: 'image/jpeg',
       ocrResult,
+      tgUser: tgUserLabel(msg.from),
     })
   } catch (err) {
     console.error('Bot OCR failed:', err.message)
@@ -741,7 +751,7 @@ async function handleMessage(bot, msg) {
         return bot.sendMessage(chatId, msgs.newBill.invalidAmount)
       }
 
-      const manualEntryId = await trackManualEntry()
+      const manualEntryId = await trackManualEntry(tgUserLabel(msg.from))
       const draft = { ...session.draft, grandTotal: amount, manualEntryId }
       await saveSession(chatId, STATES.AWAITING_TIP, draft)
       await bot.sendMessage(chatId, msgs.newBill.totalReceived(formatAmount(amount, currency)), {
@@ -965,7 +975,7 @@ async function handleCallbackQuery(bot, query) {
       }
       await bot.answerCallbackQuery(query.id)
       await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id }).catch(() => {})
-      trackVoiceEntry()
+      trackVoiceEntry(tgUserLabel(query.from))
       await askForReport(bot, chatId, draft, msgs)
       return
     }

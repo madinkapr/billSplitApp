@@ -264,7 +264,21 @@
     "invalidCredentials": "Invalid username or password.",
     "login": "Log in",
     "logout": "Log out",
-    "exportSection": "Download files",
+    "daySection": "Activity",
+    "allDays": "All days",
+    "exportPickDay": "Pick a date to download",
+    "activityTime": "Date & time",
+    "activityType": "Type",
+    "activitySource": "Source",
+    "activityUser": "IP / user",
+    "activityEmpty": "No activity.",
+    "activityTruncated": "Showing only the latest 2000 entries.",
+    "activityTypes": {
+      "visit": "Visit",
+      "scan": "Scan",
+      "manual": "Manual",
+      "voice": "Voice"
+    },
     "exportDay": "Download",
     "exportEmpty": "No files for this day.",
     "exportError": "Download failed."
