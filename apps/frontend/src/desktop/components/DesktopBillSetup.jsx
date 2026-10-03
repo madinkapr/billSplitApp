@@ -250,6 +250,7 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
     onNext({
       ...bill,
       _adhocMembers: nextAdhoc,
+      _manualEntry: false,
       activeMembers: nextActive,
       grandTotal: confirmed.grandTotal,
       tipMode: confirmed.tipAmount > 0 ? 'amount' : 'percent',
@@ -304,7 +305,8 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
   function handleNext() {
     if (!grandTotal || parseFloat(grandTotal) <= 0) return
     if (activeMembers.length === 0) return
-    if (scanState !== 'success') trackManualEntry()
+    const manualEntry = scanState !== 'success'
+    if (manualEntry) trackManualEntry(bill.id)
     onNext({
       ...bill,
       _adhocMembers: adhocMembers,
@@ -316,6 +318,7 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
       discountAmount: parseFloat(discountAmount) || 0,
       _ocrItems: ocrItems,
       receiptId,
+      _manualEntry: manualEntry,
     })
   }
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Lock, Loader2, Table as TableIcon, LineChart as LineChartIcon, ArrowLeft, LogOut, Eye, EyeOff } from 'lucide-react'
+import { Lock, Loader2, Table as TableIcon, LineChart as LineChartIcon, ArrowLeft, LogOut, Eye, EyeOff, Download } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { useIsDesktop } from '../hooks/useIsDesktop'
@@ -77,6 +77,24 @@ async function fetchStats(token, days) {
   if (!res.ok) throw new Error('server_error')
   const json = await res.json()
   return json.days
+}
+
+async function downloadExport(token, date) {
+  const res = await fetch(`/api/analytics/export?date=${date}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (res.status === 401) throw Object.assign(new Error('unauthorized'), { code: 401 })
+  if (res.status === 404) throw Object.assign(new Error('no_files'), { code: 404 })
+  if (!res.ok) throw new Error('server_error')
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${date}.zip`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }
 
 async function loginRequest(username, password) {
@@ -397,6 +415,59 @@ function ChartCard({ theme, t, keys, colors, labels, data }) {
   )
 }
 
+// Downloads one Tashkent calendar day as a single ZIP: successful scan photos, successful
+// voice recordings, and metadata.json (incl. manual-entry timestamps) — the same rows the
+// entry-method counters above count.
+function ExportSection({ theme, t, onUnauthorized }) {
+  const todayKey = tashkentDateKey(new Date())
+  const [date, setDate] = useState(todayKey)
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState(null)
+
+  async function handleDownload() {
+    setLoading(true)
+    setMessage(null)
+    try {
+      await downloadExport(localStorage.getItem(ADMIN_TOKEN_STORAGE), date)
+    } catch (err) {
+      if (err.code === 401) onUnauthorized()
+      else setMessage(err.code === 404 ? t('adminStats.exportEmpty') : t('adminStats.exportError'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <h2 className={theme.sectionHeading}>{t('adminStats.exportSection')}</h2>
+      <div className={`${theme.card} p-4 flex flex-col gap-3`}>
+        <div className="flex items-center gap-3 flex-wrap">
+          <input
+            type="date"
+            value={date}
+            max={todayKey}
+            onChange={(e) => {
+              setDate(e.target.value)
+              setMessage(null)
+            }}
+            className="input-field w-auto"
+          />
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={!date || loading}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg font-medium transition-colors disabled:opacity-50 ${theme.pillActive}`}
+          >
+            {loading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+            {t('adminStats.exportDay')}
+          </button>
+        </div>
+        {message && <p className="text-sm text-gray-500">{message}</p>}
+      </div>
+    </div>
+  )
+}
+
 function MetricSection({ theme, t, title, days, data, today, periodTotals, keys, colors, labels }) {
   return (
     <div className="flex flex-col gap-3">
@@ -407,7 +478,7 @@ function MetricSection({ theme, t, title, days, data, today, periodTotals, keys,
   )
 }
 
-function StatsBody({ theme, t, days, setDays, rows, error, data, today, periodTotals, trafficLabels, entryLabels }) {
+function StatsBody({ theme, t, days, setDays, rows, error, data, today, periodTotals, trafficLabels, entryLabels, onLogout }) {
   if (!rows) {
     return (
       <div className="flex justify-center py-16">
@@ -444,6 +515,7 @@ function StatsBody({ theme, t, days, setDays, rows, error, data, today, periodTo
         colors={ENTRY_COLORS}
         labels={entryLabels}
       />
+      <ExportSection theme={theme} t={t} onUnauthorized={onLogout} />
     </>
   )
 }

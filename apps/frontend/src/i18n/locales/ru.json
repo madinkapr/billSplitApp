@@ -271,6 +271,10 @@
     "wrongKey": "Неверный ключ.",
     "invalidCredentials": "Неверный логин или пароль.",
     "login": "Войти",
-    "logout": "Выйти"
+    "logout": "Выйти",
+    "exportSection": "Скачать файлы",
+    "exportDay": "Скачать",
+    "exportEmpty": "За этот день файлов нет.",
+    "exportError": "Не удалось скачать."
   }
 }

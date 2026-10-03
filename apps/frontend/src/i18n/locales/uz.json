@@ -263,6 +263,10 @@
     "wrongKey": "Noto'g'ri kalit.",
     "invalidCredentials": "Login yoki parol noto'g'ri.",
     "login": "Kirish",
-    "logout": "Chiqish"
+    "logout": "Chiqish",
+    "exportSection": "Fayllarni yuklab olish",
+    "exportDay": "Yuklab olish",
+    "exportEmpty": "Bu kunda fayl yo'q.",
+    "exportError": "Yuklab olib bo'lmadi."
   }
 }

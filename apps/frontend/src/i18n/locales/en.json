@@ -263,6 +263,10 @@
     "wrongKey": "Invalid key.",
     "invalidCredentials": "Invalid username or password.",
     "login": "Log in",
-    "logout": "Log out"
+    "logout": "Log out",
+    "exportSection": "Download files",
+    "exportDay": "Download",
+    "exportEmpty": "No files for this day.",
+    "exportError": "Download failed."
   }
 }

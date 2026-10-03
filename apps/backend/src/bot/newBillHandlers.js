@@ -50,11 +50,58 @@ async function trackBotStart() {
 // Mirrors BillSetup.jsx's trackManualEntry() (fires when the user proceeds without a
 // successful OCR scan) — feeds the same admin dashboard "Ручной ввод" counter, combined
 // with web-app entries for now (bot vs web breakdown is a later, separate step).
+// Returns the new row's id so the session can carry it and fill in the finished bill
+// later (saveManualEntryBill) — null if the insert failed.
 async function trackManualEntry() {
   try {
-    await pool.query('INSERT INTO manual_entries DEFAULT VALUES')
+    const { rows } = await pool.query(`INSERT INTO manual_entries (source) VALUES ('bot') RETURNING id`)
+    return rows[0].id
   } catch (err) {
     console.error('Track manual entry failed:', err.message)
+    return null
+  }
+}
+
+// Readable for the admin export: shares keyed by member name instead of internal ids
+// ({ Ali: 1, Me: 2 }). Duplicate names get a " (2)" suffix so their shares don't merge.
+// Same shape as the web app's buildManualBillData() (frontend utils/analytics.js).
+function buildManualBillData(draft) {
+  const nameById = {}
+  const seen = {}
+  ;(draft.members || []).forEach((m) => {
+    seen[m.name] = (seen[m.name] || 0) + 1
+    nameById[m.id] = seen[m.name] > 1 ? `${m.name} (${seen[m.name]})` : m.name
+  })
+
+  return {
+    members: Object.values(nameById),
+    items: (draft.items || []).map((i) => ({
+      name: i.name,
+      quantity: i.quantity,
+      unitPrice: i.unitPrice ?? (i.quantity ? i.price / i.quantity : i.price),
+      price: i.price,
+      everyone: !!i.everyone,
+      shares: Object.fromEntries(Object.entries(i.shares || {}).map(([id, qty]) => [nameById[id] || id, qty])),
+    })),
+    grandTotal: draft.grandTotal ?? null,
+    tipAmount: draft.tipAmount ?? null,
+    tipPercent: draft.tipPercent ?? null,
+    discountAmount: draft.discountAmount ?? null,
+    currency: draft.currency || null,
+    language: draft.language || null,
+  }
+}
+
+// Stores the completed manual bill on its manual_entries row for the admin day export.
+async function saveManualEntryBill(draft) {
+  if (!draft.manualEntryId) return
+  try {
+    await pool.query('UPDATE manual_entries SET bill_data = $2, updated_at = NOW() WHERE id = $1', [
+      draft.manualEntryId,
+      JSON.stringify(buildManualBillData(draft)),
+    ])
+  } catch (err) {
+    console.error('Save manual entry bill failed:', err.message)
   }
 }
 
@@ -600,6 +647,7 @@ function payerTypeKeyboard(msgs) {
 
 async function askForReport(bot, chatId, draft, msgs) {
   await saveSession(chatId, STATES.AWAITING_REPORT, draft)
+  saveManualEntryBill(draft)
   const results = calculateSplits({ items: draft.items, members: draft.members, grandTotal: draft.grandTotal })
   await bot.sendMessage(chatId, buildReportText(msgs, draft, results), { reply_markup: settleStartKeyboard(msgs) })
 }
@@ -693,12 +741,12 @@ async function handleMessage(bot, msg) {
         return bot.sendMessage(chatId, msgs.newBill.invalidAmount)
       }
 
-      const draft = { ...session.draft, grandTotal: amount }
+      const manualEntryId = await trackManualEntry()
+      const draft = { ...session.draft, grandTotal: amount, manualEntryId }
       await saveSession(chatId, STATES.AWAITING_TIP, draft)
       await bot.sendMessage(chatId, msgs.newBill.totalReceived(formatAmount(amount, currency)), {
         reply_markup: tipKeyboard(msgs),
       })
-      trackManualEntry()
       return
     }
 

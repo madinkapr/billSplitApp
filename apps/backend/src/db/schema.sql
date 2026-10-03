@@ -49,6 +49,15 @@ CREATE TABLE IF NOT EXISTS manual_entries (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_manual_entries_created_at ON manual_entries (created_at);
+-- A manual entry also keeps the bill it describes (members, items, totals) so the admin
+-- day export can ship it next to scan photos and voice recordings. The row is inserted at
+-- the counter moment (no items yet) and bill_data is filled in once the bill is complete:
+-- web rows are matched by the client's local bill id, bot rows by the id kept in the session.
+ALTER TABLE manual_entries ADD COLUMN IF NOT EXISTS source TEXT;
+ALTER TABLE manual_entries ADD COLUMN IF NOT EXISTS local_id TEXT;
+ALTER TABLE manual_entries ADD COLUMN IF NOT EXISTS bill_data JSONB;
+ALTER TABLE manual_entries ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_manual_entries_local_id ON manual_entries (local_id);
 
 -- One row per bill entered by dictating the whole bill (web app + bot), inserted when
 -- the user confirms the voice-parsed result. Mirrors manual_entries/page_views — feeds

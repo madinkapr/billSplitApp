@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocalStorage } from './useLocalStorage'
 import { generateId } from '../utils/math'
+import { saveManualEntryBill } from '../utils/analytics'
 
 export const SCREENS = { HOME: 'home', CREWS: 'crews', SETUP: 'setup', ITEMS: 'items', REPORT: 'report', HISTORY: 'history' }
 
@@ -54,6 +55,7 @@ export function useBillApp() {
   }
 
   function saveBillToRecent(finalBill) {
+    if (finalBill._manualEntry) saveManualEntryBill(finalBill)
     setRecentBills((prev) => {
       const existing = prev.find((b) => b.id === finalBill.id)
       const billWithDate = { ...finalBill, createdAt: existing?.createdAt ?? finalBill.createdAt ?? Date.now() }
