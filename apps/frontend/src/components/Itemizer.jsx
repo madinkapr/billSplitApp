@@ -4,7 +4,7 @@ import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@
 import { ArrowLeft, Plus, Copy, Check, Share2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { generateId, getItemShares } from '../utils/math'
-import { getRemainingUnits, isItemComplete } from '../utils/itemizerState'
+import { getRemainingUnits, isItemComplete, applySplitGroup, getGroupSelection, normalizeGroupItem } from '../utils/itemizerState'
 import { useCurrency } from '../hooks/useCurrency'
 import { useBillSummary } from '../hooks/useBillSummary'
 import { useSettleShare } from '../hooks/useSettleShare'
@@ -13,6 +13,7 @@ import MemberCard from './MemberCard'
 import ItemChip, { ItemChipPreview } from './ItemChip'
 import ItemDetailSheet from './ItemDetailSheet'
 import SettleShareMenu from './SettleShareMenu'
+import SplitGroupPicker from './SplitGroupPicker'
 
 const EVERYONE_ID = 'everyone'
 
@@ -44,6 +45,7 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
   const [activeDragItemId, setActiveDragItemId] = useState(null)
   const [pendingStepper, setPendingStepper] = useState(null) // { itemId, memberId, itemName, max }
   const [editingItemId, setEditingItemId] = useState(null)
+  const [groupPickerItemId, setGroupPickerItemId] = useState(null)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -62,6 +64,8 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
   const allAssigned = items.length > 0 && items.every(isItemComplete)
   const activeDragItem = activeDragItemId ? items.find((i) => i.id === activeDragItemId) : null
   const editingItem = editingItemId ? items.find((i) => i.id === editingItemId) : null
+  const groupPickerItem = groupPickerItemId ? items.find((i) => i.id === groupPickerItemId) : null
+  const activeIds = activePersons.map((m) => m.id)
 
   function updateItem(updated) {
     setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
@@ -101,8 +105,9 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
     const item = items.find((i) => i.id === active.id)
     if (!item) return
 
+    // Dropping on the shared card asks who shares it (everyone pre-checked).
     if (over.id === EVERYONE_ID) {
-      updateItem({ ...item, shares: {}, everyone: true })
+      setGroupPickerItemId(item.id)
       return
     }
 
@@ -141,7 +146,12 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
     }
     const shares = { ...getItemShares(item) }
     delete shares[memberId]
-    updateItem({ ...item, shares })
+    updateItem(normalizeGroupItem({ ...item, shares }))
+  }
+
+  function confirmGroup(selectedIds) {
+    if (groupPickerItem) updateItem(applySplitGroup(groupPickerItem, selectedIds, activeIds))
+    setGroupPickerItemId(null)
   }
 
   // Live final split (tip/discount-adjusted)
@@ -369,6 +379,17 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
           onUpdate={updateItem}
           onRemove={() => removeItem(editingItem.id)}
           onClose={() => setEditingItemId(null)}
+          onOpenGroupPicker={() => setGroupPickerItemId(editingItem.id)}
+        />
+      )}
+
+      {groupPickerItem && (
+        <SplitGroupPicker
+          item={groupPickerItem}
+          persons={activePersons}
+          initialSelected={getGroupSelection(groupPickerItem, activeIds)}
+          onConfirm={confirmGroup}
+          onClose={() => setGroupPickerItemId(null)}
         />
       )}
     </div>

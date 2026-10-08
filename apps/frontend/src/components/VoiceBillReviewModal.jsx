@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Trash2, AlertTriangle, UserPlus, Plus } from 'lucide-react'
+import { X, Trash2, AlertTriangle, UserPlus, Plus, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { generateId } from '../utils/math'
 import { useCurrency } from '../hooks/useCurrency'
@@ -131,10 +131,34 @@ function PersonalItemCard({ item, members, onChange, onDelete, nameSuspicious })
   )
 }
 
-function SharedItemRow({ item, onChange, onDelete, nameSuspicious }) {
+// Shared dishes priced per line (quantity × unit price) rather than per person. `everyone`
+// splits among the whole table; `group` among the people whose share is set here.
+function isSharedLine(item) {
+  return item.everyone === true || item.group === true
+}
+
+// Re-targets a shared line after a person chip is toggled: the whole table → everyone,
+// two or more people → a group, a single person → their own personal dish.
+function setSharedMembers(item, ids, allIds) {
+  const quantity = Math.max(1, parseInt(item.quantity) || 1)
+  const chosen = allIds.filter((id) => ids.includes(id))
+  if (chosen.length === allIds.length) return { ...item, shares: {}, everyone: true, group: false }
+  if (chosen.length === 1) return { ...item, shares: { [chosen[0]]: quantity }, everyone: false, group: false }
+  return { ...item, shares: Object.fromEntries(chosen.map((id) => [id, 1])), everyone: false, group: true }
+}
+
+function SharedItemRow({ item, members, onChange, onDelete, nameSuspicious }) {
   const { t } = useTranslation()
   const { fmt, symbol } = useCurrency()
   const totalPrice = parseFloat(item.unitPrice) * (parseInt(item.quantity) || 1) || 0
+  const allIds = members.map((m) => m.id)
+  const selectedIds = item.everyone ? allIds : allIds.filter((id) => item.shares?.[id] > 0)
+
+  function toggleMember(id) {
+    const next = selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id]
+    if (next.length === 0) return
+    onChange(setSharedMembers(item, next, allIds))
+  }
 
   return (
     <div className="flex flex-col gap-1.5 py-2 border-b border-gray-100 last:border-0">
@@ -175,6 +199,31 @@ function SharedItemRow({ item, onChange, onDelete, nameSuspicious }) {
         </div>
         <span className="text-xs text-gray-400 flex-shrink-0">{fmt(totalPrice)}</span>
       </div>
+      {members.length > 1 && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Users size={12} className="text-gray-400 flex-shrink-0" />
+          {members.map((m) => {
+            const on = selectedIds.includes(m.id)
+            return (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => toggleMember(m.id)}
+                className={`px-2 py-0.5 rounded-full text-[11px] font-medium border transition-colors max-w-[100px] truncate ${
+                  on ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-gray-300 border-gray-200'
+                }`}
+              >
+                {m.name || '?'}
+              </button>
+            )
+          })}
+          {selectedIds.length > 0 && (
+            <span className="text-[11px] text-gray-400 ml-auto">
+              {t('splitGroup.summary', { count: selectedIds.length, amount: fmt(totalPrice / selectedIds.length) })}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -193,14 +242,13 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
   const [discountAmount, setDiscountAmount] = useState(voiceData.discountAmount?.toString() || '')
   const [newMemberName, setNewMemberName] = useState('')
 
-  const personalItems = items.filter((i) => !i.everyone)
-  const sharedItems = items.filter((i) => i.everyone)
+  const personalItems = items.filter((i) => !isSharedLine(i))
+  const sharedItems = items.filter(isSharedLine)
 
-  const itemsTotal = items.reduce((sum, i) => {
-    const unitPrice = parseFloat(i.unitPrice) || 0
-    const qty = i.everyone ? (parseInt(i.quantity) || 1) : Object.values(i.shares).reduce((s, q) => s + q, 0)
-    return sum + unitPrice * qty
-  }, 0)
+  // Shared lines carry their own quantity; personal dishes' quantity is the sum eaten.
+  const lineQty = (i) => (isSharedLine(i) ? parseInt(i.quantity) || 1 : Object.values(i.shares).reduce((s, q) => s + q, 0))
+
+  const itemsTotal = items.reduce((sum, i) => sum + (parseFloat(i.unitPrice) || 0) * lineQty(i), 0)
   const grandNum = parseFloat(grandTotal) || 0
   const tipAmountNum = parseFloat(tipAmount) || 0
   const tipPercentNum = parseFloat(tipPercent) || 0
@@ -239,12 +287,8 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
     const target = unresolved[0]
     const knownItemsTotal = items
       .filter((i) => i.id !== target.id)
-      .reduce((sum, i) => {
-        const unitPrice = parseFloat(i.unitPrice) || 0
-        const qty = i.everyone ? (parseInt(i.quantity) || 1) : Object.values(i.shares).reduce((s, q) => s + q, 0)
-        return sum + unitPrice * qty
-      }, 0)
-    const targetQty = target.everyone ? (parseInt(target.quantity) || 1) : Object.values(target.shares).reduce((s, q) => s + q, 0)
+      .reduce((sum, i) => sum + (parseFloat(i.unitPrice) || 0) * lineQty(i), 0)
+    const targetQty = lineQty(target)
     const discountNum = parseFloat(discountAmount) || 0
     // A percentage tip is a share of the subtotal we're solving for (it still
     // includes the target's own unknown price), so it must be divided out
@@ -282,6 +326,15 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
 
   function removeMember(id) {
     setMembers((prev) => prev.filter((m) => m.id !== id))
+    // A removed person can't stay in a shared dish's group.
+    const remainingIds = members.filter((m) => m.id !== id).map((m) => m.id)
+    setItems((prev) =>
+      prev.map((i) =>
+        i.group && i.shares?.[id]
+          ? setSharedMembers(i, Object.keys(i.shares).filter((x) => x !== id), remainingIds)
+          : i
+      )
+    )
   }
 
   function addMember() {
@@ -300,6 +353,10 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
         if (i.everyone) {
           const quantity = Math.max(1, parseInt(i.quantity) || 1)
           return { id: i.id, name: i.name.trim(), unitPrice, quantity, price: unitPrice * quantity, shares: {}, everyone: true }
+        }
+        if (i.group) {
+          const quantity = Math.max(1, parseInt(i.quantity) || 1)
+          return { id: i.id, name: i.name.trim(), unitPrice, quantity, price: unitPrice * quantity, shares: i.shares, group: true }
         }
         const quantity = Object.values(i.shares).reduce((s, q) => s + q, 0)
         return { id: i.id, name: i.name.trim(), unitPrice, quantity, price: unitPrice * quantity, shares: i.shares }
@@ -433,6 +490,7 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
                     <SharedItemRow
                       key={item.id}
                       item={item}
+                      members={members}
                       onChange={(updated) => updateItem(item.id, updated)}
                       onDelete={() => deleteItem(item.id)}
                       nameSuspicious={itemNameWarnings.has(item.name)}

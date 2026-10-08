@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { calculateSplits, getItemShares } from '../utils/math'
-import { getUnitPrice } from '../utils/itemizerState'
+import { getMemberItemAmount, isGroupItem } from '../utils/itemizerState'
 import { useCurrency } from './useCurrency'
 
 export function useBillSummary(bill) {
@@ -31,8 +31,10 @@ export function useBillSummary(bill) {
       .filter((item) => getItemShares(item)[memberId] > 0)
       .map((item) => {
         const count = getItemShares(item)[memberId]
-        const amount = getUnitPrice(item) * count
-        const label = count > 1 ? `${item.name} ×${count}` : item.name
+        const amount = getMemberItemAmount(item, memberId)
+        const label = isGroupItem(item)
+          ? t('report.sharedItemLabel', { name: item.name, count: Object.keys(getItemShares(item)).length })
+          : count > 1 ? `${item.name} ×${count}` : item.name
         return `${label} - ${fmt(amount)}`
       })
   }

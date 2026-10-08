@@ -21,6 +21,7 @@ const STATE_STYLES = {
   partial: 'border-[1.5px] border-warn bg-white',
   done: 'border-[1.5px] border-line bg-canvas opacity-75',
   everyone: 'border-[1.5px] border-line bg-canvas opacity-75',
+  group: 'border-[1.5px] border-line bg-canvas opacity-75',
 }
 
 export function ItemChipPreview({ item }) {
@@ -46,7 +47,7 @@ export default function ItemChip({ item, onTap }) {
   const { t } = useTranslation()
   const { fmt } = useCurrency()
   const state = getItemState(item)
-  const disabled = state === 'done' || state === 'everyone'
+  const disabled = state === 'done' || state === 'everyone' || state === 'group'
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: item.id,
     disabled,
@@ -84,7 +85,7 @@ export default function ItemChip({ item, onTap }) {
           {assigned}/{total}
         </div>
       )}
-      {(state === 'done' || state === 'everyone') && (
+      {disabled && (
         <div className="absolute -top-[7px] -right-[6px] text-[9.5px] font-bold px-1.5 py-0.5 rounded-full bg-success text-white flex items-center justify-center w-4 h-4">
           <Check size={10} />
         </div>

@@ -60,6 +60,7 @@ function buildManualBillData(bill) {
       unitPrice: i.unitPrice,
       price: i.price,
       everyone: !!i.everyone,
+      group: !!i.group,
       shares: Object.fromEntries(Object.entries(i.shares || {}).map(([id, qty]) => [nameById[id] || id, qty])),
     })),
     grandTotal: bill.grandTotal ?? null,

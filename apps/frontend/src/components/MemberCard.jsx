@@ -1,9 +1,9 @@
 import React from 'react'
 import { useDroppable } from '@dnd-kit/core'
-import { X } from 'lucide-react'
+import { X, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getItemShares } from '../utils/math'
-import { getUnitPrice } from '../utils/itemizerState'
+import { getMemberItemAmount, isGroupItem } from '../utils/itemizerState'
 import { useCurrency } from '../hooks/useCurrency'
 import QuantityStepper from './QuantityStepper'
 
@@ -21,8 +21,9 @@ export default function MemberCard({
   const { fmt } = useCurrency()
   const { setNodeRef, isOver } = useDroppable({ id: member.id })
 
-  // Assigned-item rows: for a regular member, every item where they have a share count.
-  // For Everyone, every item explicitly marked `everyone: true`.
+  // Assigned-item rows: for a regular member, every item where they have a share count
+  // (including group items they share with a few others). For Everyone, every item
+  // explicitly marked `everyone: true`.
   const assignedRows = isEveryone
     ? items.filter((i) => i.everyone === true && Object.keys(getItemShares(i)).length === 0)
     : items
@@ -31,7 +32,7 @@ export default function MemberCard({
 
   const subtotal = isEveryone
     ? assignedRows.reduce((s, item) => s + item.price, 0)
-    : assignedRows.reduce((s, r) => s + getUnitPrice(r.item) * r.count, 0)
+    : assignedRows.reduce((s, r) => s + getMemberItemAmount(r.item, member.id), 0)
 
   const showStepper = pendingStepper?.memberId === member.id
   const isDropTarget = isOver && activeDragItem
@@ -93,10 +94,17 @@ export default function MemberCard({
           )
         }
         const { item, count } = row
+        const group = isGroupItem(item)
         return (
           <div key={item.id} className="flex items-center gap-2 bg-canvas rounded-[9px] px-[9px] py-1.5 text-[10.5px]">
-            <span className="flex-1 font-semibold truncate">{item.name} ×{count}</span>
-            <span className="text-accent font-bold">{fmt(getUnitPrice(item) * count)}</span>
+            <span className="flex-1 min-w-0 font-semibold truncate">{group ? item.name : `${item.name} ×${count}`}</span>
+            {group && (
+              <span className="flex-none inline-flex items-center gap-0.5 text-[9.5px] font-bold text-accent bg-accent-tint rounded-full px-1.5 py-[1px]">
+                <Users size={9} />
+                {Object.keys(getItemShares(item)).length}
+              </span>
+            )}
+            <span className="text-accent font-bold">{fmt(getMemberItemAmount(item, member.id))}</span>
             <button onClick={() => onRemoveAssignment(item.id)} className="text-ink-faint font-bold flex items-center">
               <X size={11} />
             </button>

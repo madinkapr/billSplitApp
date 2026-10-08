@@ -2,7 +2,17 @@ const { getBot, getMessages, langFromTelegramCode } = require('./telegramBot')
 const { getSession, saveSession, clearSession } = require('./session')
 const pool = require('../db')
 const { CURRENCIES, isValidCurrency, formatAmount } = require('../services/currency')
-const { generateId, calculateSplits, getTotalUnits, getAssignedUnits, getRemainingUnits, getItemShares, getUnitPrice } = require('../services/splitCalculator')
+const {
+  generateId,
+  calculateSplits,
+  getTotalUnits,
+  getAssignedUnits,
+  getRemainingUnits,
+  getItemShares,
+  isGroupItem,
+  getMemberItemAmount,
+  applySplitGroup,
+} = require('../services/splitCalculator')
 const { createSettleBill } = require('../routes/settle')
 const { runOcr, saveReceiptRecord, UPLOADS_DIR } = require('../services/ocrService')
 const fs = require('fs')
@@ -90,6 +100,7 @@ function buildManualBillData(draft) {
       unitPrice: i.unitPrice ?? (i.quantity ? i.price / i.quantity : i.price),
       price: i.price,
       everyone: !!i.everyone,
+      group: !!i.group,
       shares: Object.fromEntries(Object.entries(i.shares || {}).map(([id, qty]) => [nameById[id] || id, qty])),
     })),
     grandTotal: draft.grandTotal ?? null,
@@ -128,6 +139,30 @@ function parseMemberName(text) {
   const trimmed = String(text || '').trim()
   if (!trimmed || trimmed.length > MAX_MEMBER_NAME_LENGTH) return null
   return trimmed
+}
+
+// The person running /newbill, added automatically on the members step (like the web
+// app's "Me (You)") — "Me" is also what voice dictation returns for the speaker, and
+// what the report keys "I ate" off.
+const ME_NAME = 'Me'
+const SELF_WORDS = new Set(['me', 'men', 'man', 'я', 'i', 'myself', "o'zim", 'ozim'])
+
+function isSelfName(name) {
+  return SELF_WORDS.has(String(name || '').trim().toLowerCase())
+}
+
+// Appends typed/spoken names; a "me"/"men"/"я" name becomes the single Me entry
+// instead of a duplicate (or re-adds Me if it had been removed).
+function addMembers(members, names) {
+  const next = [...members]
+  names.forEach((name) => {
+    if (isSelfName(name)) {
+      if (!next.some((m) => m.isMe)) next.unshift({ id: generateId(), name: ME_NAME, isMe: true })
+      return
+    }
+    next.push({ id: generateId(), name })
+  })
+  return next
 }
 
 // Accepts "<name> <unitPrice>" (quantity 1) or "<name> <unitPrice> x<quantity>",
@@ -352,6 +387,10 @@ function buildVoiceBillSummaryText(msgs, currency, result) {
   result.items.forEach((item) => {
     if (item.everyone) {
       lines.push(msgs.newBill.ocr.summaryItemLine(item.name, fmt(item.price), item.quantity))
+    } else if (isGroupItem(item)) {
+      lines.push(msgs.newBill.ocr.summaryItemLine(item.name, fmt(item.price), item.quantity))
+      const names = Object.keys(item.shares).map((id) => result.members.find((m) => m.id === id)?.name || '?')
+      lines.push(v.groupShareLine(names.join(', ')))
     } else {
       lines.push(v.personalItemLine(item.name, fmt(item.unitPrice)))
       Object.entries(item.shares).forEach(([memberId, qty]) => {
@@ -377,6 +416,17 @@ function buildVoiceBillSummaryText(msgs, currency, result) {
 // Gemini can confidently mishear a number (e.g. "12000" heard as "120000") without
 // leaving any gap for the issue-detector to notice, so the speaker still needs a way to
 // correct a value the bot thinks is already fine.
+// Shown with the "send a voice note to fix it" prompt, so the user can still confirm
+// as-is (or bail out to manual entry) instead of being stuck waiting for a fix.
+function voiceFixKeyboard(msgs) {
+  return {
+    inline_keyboard: [
+      [{ text: msgs.newBill.buttons.voiceConfirm, callback_data: 'voice:confirm' }],
+      [{ text: msgs.newBill.buttons.ocrManual, callback_data: 'voice:manual' }],
+    ],
+  }
+}
+
 function voiceConfirmKeyboard(msgs) {
   return {
     inline_keyboard: [
@@ -488,26 +538,34 @@ async function handleVoiceMembers(bot, chatId, msg, session, msgs) {
   }
 
   if (errorCode || !result) {
-    await bot.sendMessage(chatId, msgs.newBill.voice.failed, { reply_markup: membersKeyboard(msgs) })
+    await bot.sendMessage(chatId, msgs.newBill.voice.failed, { reply_markup: membersKeyboard(msgs, session.draft.members || []) })
     return
   }
 
   const newNames = result.members.map((n) => parseMemberName(n)).filter(Boolean)
-  const members = [...(session.draft.members || []), ...newNames.map((name) => ({ id: generateId(), name }))]
+  const members = addMembers(session.draft.members || [], newNames)
   const draft = { ...session.draft, members }
   await saveSession(chatId, STATES.AWAITING_MEMBERS, draft)
   await bot.sendMessage(chatId, msgs.newBill.memberAdded(members.map((m) => m.name).join(', ')), {
-    reply_markup: membersKeyboard(msgs),
+    reply_markup: membersKeyboard(msgs, members),
   })
 }
 
-function membersKeyboard(msgs) {
-  return { inline_keyboard: [[{ text: msgs.newBill.buttons.membersDone, callback_data: 'members:done' }]] }
+function membersKeyboard(msgs, members = []) {
+  const meToggle = members.some((m) => m.isMe)
+    ? { text: msgs.newBill.buttons.removeMe, callback_data: 'members:removeMe' }
+    : { text: msgs.newBill.buttons.addMe, callback_data: 'members:addMe' }
+  return { inline_keyboard: [[meToggle, { text: msgs.newBill.buttons.membersDone, callback_data: 'members:done' }]] }
 }
 
 async function askForMembers(bot, chatId, draft, msgs) {
-  await saveSession(chatId, STATES.AWAITING_MEMBERS, { ...draft, members: draft.members || [] })
-  await bot.sendMessage(chatId, msgs.newBill.membersIntro, { reply_markup: membersKeyboard(msgs) })
+  const existing = draft.members || []
+  // Most people splitting a bill ate too, so start with them on it (removable).
+  const members = existing.some((m) => m.isMe) ? existing : [{ id: generateId(), name: ME_NAME, isMe: true }, ...existing]
+  await saveSession(chatId, STATES.AWAITING_MEMBERS, { ...draft, members })
+  await bot.sendMessage(chatId, `${msgs.newBill.membersIntro}\n\n${msgs.newBill.meAutoAdded}`, {
+    reply_markup: membersKeyboard(msgs, members),
+  })
 }
 
 function finishItemsKeyboard(msgs) {
@@ -530,15 +588,42 @@ function itemAssignKeyboard(msgs, members, item) {
   return {
     inline_keyboard: [
       ...memberRows,
-      [{ text: msgs.newBill.buttons.everyone, callback_data: 'item:everyone' }, { text: msgs.newBill.buttons.reset, callback_data: 'item:reset' }],
+      [{ text: msgs.newBill.buttons.shared, callback_data: 'item:shared' }, { text: msgs.newBill.buttons.reset, callback_data: 'item:reset' }],
       [{ text: msgs.newBill.buttons.itemDone, callback_data: 'item:done' }],
     ],
   }
 }
 
-function itemAssignText(msgs, item, currency) {
+// "Who shares this?" — one toggle per member (✅/⬜), everyone pre-ticked, so sharing
+// with the whole table is still one extra tap ("Done").
+function groupPickerKeyboard(msgs, members, selection) {
+  const memberRows = []
+  for (let i = 0; i < members.length; i += 2) {
+    memberRows.push(
+      members.slice(i, i + 2).map((m) => ({
+        text: `${selection.includes(m.id) ? '✅' : '⬜'} ${m.name}`,
+        callback_data: `grp:t:${m.id}`,
+      }))
+    )
+  }
+  const allOn = members.length > 0 && members.every((m) => selection.includes(m.id))
+  return {
+    inline_keyboard: [
+      ...memberRows,
+      [{ text: `${allOn ? '✅' : '⬜'} ${msgs.newBill.buttons.groupAll}`, callback_data: 'grp:all' }],
+      [{ text: msgs.newBill.buttons.groupBack, callback_data: 'grp:back' }, { text: msgs.newBill.buttons.groupDone, callback_data: 'grp:ok' }],
+    ],
+  }
+}
+
+function itemAssignText(msgs, item, currency, members = []) {
   if (item.everyone) {
     return msgs.newBill.itemEveryoneSet(item.name, formatAmount(item.price, currency))
+  }
+  if (isGroupItem(item)) {
+    const ids = Object.keys(getItemShares(item))
+    const names = ids.map((id) => members.find((m) => m.id === id)?.name || '?').join(', ')
+    return msgs.newBill.itemGroupSet(item.name, names, formatAmount(item.price / ids.length, currency))
   }
   const remaining = getRemainingUnits(item)
   return msgs.newBill.itemAdded(item.name, formatAmount(item.price, currency), item.quantity, remaining)
@@ -560,7 +645,7 @@ async function askForNextItem(bot, chatId, draft, msgs, isFirst) {
     const newDraft = { ...draft, currentItemId: pending.id }
     await saveSession(chatId, STATES.ASSIGNING_ITEM, newDraft)
     const members = draft.members || []
-    await bot.sendMessage(chatId, itemAssignText(msgs, pending, draft.currency), {
+    await bot.sendMessage(chatId, itemAssignText(msgs, pending, draft.currency, members), {
       reply_markup: itemAssignKeyboard(msgs, members, pending),
     })
     return
@@ -568,15 +653,18 @@ async function askForNextItem(bot, chatId, draft, msgs, isFirst) {
   await askForItemInput(bot, chatId, draft, msgs, isFirst)
 }
 
-// Every personal item this member has a share of, formatted as "Name ×qty - price".
-// Mirrors useBillSummary.js/useSettleShare.js's personalItemsForMember() on the frontend.
-function personalItemsForMember(items, memberId) {
+// Every personal item this member has a share of, formatted as "Name ×qty - price"
+// (group dishes as "Name (shared by N)" with their equal cut). Mirrors
+// useBillSummary.js/useSettleShare.js's personalItemsForMember() on the frontend.
+function personalItemsForMember(msgs, items, memberId) {
   return (items || [])
     .filter((item) => getItemShares(item)[memberId] > 0)
     .map((item) => {
       const count = getItemShares(item)[memberId]
-      const amount = getUnitPrice(item) * count
-      const label = count > 1 ? `${item.name} ×${count}` : item.name
+      const amount = getMemberItemAmount(item, memberId)
+      const label = isGroupItem(item)
+        ? msgs.newBill.report.sharedItemLabel(item.name, Object.keys(getItemShares(item)).length)
+        : count > 1 ? `${item.name} ×${count}` : item.name
       return { label, amount }
     })
 }
@@ -601,7 +689,7 @@ function personBreakdownLines(msgs, currency, r, items, sharedList, tipAmount, t
     const personalTip = tipAmount * (r.subtotal / totalSubtotal)
     lines.push(`  ${rmsgs.tipShareLabel(tipMode === 'percent' ? tipPercent : null)}: ${fmt(personalTip)}`)
   }
-  const personal = personalItemsForMember(items, r.id)
+  const personal = personalItemsForMember(msgs, items, r.id)
   if (personal.length > 0) {
     const isMe = r.isMe === true || r.name === 'Me'
     lines.push(`  ${isMe ? rmsgs.ateLabel : rmsgs.dishesLabel}:`)
@@ -809,11 +897,11 @@ async function handleMessage(bot, msg) {
         return bot.sendMessage(chatId, msgs.newBill.invalidMemberName)
       }
 
-      const members = [...(session.draft.members || []), { id: generateId(), name }]
+      const members = addMembers(session.draft.members || [], [name])
       const draft = { ...session.draft, members }
       await saveSession(chatId, STATES.AWAITING_MEMBERS, draft)
       await bot.sendMessage(chatId, msgs.newBill.memberAdded(members.map((m) => m.name).join(', ')), {
-        reply_markup: membersKeyboard(msgs),
+        reply_markup: membersKeyboard(msgs, members),
       })
       return
     }
@@ -829,7 +917,7 @@ async function handleMessage(bot, msg) {
       const draft = { ...session.draft, items, currentItemId: item.id }
       await saveSession(chatId, STATES.ASSIGNING_ITEM, draft)
       const members = session.draft.members || []
-      await bot.sendMessage(chatId, itemAssignText(msgs, item, currency), {
+      await bot.sendMessage(chatId, itemAssignText(msgs, item, currency, members), {
         reply_markup: itemAssignKeyboard(msgs, members, item),
       })
       return
@@ -905,7 +993,9 @@ async function handleCallbackQuery(bot, query) {
     }
 
     if (namespace === 'entry') {
-      if (!session || session.state !== STATES.AWAITING_ENTRY_METHOD) return bot.answerCallbackQuery(query.id)
+      if (!session || session.state !== STATES.AWAITING_ENTRY_METHOD) {
+        return bot.answerCallbackQuery(query.id, { text: msgs.newBill.staleButton })
+      }
       const [kind] = rest
       await bot.answerCallbackQuery(query.id)
       await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id }).catch(() => {})
@@ -940,13 +1030,18 @@ async function handleCallbackQuery(bot, query) {
         return
       }
 
-      if (!session || session.state !== STATES.AWAITING_VOICE_CONFIRM) return bot.answerCallbackQuery(query.id)
+      // Confirm/fix work both on the summary and while a fix is awaited (changing your
+      // mind and confirming as-is). Anything else is a button from an older message.
+      const voiceStates = [STATES.AWAITING_VOICE_CONFIRM, STATES.AWAITING_VOICE_FIX]
+      if (!session || !voiceStates.includes(session.state) || !session.draft.voicePending) {
+        return bot.answerCallbackQuery(query.id, { text: msgs.newBill.staleButton })
+      }
 
       if (kind === 'fix') {
         await saveSession(chatId, STATES.AWAITING_VOICE_FIX, session.draft)
         await bot.answerCallbackQuery(query.id)
         await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id }).catch(() => {})
-        await bot.sendMessage(chatId, msgs.newBill.voice.fixPrompt)
+        await bot.sendMessage(chatId, msgs.newBill.voice.fixPrompt, { reply_markup: voiceFixKeyboard(msgs) })
         return
       }
 
@@ -958,7 +1053,7 @@ async function handleCallbackQuery(bot, query) {
         await saveSession(chatId, STATES.AWAITING_VOICE_FIX, session.draft)
         await bot.answerCallbackQuery(query.id, { text: msgs.newBill.voice.issueTotalUnknown })
         await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id }).catch(() => {})
-        await bot.sendMessage(chatId, msgs.newBill.voice.fixPrompt)
+        await bot.sendMessage(chatId, msgs.newBill.voice.fixPrompt, { reply_markup: voiceFixKeyboard(msgs) })
         return
       }
 
@@ -1063,6 +1158,23 @@ async function handleCallbackQuery(bot, query) {
 
     if (namespace === 'members') {
       if (!session || session.state !== STATES.AWAITING_MEMBERS) return bot.answerCallbackQuery(query.id)
+      const [kind] = rest
+
+      // "❌ Remove me" / "➕ Add me" toggle for the auto-added Me entry.
+      if (kind === 'removeMe' || kind === 'addMe') {
+        const current = session.draft.members || []
+        const members = kind === 'removeMe' ? current.filter((m) => !m.isMe) : addMembers(current, [ME_NAME])
+        await saveSession(chatId, STATES.AWAITING_MEMBERS, { ...session.draft, members })
+        await bot.answerCallbackQuery(query.id)
+        const text = members.length > 0 ? msgs.newBill.memberAdded(members.map((m) => m.name).join(', ')) : msgs.newBill.meRemoved
+        await bot.editMessageText(text, {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: membersKeyboard(msgs, members),
+        })
+        return
+      }
+
       const members = session.draft.members || []
       if (members.length === 0) {
         await bot.answerCallbackQuery(query.id, { text: msgs.newBill.noMembersYet })
@@ -1108,12 +1220,21 @@ async function handleCallbackQuery(bot, query) {
       if (kind === 'reset') {
         Object.keys(shares).forEach((id) => delete shares[id])
         everyone = false
-      } else if (kind === 'everyone') {
-        // Mirrors Itemizer.jsx: "everyone" means the whole price splits evenly among
-        // all active members, independent of quantity — so shares stays empty and
-        // calculateSplits' own unassigned-item fallback (math.js) does the even split.
-        Object.keys(shares).forEach((id) => delete shares[id])
-        everyone = true
+      } else if (kind === 'shared' || kind === 'everyone') {
+        // Opens the "who shares this?" picker (old 'everyone' buttons still in chat
+        // history land here too). Starts from the current group, otherwise everyone.
+        const memberIds = members.map((m) => m.id)
+        const groupSelection = isGroupItem(currentItem)
+          ? Object.keys(getItemShares(currentItem)).filter((id) => memberIds.includes(id))
+          : memberIds
+        await saveSession(chatId, STATES.ASSIGNING_ITEM, { ...session.draft, groupSelection })
+        await bot.answerCallbackQuery(query.id)
+        await bot.editMessageText(msgs.newBill.groupPrompt(currentItem.name, formatAmount(currentItem.price, session.draft.currency)), {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: groupPickerKeyboard(msgs, members, groupSelection),
+        })
+        return
       } else if (kind === 'add') {
         if (getRemainingUnits(currentItem) <= 0) {
           await bot.answerCallbackQuery(query.id, { text: msgs.newBill.allUnitsAssigned })
@@ -1123,15 +1244,73 @@ async function handleCallbackQuery(bot, query) {
         everyone = false
       }
 
-      const updatedItem = { ...currentItem, shares, everyone }
+      const updatedItem = { ...currentItem, shares, everyone, group: kind === 'reset' ? false : currentItem.group === true }
       const updatedItems = items.map((i) => (i.id === updatedItem.id ? updatedItem : i))
       const draft = { ...session.draft, items: updatedItems }
       await saveSession(chatId, STATES.ASSIGNING_ITEM, draft)
       await bot.answerCallbackQuery(query.id)
-      await bot.editMessageText(itemAssignText(msgs, updatedItem, session.draft.currency), {
+      await bot.editMessageText(itemAssignText(msgs, updatedItem, session.draft.currency, members), {
         chat_id: chatId,
         message_id: query.message.message_id,
         reply_markup: itemAssignKeyboard(msgs, members, updatedItem),
+      })
+      return
+    }
+
+    // "Who shares this?" picker opened from the item's "Shared" button.
+    if (namespace === 'grp') {
+      if (!session || session.state !== STATES.ASSIGNING_ITEM) return bot.answerCallbackQuery(query.id)
+      const [kind, memberId] = rest
+      const items = session.draft.items || []
+      const members = session.draft.members || []
+      const memberIds = members.map((m) => m.id)
+      const currentItem = items.find((i) => i.id === session.draft.currentItemId)
+      if (!currentItem) return bot.answerCallbackQuery(query.id)
+      let selection = (session.draft.groupSelection || memberIds).filter((id) => memberIds.includes(id))
+
+      const showAssign = async (draft, item) => {
+        await bot.editMessageText(itemAssignText(msgs, item, draft.currency, members), {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: itemAssignKeyboard(msgs, members, item),
+        })
+      }
+
+      if (kind === 'back') {
+        const draft = { ...session.draft, groupSelection: null }
+        await saveSession(chatId, STATES.ASSIGNING_ITEM, draft)
+        await bot.answerCallbackQuery(query.id)
+        await showAssign(draft, currentItem)
+        return
+      }
+
+      if (kind === 'ok') {
+        if (selection.length === 0) {
+          await bot.answerCallbackQuery(query.id, { text: msgs.newBill.groupNeedOne })
+          return
+        }
+        const updatedItem = applySplitGroup(currentItem, selection, memberIds)
+        const draft = {
+          ...session.draft,
+          groupSelection: null,
+          items: items.map((i) => (i.id === updatedItem.id ? updatedItem : i)),
+        }
+        await saveSession(chatId, STATES.ASSIGNING_ITEM, draft)
+        await bot.answerCallbackQuery(query.id)
+        await showAssign(draft, updatedItem)
+        return
+      }
+
+      if (kind === 'all') {
+        selection = selection.length === memberIds.length ? [] : [...memberIds]
+      } else if (kind === 't' && memberIds.includes(memberId)) {
+        selection = selection.includes(memberId) ? selection.filter((id) => id !== memberId) : [...selection, memberId]
+      }
+      await saveSession(chatId, STATES.ASSIGNING_ITEM, { ...session.draft, groupSelection: selection })
+      await bot.answerCallbackQuery(query.id)
+      await bot.editMessageReplyMarkup(groupPickerKeyboard(msgs, members, selection), {
+        chat_id: chatId,
+        message_id: query.message.message_id,
       })
       return
     }

@@ -5,7 +5,7 @@ import { useIsDesktop } from './useIsDesktop'
 import { useCurrency } from './useCurrency'
 import { copyText } from '../utils/clipboard'
 import { getItemShares } from '../utils/math'
-import { getUnitPrice } from '../utils/itemizerState'
+import { getMemberItemAmount, isGroupItem } from '../utils/itemizerState'
 
 export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '' }) {
   const { t, i18n } = useTranslation()
@@ -39,8 +39,10 @@ export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '' }) 
       .filter((item) => getItemShares(item)[memberId] > 0)
       .map((item) => {
         const count = getItemShares(item)[memberId]
-        const amount = getUnitPrice(item) * count
-        const label = count > 1 ? `${item.name} ×${count}` : item.name
+        const amount = getMemberItemAmount(item, memberId)
+        const label = isGroupItem(item)
+          ? t('report.sharedItemLabel', { name: item.name, count: Object.keys(getItemShares(item)).length })
+          : count > 1 ? `${item.name} ×${count}` : item.name
         return `${label} - ${fmt(amount)}`
       })
   }

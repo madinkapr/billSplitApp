@@ -1,8 +1,9 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Plus, Minus, Trash2 } from 'lucide-react'
+import { X, Plus, Minus, Trash2, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getItemShares } from '../utils/math'
+import { isGroupItem, normalizeGroupItem } from '../utils/itemizerState'
 import { useCurrency } from '../hooks/useCurrency'
 
 // Unassigned member: a muted chip the user taps to add at qty 1.
@@ -39,7 +40,7 @@ function AssignedChip({ member, count, share, onInc, onDec }) {
   )
 }
 
-export default function ItemDetailSheet({ item, activePersons, onUpdate, onRemove, onClose }) {
+export default function ItemDetailSheet({ item, activePersons, onUpdate, onRemove, onClose, onOpenGroupPicker }) {
   const { t } = useTranslation()
   const { fmt, symbol } = useCurrency()
   const allShares = getItemShares(item)
@@ -49,10 +50,11 @@ export default function ItemDetailSheet({ item, activePersons, onUpdate, onRemov
   const totalCount = assignedIds.reduce((s, id) => s + shares[id], 0)
   const unassigned = activePersons.filter((p) => !shares[p.id])
 
-  function setShares(next, everyone = false) {
+  // Editing people here keeps a group item a group (still split among whoever is left).
+  function setShares(next) {
     const cleaned = {}
     Object.entries(next).forEach(([id, c]) => { if (c > 0) cleaned[id] = c })
-    onUpdate({ ...item, shares: cleaned, everyone })
+    onUpdate(normalizeGroupItem({ ...item, shares: cleaned, everyone: false }))
   }
 
   function addAssignee(id) { setShares({ ...shares, [id]: 1 }) }
@@ -65,7 +67,12 @@ export default function ItemDetailSheet({ item, activePersons, onUpdate, onRemov
   }
 
   const isEveryone = item.everyone === true && assignedIds.length === 0
-  function toggleEveryone() { setShares({}, true) }
+  const isGroup = isGroupItem(item)
+  const sharedLabel = isEveryone
+    ? t('itemDetail.everyoneChecked')
+    : isGroup
+      ? t('itemDetail.sharedChecked', { count: assignedIds.length })
+      : t('itemDetail.sharedAdd')
 
   const allEqual = assignedIds.length > 0 && assignedIds.every((id) => shares[id] === shares[assignedIds[0]])
   const ratioLabel = assignedIds.length === 0
@@ -139,16 +146,17 @@ export default function ItemDetailSheet({ item, activePersons, onUpdate, onRemov
               </div>
             </div>
 
-            {/* Quick action: assign / clear everyone at once */}
+            {/* Quick action: share with everyone or with a chosen few (opens the picker) */}
             {activePersons.length > 1 && (
               <motion.button
                 whileTap={{ scale: 0.95 }}
-                onClick={toggleEveryone}
-                className={`self-start px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all whitespace-nowrap ${
-                  isEveryone ? 'bg-accent text-white border-accent shadow-sm' : 'bg-white text-accent border-accent/40'
+                onClick={onOpenGroupPicker}
+                className={`self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all whitespace-nowrap ${
+                  isEveryone || isGroup ? 'bg-accent text-white border-accent shadow-sm' : 'bg-white text-accent border-accent/40'
                 }`}
               >
-                {isEveryone ? t('itemDetail.everyoneChecked') : t('itemDetail.everyoneAdd')}
+                <Users size={13} />
+                {sharedLabel}
               </motion.button>
             )}
 

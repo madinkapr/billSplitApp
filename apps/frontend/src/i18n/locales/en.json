@@ -125,7 +125,9 @@
     "splitEqually": "{{amount}} split equally",
     "splitRatio": "{{amount}} split {{ratio}}",
     "splitEquallyAmongEveryone": "{{amount}} split equally among everyone",
-    "done": "Done"
+    "done": "Done",
+    "sharedAdd": "Shared",
+    "sharedChecked": "✓ Shared by {{count}}"
   },
   "quantityStepper": {
     "question": "How many {{item}} for {{member}}?",
@@ -167,7 +169,7 @@
     "perUnitPrice": "price per piece",
     "priceUncertain": "Price wasn't stated — computed from the grand total, please check",
     "priceUnknown": "Price wasn't stated — please enter it",
-    "sharedItemsHeader": "Shared items (everyone)",
+    "sharedItemsHeader": "Shared items",
     "itemLineTotal": "Line total: {{amount}}",
     "mismatchWarning": "Items total ({{itemsTotal}}) doesn't match expected food budget ({{foodBudget}})",
     "cancel": "Enter Manually",
@@ -203,7 +205,9 @@
     "durationHoursMinutes": "{{hours}}h {{minutes}}min",
     "summaryHeader": "💸 schet.uz Bill Split — {{crew}}",
     "summarySplitBy": "Split by schet.uz 💸",
-    "summaryVerification": "Verification: {{sum}} / {{total}} {{check}}"
+    "summaryVerification": "Verification: {{sum}} / {{total}} {{check}}",
+    "sharedItemLabel": "{{name}} (shared by {{count}})",
+    "splitBetween": "Split equally: {{names}}"
   },
   "settleUp": {
     "title": "Settle Up",
@@ -282,5 +286,13 @@
     "exportDay": "Download",
     "exportEmpty": "No files for this day.",
     "exportError": "Download failed."
+  },
+  "splitGroup": {
+    "title": "Who shares this?",
+    "subtitle": "{{name}} — {{amount}}",
+    "everyone": "Everyone",
+    "done": "Done",
+    "summary": "{{count}} people · {{amount}} each",
+    "pickAtLeastOne": "Pick at least one person"
   }
 }

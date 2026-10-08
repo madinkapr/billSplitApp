@@ -1,16 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDraggable, useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { ArrowLeft, Plus, Check, GripVertical, X, Copy, Share2 } from 'lucide-react'
+import { ArrowLeft, Plus, Check, GripVertical, X, Copy, Share2, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { generateId, getItemShares } from '../../utils/math'
-import { getRemainingUnits, isItemComplete, getUnitPrice, getAssignedUnits, getTotalUnits, getItemState } from '../../utils/itemizerState'
+import {
+  getRemainingUnits,
+  isItemComplete,
+  getAssignedUnits,
+  getTotalUnits,
+  getItemState,
+  getMemberItemAmount,
+  isGroupItem,
+  applySplitGroup,
+  getGroupSelection,
+  normalizeGroupItem,
+} from '../../utils/itemizerState'
 import { useCurrency } from '../../hooks/useCurrency'
 import { useBillSummary } from '../../hooks/useBillSummary'
 import { useSettleShare } from '../../hooks/useSettleShare'
 import { copyText } from '../../utils/clipboard'
 import QuantityStepper from '../../components/QuantityStepper'
 import SettleShareMenu from '../../components/SettleShareMenu'
+import SplitGroupPicker from '../../components/SplitGroupPicker'
 
 const EVERYONE_ID = 'everyone'
 
@@ -25,7 +37,7 @@ function DesktopMemberCard({ member, isEveryone, items, pendingStepper, activeDr
 
   const subtotal = isEveryone
     ? assignedRows.reduce((s, item) => s + item.price, 0)
-    : assignedRows.reduce((s, r) => s + getUnitPrice(r.item) * r.count, 0)
+    : assignedRows.reduce((s, r) => s + getMemberItemAmount(r.item, member.id), 0)
 
   const showStepper = pendingStepper?.memberId === member.id
   const isDropTarget = isOver && activeDragItem
@@ -70,11 +82,18 @@ function DesktopMemberCard({ member, isEveryone, items, pendingStepper, activeDr
 
       {assignedRows.map((row) => {
         const item = isEveryone ? row : row.item
-        const label = isEveryone ? item.name : `${item.name} ×${row.count}`
-        const amount = isEveryone ? item.price : getUnitPrice(item) * row.count
+        const group = !isEveryone && isGroupItem(item)
+        const label = isEveryone || group ? item.name : `${item.name} ×${row.count}`
+        const amount = isEveryone ? item.price : getMemberItemAmount(item, member.id)
         return (
           <div key={item.id} className="flex items-center gap-2 bg-desktop-content rounded-lg px-2.5 py-1.5 text-[12px]">
-            <span className="flex-1 font-semibold truncate text-desktop-text">{label}</span>
+            <span className="flex-1 min-w-0 font-semibold truncate text-desktop-text">{label}</span>
+            {group && (
+              <span className="flex-shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-desktop-primary bg-desktop-tileHome rounded-full px-1.5 py-[1px]">
+                <Users size={11} />
+                {Object.keys(getItemShares(item)).length}
+              </span>
+            )}
             <span className="font-bold text-desktop-primary flex-shrink-0">{fmt(amount)}</span>
             <button onClick={() => onRemoveAssignment(item.id)} className="text-desktop-textMuted3 flex-shrink-0">
               <X size={12} />
@@ -90,7 +109,7 @@ function DesktopItemCard({ item, onTap }) {
   const { t } = useTranslation()
   const { fmt } = useCurrency()
   const state = getItemState(item)
-  const disabled = state === 'done' || state === 'everyone'
+  const disabled = state === 'done' || state === 'everyone' || state === 'group'
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: item.id, disabled })
   const assigned = getAssignedUnits(item)
   const total = getTotalUnits(item)
@@ -113,10 +132,16 @@ function DesktopItemCard({ item, onTap }) {
       {...attributes}
       onClick={onTap}
       className={`relative rounded-xl p-3 flex items-center justify-between gap-2 bg-white cursor-grab ${
-        state === 'partial' ? 'border-[1.5px] border-desktop-primary' : 'border border-desktop-cardBorder'
+        state === 'partial' ? 'border-[1.5px] border-warn' : 'border border-desktop-cardBorder'
       }`}
     >
-      {(state === 'done' || state === 'everyone') && (
+      {/* Same "only part of it is assigned" cue as the mobile ItemChip: amber border + n/total badge */}
+      {state === 'partial' && (
+        <span className="absolute -top-2 -right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-warn text-white">
+          {assigned}/{total}
+        </span>
+      )}
+      {disabled && (
         <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-desktop-successText text-white flex items-center justify-center">
           <Check size={10} />
         </span>
@@ -127,8 +152,18 @@ function DesktopItemCard({ item, onTap }) {
           {item.name || t('itemChip.item')}
         </span>
       </div>
-      <span className={`text-[12px] font-semibold flex-shrink-0 ${disabled ? 'text-desktop-textMuted3' : 'text-desktop-textMuted'}`}>
-        {fmt(item.price)} · {assigned}/{total}
+      <span className={`text-[12px] font-semibold flex-shrink-0 inline-flex items-center gap-1 ${disabled ? 'text-desktop-textMuted3' : 'text-desktop-textMuted'}`}>
+        {fmt(item.price)} ·{' '}
+        {state === 'everyone' ? (
+          t('itemizer.everyone')
+        ) : state === 'group' ? (
+          <>
+            <Users size={12} />
+            {assigned}
+          </>
+        ) : (
+          `${assigned}/${total}`
+        )}
       </span>
     </div>
   )
@@ -162,6 +197,7 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange }) {
   const [activeDragItemId, setActiveDragItemId] = useState(null)
   const [pendingStepper, setPendingStepper] = useState(null)
   const [editingItemId, setEditingItemId] = useState(null)
+  const [groupPickerItemId, setGroupPickerItemId] = useState(null)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -178,6 +214,8 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange }) {
 
   const allAssigned = items.length > 0 && items.every(isItemComplete)
   const activeDragItem = activeDragItemId ? items.find((i) => i.id === activeDragItemId) : null
+  const groupPickerItem = groupPickerItemId ? items.find((i) => i.id === groupPickerItemId) : null
+  const activeIds = activePersons.map((m) => m.id)
 
   function updateItem(updated) {
     setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
@@ -206,8 +244,9 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange }) {
     const item = items.find((i) => i.id === active.id)
     if (!item) return
 
+    // Dropping on the shared card asks who shares it (everyone pre-checked).
     if (over.id === EVERYONE_ID) {
-      updateItem({ ...item, shares: {}, everyone: true })
+      setGroupPickerItemId(item.id)
       return
     }
 
@@ -246,7 +285,12 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange }) {
     }
     const shares = { ...getItemShares(item) }
     delete shares[memberId]
-    updateItem({ ...item, shares })
+    updateItem(normalizeGroupItem({ ...item, shares }))
+  }
+
+  function confirmGroup(selectedIds) {
+    if (groupPickerItem) updateItem(applySplitGroup(groupPickerItem, selectedIds, activeIds))
+    setGroupPickerItemId(null)
   }
 
   // Live final split (tip/discount-adjusted) for the sticky summary panel
@@ -455,13 +499,25 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange }) {
           onUpdate={updateItem}
           onRemove={() => setItems((prev) => prev.filter((i) => i.id !== editingItemId))}
           onClose={() => setEditingItemId(null)}
+          canShare={activePersons.length > 1}
+          onOpenGroupPicker={() => setGroupPickerItemId(editingItemId)}
+        />
+      )}
+
+      {groupPickerItem && (
+        <SplitGroupPicker
+          item={groupPickerItem}
+          persons={activePersons}
+          initialSelected={getGroupSelection(groupPickerItem, activeIds)}
+          onConfirm={confirmGroup}
+          onClose={() => setGroupPickerItemId(null)}
         />
       )}
     </div>
   )
 }
 
-function DesktopItemEditRow({ item, onUpdate, onRemove, onClose }) {
+function DesktopItemEditRow({ item, onUpdate, onRemove, onClose, canShare, onOpenGroupPicker }) {
   const { t } = useTranslation()
   const { symbol } = useCurrency()
   if (!item) return null
@@ -490,6 +546,23 @@ function DesktopItemEditRow({ item, onUpdate, onRemove, onClose }) {
               }}
             />
           </div>
+          {canShare && (
+            <button
+              onClick={onOpenGroupPicker}
+              className={`self-start inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold border-2 ${
+                item.everyone || isGroupItem(item)
+                  ? 'bg-desktop-primary text-white border-desktop-primary'
+                  : 'bg-white text-desktop-primary border-desktop-primary/40'
+              }`}
+            >
+              <Users size={13} />
+              {item.everyone && Object.keys(getItemShares(item)).length === 0
+                ? t('itemDetail.everyoneChecked')
+                : isGroupItem(item)
+                  ? t('itemDetail.sharedChecked', { count: Object.keys(getItemShares(item)).length })
+                  : t('itemDetail.sharedAdd')}
+            </button>
+          )}
           <div className="flex gap-2 mt-1">
             <button onClick={onRemove} className="flex-1 rounded-xl bg-red-50 text-red-600 font-semibold text-sm py-2.5">
               {t('billSetup.remove')}

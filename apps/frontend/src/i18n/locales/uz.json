@@ -125,7 +125,9 @@
     "splitEqually": "{{amount}} teng taqsimlangan",
     "splitRatio": "{{amount}} {{ratio}} nisbatda taqsimlangan",
     "splitEquallyAmongEveryone": "{{amount}} barcha o'rtasida teng taqsimlangan",
-    "done": "Tayyor"
+    "done": "Tayyor",
+    "sharedAdd": "Umumiy",
+    "sharedChecked": "✓ {{count}} kishi o'rtasida"
   },
   "quantityStepper": {
     "question": "{{member}} uchun nechta {{item}}?",
@@ -167,7 +169,7 @@
     "perUnitPrice": "1 dona narxi",
     "priceUncertain": "Narx aytilmagan — umumiy summadan hisoblab qo'yildi, tekshiring",
     "priceUnknown": "Narx aytilmagan — o'zingiz kiriting",
-    "sharedItemsHeader": "Umumiy taomlar (hammaga)",
+    "sharedItemsHeader": "Umumiy taomlar",
     "itemLineTotal": "Qator summasi: {{amount}}",
     "mismatchWarning": "Taomlar summasi ({{itemsTotal}}) kutilgan ovqat byudjeti ({{foodBudget}}) bilan mos kelmayapti",
     "cancel": "Qo'lda kiritish",
@@ -203,7 +205,9 @@
     "durationHoursMinutes": "{{hours}} soat {{minutes}} daqiqa",
     "summaryHeader": "💸 schet.uz hisob bo'linishi — {{crew}}",
     "summarySplitBy": "schet.uz orqali bo'lindi 💸",
-    "summaryVerification": "Tekshiruv: {{sum}} / {{total}} {{check}}"
+    "summaryVerification": "Tekshiruv: {{sum}} / {{total}} {{check}}",
+    "sharedItemLabel": "{{name}} ({{count}} kishiga bo'lingan)",
+    "splitBetween": "{{names}} o'rtasida teng"
   },
   "settleUp": {
     "title": "Hisob-kitob qilish",
@@ -282,5 +286,13 @@
     "exportDay": "Yuklab olish",
     "exportEmpty": "Bu kunda fayl yo'q.",
     "exportError": "Yuklab olib bo'lmadi."
+  },
+  "splitGroup": {
+    "title": "Kimlar o'rtasida bo'linadi?",
+    "subtitle": "{{name}} — {{amount}}",
+    "everyone": "Hammaga",
+    "done": "Tayyor",
+    "summary": "{{count}} kishi · har biriga {{amount}}",
+    "pickAtLeastOne": "Kamida bitta odamni tanlang"
   }
 }

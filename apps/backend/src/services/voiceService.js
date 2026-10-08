@@ -60,6 +60,13 @@ async function saveVoiceRecord({ kind, audioBuffer, mimetype, geminiResponse, re
 // endpoints. Both currently default to the same tier.
 const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash'
 const BILL_MODEL = process.env.GEMINI_BILL_MODEL || 'gemini-3.5-flash'
+// Same fallback tier OCR uses (ocrService.js): when the main model answers 503 "high
+// demand" (seen intermittently on gemini-3.5-flash), retry once on flash-lite instead of
+// failing the recording outright.
+const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite'
+const RETRYABLE_ERRORS = new Set(['TIMEOUT', 'GEMINI_SERVER_ERROR', 'GEMINI_MODEL_UNAVAILABLE'])
+// Below this much time left there's no point starting the fallback call.
+const MIN_FALLBACK_MS = 5000
 
 const MEMBERS_PROMPT = `You are transcribing spoken names for a bill-splitting app. The speaker may talk in Uzbek, Russian, or English — detect and parse whichever language is actually spoken, do not force one.
 Return ONLY valid JSON, no markdown, no explanation:
@@ -87,7 +94,7 @@ Return ONLY valid JSON, no markdown, no explanation, in exactly this shape:
   "detectedLanguage": "uz" or "ru" or "en" or "unknown",
   "members": [ { "name": string, "isMe": boolean } ],
   "personalItems": [ { "name": string, "unitPrice": number, "perMember": [ { "member": string, "quantity": number } ] } ],
-  "sharedItems": [ { "name": string, "quantity": number, "totalPrice": number } ],
+  "sharedItems": [ { "name": string, "quantity": number, "totalPrice": number, "sharedBy": [string] } ],
   "grandTotal": number or null,
   "tipAmount": number or null,
   "tipPercent": number or null,
@@ -104,6 +111,10 @@ Rules:
   - IMPORTANT — do not drop anyone either: if several names were listed together earlier (e.g. "Men Eldor, Elyor, Elbek bilan bordik"), all of them must appear in the top-level members list, and you must listen through the ENTIRE recording for what EACH of those specific people ate — people are often listed quickly in a row near the start but their food quantities come later, one at a time, sometimes all in one dense sentence about the SAME dish (e.g. "Men to'rtta, Eldor uchta, Elyor uchta, Elbek to'rtta shashlik yedi" names FOUR people back to back, all eating shashlik — all four need a perMember entry on that one Shashlik item, not just the first two). Before finalizing perMember for a dish, run this self-check: for each person who was actually said to eat THIS SPECIFIC dish, do they have a perMember entry? If one is missing, you stopped listening too early — go back through the whole recording again. But this self-check only adds people who ate that dish; it never justifies adding someone who ate a different dish or wasn't mentioned with this dish at all.
   - CRITICAL — an item's "name" must always be an actual food/drink word, NEVER a person's name: a personalItems[].name (or sharedItems[].name) that turns out identical to one of the members is a sign you mis-split the sentence into the wrong roles — go back and find the real dish word instead of writing the person's name into the item slot. Example: "Hilolaga somsa, o'n ming so'm; Kamolaga esa kamola pishirig'i, qirq ming so'm" ("for Hilola, somsa, ten thousand; for Kamola, kamola pastry, forty thousand") — WRONG: personalItems=[{"name":"Kamola","unitPrice":40000,"perMember":[{"member":"Kamola","quantity":1}]}] (dropped Hilola entirely, used the person's name as the dish). RIGHT: members includes both Hilola and Kamola; personalItems=[{"name":"Somsa","unitPrice":10000,"perMember":[{"member":"Hilola","quantity":1}]},{"name":"Kamola pishirig'i","unitPrice":40000,"perMember":[{"member":"Kamola","quantity":1}]}] — every person mentioned keeps their own perMember entry under the dish they actually ate, and the dish name is never just their own name.
 - sharedItems = a dish or drink shared evenly by everyone, or where no per-person quantity was mentioned (e.g. "choy va non hammaga" => sharedItems entries for tea and bread with the TOTAL quantity purchased and TOTAL price for that line). Never try to compute each person's portion yourself — the app splits sharedItems evenly automatically.
+  - sharedBy = ONLY when a dish was shared by SOME of the people, not the whole table: list exactly those people's names (copied from members, "Me" for the speaker). Examples: "Ali bilan Vali bitta salat yedi, 40 ming" / "Али и Вали поделили один салат за 40 тысяч" / "Ali and Vali shared one salad, 40 thousand" => sharedItems=[{"name":"Salat","quantity":1,"totalPrice":40000,"sharedBy":["Ali","Vali"]}]. "Men va Ali bitta pitsani bo'lishdik" => sharedBy=["Me","Ali"]. When everyone shared it, or nobody said who, use sharedBy=[]. This is the only case where a sharedItems entry is NOT split among the whole table — everything said above about sharedItems still holds when sharedBy is empty.
+  - CRITICAL — several people sharing ONE dish is a sharedItems entry with sharedBy, NOT a personalItems entry giving each of them quantity 1: that would count one salad as two salads and double its price. Use personalItems only when each person ate their OWN portion(s).
+  - A sharedItems "quantity" is how many units were BOUGHT, never how many people shared them: "Ali va Vali bitta salatni bo'lishdi" is quantity 1 (one salad), not 2. Its totalPrice is the price of those units ("salat 30 ming" => 30000).
+- "Each of us had one" — "hammamiz bittadan osh yedik", "har birimiz bittadan osh oldik", "мы все взяли по одному плову", "we each had one plov" — means EVERY member ate their OWN portion: one personalItems entry with perMember quantity 1 for EVERY person in members (including "Me"), and the spoken price is per portion ("oshning narxi 35 ming donasi" => unitPrice 35000, so 4 people => 140000 in total). It is NOT a single shared dish and NOT just the speaker's dish. Same for "ikkitadan"/"по два"/"two each" with quantity 2 per person. This does NOT break the "do not default anyone in" or "only merge when the dish name is repeated" rules above: "hammamiz"/"har birimiz"/"все"/"each of us" explicitly SAYS every person ate that dish, so each of them was actually spoken for it — without such a word, those rules still apply as written.
 - unitPrice/totalPrice: numbers only, in the currency spoken (no symbols). Uzbek number words: "-ta" count suffix (e.g. "to'rtta"=4, "uchta"=3); "ming" multiplies by 1000 (e.g. "5 ming"=5000, "120 ming"=120000); "million" multiplies by 1000000. Russian: "тысяча"/"тыс"=×1000, "миллион"=×1000000. English: "thousand"=×1000, "million"=×1000000.
   - personalItems.unitPrice is ALWAYS a per-single-unit price, never a total — but speakers almost always say a TOTAL for however many units that person ate, not a per-unit price (e.g. "2ta shashlik yedim 30000 ga" = 2 units for 30000 total, NOT 30000 each). Whenever the number spoken is a total covering more than one unit, divide: unitPrice = (spoken total) / (quantity that total covers). Example: "Men ikkita shashlik yedim 30000 ga" with no one else eating shashlik => quantity=2, spoken total=30000, so unitPrice=15000 (NOT unitPrice=30000, and NOT unitPrice=30000 divided by the number of people in the whole bill — divide only by that dish's own quantity). If a dish's perMember quantities add up to N and only one combined total was ever spoken for it, unitPrice must equal that total divided by N — double check this division before finalizing, since getting it wrong silently overcharges or undercharges whoever's on that item.
 - IMPORTANT — never guess a price, and never let one item's price bleed into another's: each number spoken in the recording belongs to exactly ONE item — the one it was said next to. Before writing a unitPrice/totalPrice, find the specific words in the recording that state THIS item's price; if you can't point to those words for this exact item, the number belongs to a different item (or to the grand total/tip) and does NOT apply here — put 0 instead of copying a number you found elsewhere. Concretely: hearing ".. ikkita non 12 ming so'm bo'ldi" states NON's total price, not the price of any other dish mentioned earlier or later in the same recording — a dish whose own price was never stated must get 0 even if some other number was said somewhere in the audio. It's expected and fine for at most one item to end up with an unknown (0) price; a separate system works out its real price afterward from the grand total once every other amount is known, so 0 there is the honest answer, not a failure.
@@ -123,8 +134,9 @@ Rules:
 // resolve "just a name and a number" against the one dish it's obviously about.
 function buildFixPrompt(pending) {
   const memberNames = (pending.members || []).map((m) => m.name)
+  const nameOf = (id) => (pending.members || []).find((mm) => mm.id === id)?.name || '?'
   const personalLines = (pending.items || [])
-    .filter((i) => !i.everyone)
+    .filter((i) => !i.everyone && !i.group)
     .map((i) => {
       const shareParts = Object.entries(i.shares || {}).map(([id, qty]) => {
         const m = (pending.members || []).find((mm) => mm.id === id)
@@ -134,8 +146,12 @@ function buildFixPrompt(pending) {
       return `  - "${i.name}" (${priceNote}): ${shareParts.length > 0 ? shareParts.join(', ') : 'no one recorded yet'}`
     })
   const sharedLines = (pending.items || [])
-    .filter((i) => i.everyone)
-    .map((i) => `  - "${i.name}" (shared by everyone, total ${i.price})`)
+    .filter((i) => i.everyone || i.group)
+    .map((i) =>
+      i.group
+        ? `  - "${i.name}" (shared only by ${Object.keys(i.shares || {}).map(nameOf).join(', ')}, total ${i.price})`
+        : `  - "${i.name}" (shared by everyone, total ${i.price})`
+    )
 
   return `${BILL_PROMPT}
 
@@ -220,6 +236,7 @@ const BILL_SCHEMA = {
           name: { type: Type.STRING },
           quantity: { type: Type.NUMBER },
           totalPrice: { type: Type.NUMBER },
+          sharedBy: { type: Type.ARRAY, items: { type: Type.STRING } },
         },
         required: ['name', 'quantity', 'totalPrice'],
       },
@@ -262,9 +279,12 @@ async function transcribe(audioBuffer, mimetype, promptText, responseSchema, tim
           ],
         },
       ],
+      // Without abortSignal the timer above aborts a controller nothing listens to, and
+      // a hung call runs on past the frontend's own fetch timeout (same fix as OCR).
       config: {
         responseMimeType: 'application/json',
         responseSchema,
+        abortSignal: controller.signal,
       },
     })
     const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text || ''
@@ -275,6 +295,67 @@ async function transcribe(audioBuffer, mimetype, promptText, responseSchema, tim
   } finally {
     clearTimeout(timeout)
   }
+}
+
+// Tries `model`, then FALLBACK_MODEL on an overload/timeout/server error. `budgetMs` is
+// the whole request's time, kept just under the frontend's own fetch timeout for that
+// endpoint; the main model is cut off at `primaryMs` so a slow/hung call still leaves
+// the fallback real time (an instant 503 leaves it nearly the full budget).
+async function transcribeWithFallback(audioBuffer, mimetype, promptText, responseSchema, { budgetMs, primaryMs }, model) {
+  const deadline = Date.now() + budgetMs
+  try {
+    return await transcribe(audioBuffer, mimetype, promptText, responseSchema, Math.min(primaryMs, budgetMs), model)
+  } catch (primaryErr) {
+    const code = mapGeminiError(primaryErr)
+    const left = deadline - Date.now()
+    console.error('[voice] Gemini failed', { model, code, message: primaryErr?.message })
+    if (FALLBACK_MODEL === model || !RETRYABLE_ERRORS.has(code) || left < MIN_FALLBACK_MS) throw primaryErr
+    console.warn(`[voice] retrying on ${FALLBACK_MODEL} (${Math.round(left / 1000)}s left)`)
+    return await transcribeViaText(audioBuffer, mimetype, promptText, responseSchema, left, FALLBACK_MODEL)
+  }
+}
+
+const VERBATIM_PROMPT =
+  'Transcribe this audio verbatim, in the language actually spoken (Uzbek in Latin script, Russian in Cyrillic, English). Keep every name, number and word exactly as said; write numbers as digits. Output only the transcript.'
+
+// Fallback path: the lighter model transcribes accurately but parses a whole bill
+// straight from audio unreliably (replaying a real recording it dropped a member, read
+// "hammamiz bittadan osh" as only the speaker's dish and counted a salad shared by two as
+// 2 salads). Transcribing first, then running the same prompt over the text, got it
+// right 3/3 in ~5s. Both steps share the remaining time budget.
+async function transcribeViaText(audioBuffer, mimetype, promptText, responseSchema, timeoutMs, model) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+    const heard = await ai.models.generateContent({
+      model,
+      contents: [{ parts: [{ inlineData: { mimeType: mimetype, data: audioBuffer.toString('base64') } }, { text: VERBATIM_PROMPT }] }],
+      config: { abortSignal: controller.signal },
+    })
+    const transcript = (heard.candidates?.[0]?.content?.parts?.[0]?.text || '').trim()
+    console.log('[voice] fallback transcript:', transcript.slice(0, 500))
+    const result = await ai.models.generateContent({
+      model,
+      contents: [{ parts: [{ text: `Transcript of the recording (treat it exactly as the audio):
+"${transcript}"` }, { text: promptText }] }],
+      config: { responseMimeType: 'application/json', responseSchema, abortSignal: controller.signal },
+    })
+    const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    console.log('[voice] raw Gemini response:', rawText.slice(0, 1000))
+    return rawText
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+// Per-endpoint timing. Budgets sit just under the frontend's fetch timeouts
+// (useVoiceInput: amount 30s, members 45s, bill 90s); bill_fix is bot-only.
+const TIMING = {
+  amount: { budgetMs: 26000, primaryMs: 15000 },
+  members: { budgetMs: 40000, primaryMs: 22000 },
+  bill: { budgetMs: 85000, primaryMs: 50000 },
+  billFix: { budgetMs: 75000, primaryMs: 45000 },
 }
 
 function parseJson(rawText) {
@@ -322,6 +403,18 @@ function normalizeMembers(parsed) {
 function flagItemsNamedAfterMembers(items, members) {
   const memberNames = new Set(members.map((m) => m.name.toLowerCase()))
   return items.filter((i) => memberNames.has(i.name.trim().toLowerCase())).map((i) => i.name)
+}
+
+// How a spoken shared dish is split: `sharedBy` naming only some of the people makes it
+// a group item (one share each, price split equally among them); one person makes it
+// simply theirs; nobody named, or the whole table, keeps it shared by everyone.
+// resolveMemberId may append members, so "the whole table" is checked afterwards.
+function sharedTarget(sharedBy, quantity, resolveMemberId, members) {
+  const names = Array.isArray(sharedBy) ? sharedBy.map((n) => (n || '').trim()).filter(Boolean) : []
+  const ids = [...new Set(names.map((n) => resolveMemberId(n)))]
+  if (ids.length === 0 || ids.length >= members.length) return { shares: {}, everyone: true, group: false }
+  if (ids.length === 1) return { shares: { [ids[0]]: quantity }, everyone: false, group: false }
+  return { shares: Object.fromEntries(ids.map((id) => [id, 1])), everyone: false, group: true }
 }
 
 // Converts Gemini's name-keyed voice output into the same `Item[]` shape
@@ -400,7 +493,8 @@ function normalizeBillVoice(parsed) {
     const totalPrice = parseFloat(entry?.totalPrice) || 0
     if (!name) return
 
-    items.push({ id: uuidv4(), name, unitPrice: totalPrice / quantity, quantity, price: totalPrice, shares: {}, everyone: true })
+    const base = { id: uuidv4(), name, unitPrice: totalPrice / quantity, quantity, price: totalPrice }
+    items.push({ ...base, ...sharedTarget(entry?.sharedBy, quantity, resolveMemberId, members) })
   })
 
   let grandTotal = parsed.grandTotal != null ? parseFloat(parsed.grandTotal) : null
@@ -528,6 +622,11 @@ function mergeBillVoiceFix(pending, parsed) {
       target.unitPriceUncertain = false
     }
     const addsQuantity = perMember.some((p) => Math.max(0, parseInt(p?.quantity) || 0) > 0)
+    // Per-person quantities replace a "shared by a few" split with ordinary portions.
+    if (target.group && addsQuantity) {
+      target.group = false
+      target.shares = {}
+    }
     // The item's current unitPrice was never actually spoken — it was only back-solved
     // (applyPriceInference) from the OLD quantity. Now that this fix is changing the
     // quantity, that number is stale (e.g. it was divided across 10 units and is about
@@ -551,6 +650,25 @@ function mergeBillVoiceFix(pending, parsed) {
     if (!name) return
     const totalPrice = parseFloat(entry?.totalPrice) || 0
     const quantity = Math.max(1, parseInt(entry?.quantity) || 1)
+
+    // "Ali and Vali shared the salad" — re-split whichever item has that name (personal,
+    // shared or group) among exactly those people, keeping its price unless a new one
+    // was spoken.
+    if (Array.isArray(entry?.sharedBy) && entry.sharedBy.some((n) => (n || '').trim())) {
+      let target = items.find((i) => i.name.toLowerCase() === name.toLowerCase())
+      if (!target) {
+        target = { id: uuidv4(), name, unitPrice: 0, quantity, price: 0 }
+        items.push(target)
+      }
+      if (totalPrice > 0) {
+        target.quantity = quantity
+        target.unitPrice = totalPrice / quantity
+        target.price = totalPrice
+        target.unitPriceUncertain = false
+      }
+      Object.assign(target, sharedTarget(entry.sharedBy, target.quantity || quantity, resolveMemberId, members))
+      return
+    }
 
     // A bare "name + price" fix utterance (no per-person split repeated) reads as a
     // shared item to Gemini in isolation — but if this name already exists as a
@@ -621,7 +739,7 @@ async function runVoiceAmount(audioBuffer, mimetype) {
 
   try {
     try {
-      rawText = await transcribe(audioBuffer, mimetype, AMOUNT_PROMPT, AMOUNT_SCHEMA, 15000, DEFAULT_MODEL)
+      rawText = await transcribeWithFallback(audioBuffer, mimetype, AMOUNT_PROMPT, AMOUNT_SCHEMA, TIMING.amount, DEFAULT_MODEL)
     } catch (geminiErr) {
       errorCode = mapGeminiError(geminiErr)
       throw geminiErr
@@ -642,7 +760,7 @@ async function runVoiceMembers(audioBuffer, mimetype) {
 
   try {
     try {
-      rawText = await transcribe(audioBuffer, mimetype, MEMBERS_PROMPT, MEMBERS_SCHEMA, 20000, DEFAULT_MODEL)
+      rawText = await transcribeWithFallback(audioBuffer, mimetype, MEMBERS_PROMPT, MEMBERS_SCHEMA, TIMING.members, DEFAULT_MODEL)
     } catch (geminiErr) {
       errorCode = mapGeminiError(geminiErr)
       throw geminiErr
@@ -663,7 +781,7 @@ async function runVoiceBill(audioBuffer, mimetype) {
 
   try {
     try {
-      rawText = await transcribe(audioBuffer, mimetype, BILL_PROMPT, BILL_SCHEMA, 45000, BILL_MODEL)
+      rawText = await transcribeWithFallback(audioBuffer, mimetype, BILL_PROMPT, BILL_SCHEMA, TIMING.bill, BILL_MODEL)
     } catch (geminiErr) {
       errorCode = mapGeminiError(geminiErr)
       throw geminiErr
@@ -684,7 +802,7 @@ async function runVoiceBillFix(audioBuffer, mimetype, pending) {
 
   try {
     try {
-      rawText = await transcribe(audioBuffer, mimetype, buildFixPrompt(pending), BILL_SCHEMA, 30000, BILL_MODEL)
+      rawText = await transcribeWithFallback(audioBuffer, mimetype, buildFixPrompt(pending), BILL_SCHEMA, TIMING.billFix, BILL_MODEL)
     } catch (geminiErr) {
       errorCode = mapGeminiError(geminiErr)
       throw geminiErr

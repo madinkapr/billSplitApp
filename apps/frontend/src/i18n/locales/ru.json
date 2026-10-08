@@ -129,7 +129,9 @@
     "splitEqually": "{{amount}} делится поровну",
     "splitRatio": "{{amount}} делится {{ratio}}",
     "splitEquallyAmongEveryone": "{{amount}} делится поровну между всеми",
-    "done": "Готово"
+    "done": "Готово",
+    "sharedAdd": "Общее",
+    "sharedChecked": "✓ на {{count}} чел."
   },
   "quantityStepper": {
     "question": "Сколько {{item}} для {{member}}?",
@@ -171,7 +173,7 @@
     "perUnitPrice": "цена за штуку",
     "priceUncertain": "Цена не была озвучена — вычислена из общей суммы, проверьте",
     "priceUnknown": "Цена не была озвучена — введите её",
-    "sharedItemsHeader": "Общие позиции (на всех)",
+    "sharedItemsHeader": "Общие позиции",
     "itemLineTotal": "Итого по позиции: {{amount}}",
     "mismatchWarning": "Сумма позиций ({{itemsTotal}}) не совпадает с ожидаемой суммой за еду ({{foodBudget}})",
     "cancel": "Ввести вручную",
@@ -207,7 +209,9 @@
     "durationHoursMinutes": "{{hours}} ч {{minutes}} мин",
     "summaryHeader": "💸 Разделение счёта schet.uz — {{crew}}",
     "summarySplitBy": "Разделено с schet.uz 💸",
-    "summaryVerification": "Проверка: {{sum}} / {{total}} {{check}}"
+    "summaryVerification": "Проверка: {{sum}} / {{total}} {{check}}",
+    "sharedItemLabel": "{{name}} (на {{count}} чел.)",
+    "splitBetween": "Поровну: {{names}}"
   },
   "settleUp": {
     "title": "Рассчитаться",
@@ -290,5 +294,13 @@
     "exportDay": "Скачать",
     "exportEmpty": "За этот день файлов нет.",
     "exportError": "Не удалось скачать."
+  },
+  "splitGroup": {
+    "title": "Кто делит это блюдо?",
+    "subtitle": "{{name}} — {{amount}}",
+    "everyone": "Все",
+    "done": "Готово",
+    "summary": "{{count}} чел. · каждому {{amount}}",
+    "pickAtLeastOne": "Выберите хотя бы одного"
   }
 }

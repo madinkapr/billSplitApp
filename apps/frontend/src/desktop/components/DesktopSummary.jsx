@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Copy, Check, ChevronDown, ChevronUp, Share2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getItemShares } from '../../utils/math'
+import { isGroupItem } from '../../utils/itemizerState'
 import { copyText } from '../../utils/clipboard'
 import { useCurrency } from '../../hooks/useCurrency'
 import { useBillSummary } from '../../hooks/useBillSummary'
@@ -122,7 +123,13 @@ export default function DesktopSummary({ bill }) {
                           <span>{fmt(item.price)}</span>
                         </div>
                       </div>
-                      <p className="text-xs text-desktop-textMuted3 truncate">{assignedLabels.length > 0 ? assignedLabels.join(', ') : t('report.everyoneSplitEqually')}</p>
+                      <p className="text-xs text-desktop-textMuted3 truncate">
+                      {assignedLabels.length === 0
+                        ? t('report.everyoneSplitEqually')
+                        : isGroupItem(item)
+                          ? t('report.splitBetween', { names: assignedLabels.join(', ') })
+                          : assignedLabels.join(', ')}
+                    </p>
                     </div>
                   )
                 })}
