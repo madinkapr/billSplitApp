@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken')
 const pool = require('../db')
+const { deletionDate } = require('../services/emailVerification')
 
 // User sessions live in an httpOnly cookie (not localStorage) so page scripts can't read
 // the token. The JWT carries only the user id; `typ` keeps an admin token (same secret,
@@ -40,7 +41,10 @@ function clearSessionCookie(res) {
   res.clearCookie(COOKIE_NAME, { httpOnly: true, sameSite: 'lax', secure: cookieIsSecure(), path: '/' })
 }
 
-// Runs on every request: sets req.user = { id, email, name, avatarUrl, emailVerified } for a valid
+// Columns publicUser() needs — select these wherever a users row becomes a response.
+const USER_COLUMNS = 'id, email, name, avatar_url, email_verified, verification_sent_at, verification_reminded_at, session_version'
+
+// Runs on every request: sets req.user = publicUser(row) for a valid
 // session, otherwise leaves it null (guest). Never rejects — use requireUser for that.
 async function attachUser(req, res, next) {
   req.user = null
@@ -49,7 +53,7 @@ async function attachUser(req, res, next) {
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET)
     if (payload.typ !== 'user' || !payload.uid) return next()
-    const { rows } = await pool.query('SELECT id, email, name, avatar_url, email_verified, session_version FROM users WHERE id = $1', [payload.uid])
+    const { rows } = await pool.query(`SELECT ${USER_COLUMNS} FROM users WHERE id = $1`, [payload.uid])
     if (rows[0] && rows[0].session_version === (payload.sv || 0)) req.user = publicUser(rows[0])
   } catch {
     // expired/forged token or deleted user — treat as a guest
@@ -57,6 +61,8 @@ async function attachUser(req, res, next) {
   next()
 }
 
+// Accepts a users row or an already-public user (req.user), so it can be applied twice.
+// deleteAt: when an unconfirmed account will be removed (see services/emailVerification.js).
 function publicUser(row) {
   return {
     id: row.id,
@@ -64,7 +70,8 @@ function publicUser(row) {
     name: row.name,
     avatarUrl: row.avatar_url ?? row.avatarUrl ?? null,
     emailVerified: !!(row.email_verified ?? row.emailVerified),
+    deleteAt: row.deleteAt !== undefined ? row.deleteAt : deletionDate(row),
   }
 }
 
-module.exports = { attachUser, setSessionCookie, clearSessionCookie, publicUser, COOKIE_NAME }
+module.exports = { attachUser, setSessionCookie, clearSessionCookie, publicUser, COOKIE_NAME, USER_COLUMNS }

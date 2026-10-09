@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs')
 const rateLimit = require('express-rate-limit')
 const { OAuth2Client } = require('google-auth-library')
 const pool = require('../db')
-const { setSessionCookie, clearSessionCookie, publicUser } = require('../middleware/auth')
+const { setSessionCookie, clearSessionCookie, publicUser, USER_COLUMNS } = require('../middleware/auth')
 const { getUsage } = require('../middleware/usageLimit')
 const { sendEmail, passwordResetEmail, appBaseUrl } = require('../services/email')
 const { sendVerificationEmail } = require('../services/emailVerification')
@@ -77,7 +77,7 @@ router.post('/register', authLimiter, async (req, res) => {
     const hash = await bcrypt.hash(password, 10)
     const { rows } = await pool.query(
       `INSERT INTO users (email, name, password_hash, last_login_at) VALUES ($1, $2, $3, NOW())
-       RETURNING id, email, name, avatar_url, email_verified, session_version`,
+       RETURNING ${USER_COLUMNS}`,
       [email, name, hash]
     )
     // A delivery failure is only logged: the account still works, and the user can ask
@@ -102,7 +102,7 @@ router.post('/login', authLimiter, async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      'SELECT id, email, name, avatar_url, email_verified, password_hash, session_version FROM users WHERE email = $1',
+      `SELECT ${USER_COLUMNS}, password_hash FROM users WHERE email = $1`,
       [email]
     )
     const user = rows[0]

@@ -13,6 +13,16 @@ const REMIND_AFTER_DAYS = 14
 const DELETE_AFTER_REMINDER_DAYS = 14
 
 const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex')
+const DAY_MS = 24 * 60 * 60 * 1000
+
+// When the daily job will delete this unconfirmed account (a users row) — known once the
+// reminder has gone out, and shown from then on as a countdown in the "confirm your
+// email" notice, so the warning appears together with the reminder email. Null before
+// the reminder, and for confirmed or pre-confirmation accounts that are never deleted.
+function deletionDate(row) {
+  if (row.email_verified || !row.verification_reminded_at) return null
+  return new Date(new Date(row.verification_reminded_at).getTime() + DELETE_AFTER_REMINDER_DAYS * DAY_MS)
+}
 
 // Emails a fresh "confirm your email" link, cancelling any earlier one. The first send
 // starts the account's reminder/deletion clock; `lang` is remembered for the reminder.
@@ -80,4 +90,4 @@ function startUnverifiedCleanup() {
   cron.schedule('0 4 * * *', runUnverifiedCleanup, { timezone: 'Asia/Tashkent' })
 }
 
-module.exports = { sendVerificationEmail, runUnverifiedCleanup, startUnverifiedCleanup }
+module.exports = { sendVerificationEmail, runUnverifiedCleanup, startUnverifiedCleanup, deletionDate }
