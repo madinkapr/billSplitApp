@@ -355,6 +355,11 @@
     "passwordMismatch": "Parollar bir xil emas.",
     "resetButton": "Saqlash va kirish",
     "resetInvalid": "Havola yaroqsiz yoki muddati o'tgan. Havola 1 soat amal qiladi va faqat bir marta ishlaydi.",
-    "resetRequestNew": "Yangi havola so'rash"
+    "resetRequestNew": "Yangi havola so'rash",
+    "agreePrefix": "Ro'yxatdan o'tish orqali siz",
+    "agreeSuffix": "ga rozilik bildirasiz."
+  },
+  "legal": {
+    "privacy": "Maxfiylik siyosati"
   }
 }

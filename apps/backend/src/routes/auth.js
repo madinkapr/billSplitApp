@@ -135,8 +135,14 @@ router.post('/google', authLimiter, async (req, res) => {
       userId = rows[0]?.id
       // Email/password sign-up never proves the email is theirs, so someone could have
       // pre-registered this address. Google just proved who owns it: link the account
-      // and drop the unverified password so only the real owner can get in from now on.
-      if (userId) await pool.query('UPDATE users SET google_sub = $2, password_hash = NULL WHERE id = $1', [userId, payload.sub])
+      // and drop the unverified password so only the real owner can get in from now on —
+      // bumping session_version also signs out anyone already inside with that password.
+      if (userId) {
+        await pool.query(
+          'UPDATE users SET google_sub = $2, password_hash = NULL, session_version = session_version + 1 WHERE id = $1',
+          [userId, payload.sub]
+        )
+      }
     }
     if (!userId) {
       ;({ rows } = await pool.query(
@@ -207,7 +213,13 @@ router.post('/forgot', forgotLimiter, async (req, res) => {
         [user.id, sha256(token)]
       )
       const link = `${appBaseUrl()}/reset-password?token=${token}`
-      await sendEmail({ to: email, ...passwordResetEmail({ name: user.name, link, lang }) })
+      // A delivery failure is logged, never surfaced: answering differently here would
+      // tell the caller this email has an account (and the user can just retry).
+      try {
+        await sendEmail({ to: email, ...passwordResetEmail({ name: user.name, link, lang }) })
+      } catch (mailErr) {
+        console.error('Password reset email failed:', mailErr.message)
+      }
     }
     res.json({ ok: true })
   } catch (err) {

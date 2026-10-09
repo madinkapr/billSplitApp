@@ -6,6 +6,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage'
 import { useCurrency } from '../hooks/useCurrency'
 import { useIsAdmin } from '../hooks/useIsAdmin'
 import UserMenu from './UserMenu'
+import { inAppLinkClick } from '../utils/navigate'
 
 const LANGUAGES = [
   { code: 'uz', label: "O'zbek" },
@@ -210,6 +211,10 @@ export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelec
             {t('nav.stats')}
           </a>
         )}
+
+        <a href="/privacy" onClick={inAppLinkClick('/privacy')} className="text-center text-xs text-gray-400 active:text-gray-500 mt-2">
+          {t('legal.privacy')}
+        </a>
       </div>
     </div>
   )

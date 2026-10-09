@@ -3,6 +3,7 @@ import { ArrowLeft, Eye, EyeOff, Loader2, MailCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../hooks/useAuth'
 import GoogleSignInButton from './GoogleSignInButton'
+import { inAppLinkClick } from '../utils/navigate'
 
 const KNOWN_ERRORS = [
   'invalid_credentials',
@@ -211,6 +212,15 @@ export default function AuthPage({ initialMode = 'login', onDone, onBack }) {
         <button type="submit" disabled={!canSubmit} className="btn-primary w-full disabled:opacity-50">
           {busy ? <Loader2 size={16} className="animate-spin" /> : isRegister ? t('auth.registerButton') : t('auth.loginButton')}
         </button>
+        {isRegister && (
+          <p className="text-xs text-center text-gray-400">
+            {t('auth.agreePrefix')}{' '}
+            <a href="/privacy" onClick={inAppLinkClick('/privacy')} className="underline hover:text-gray-600">
+              {t('legal.privacy')}
+            </a>
+            {t('auth.agreeSuffix')}
+          </p>
+        )}
       </form>
 
       <p className="text-sm text-center text-gray-500">

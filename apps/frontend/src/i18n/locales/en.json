@@ -355,6 +355,11 @@
     "passwordMismatch": "Passwords don't match.",
     "resetButton": "Save and sign in",
     "resetInvalid": "This link is invalid or has expired. Links work once and expire after 1 hour.",
-    "resetRequestNew": "Request a new link"
+    "resetRequestNew": "Request a new link",
+    "agreePrefix": "By signing up you agree to the",
+    "agreeSuffix": "."
+  },
+  "legal": {
+    "privacy": "Privacy Policy"
   }
 }

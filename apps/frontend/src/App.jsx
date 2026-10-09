@@ -7,6 +7,8 @@ import AdminStatsPage from './admin/AdminStatsPage'
 import { trackPageView } from './utils/analytics'
 import AuthPage from './components/AuthPage'
 import ResetPasswordPage from './components/ResetPasswordPage'
+import PrivacyPage from './legal/PrivacyPage'
+import { canGoBackInApp } from './utils/navigate'
 import SignInPromptModal from './components/SignInPromptModal'
 import { AUTH_REQUIRED_EVENT, OPEN_LOGIN_EVENT } from './hooks/useAuth'
 
@@ -15,6 +17,7 @@ function getRouteFromLocation() {
   if (path.startsWith('/admin')) return 'admin'
   if (path.startsWith('/login')) return 'login'
   if (path.startsWith('/reset-password')) return 'reset'
+  if (path.startsWith('/privacy')) return 'privacy'
   return 'app'
 }
 
@@ -75,6 +78,7 @@ export default function App() {
 
   if (route === 'admin') return <AdminStatsPage onBack={goToApp} />
   // The bill in progress lives in useBillApp state, so going to /login and back keeps it.
+  if (route === 'privacy') return <PrivacyPage onBack={() => (canGoBackInApp() ? window.history.back() : goToApp())} />
   if (route === 'reset') {
     const token = new URLSearchParams(window.location.search).get('token') || ''
     return <ResetPasswordPage token={token} onDone={() => goToApp()} onForgotAgain={() => goToLogin('forgot')} />

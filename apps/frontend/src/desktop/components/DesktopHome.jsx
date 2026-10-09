@@ -3,6 +3,7 @@ import { Plus, Users, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrency } from '../../hooks/useCurrency'
 import { useAuth, openLogin } from '../../hooks/useAuth'
+import { inAppLinkClick } from '../../utils/navigate'
 
 export default function DesktopHome({ crews, recentBills, onStartNewBill, onSelectCrew, onManageCrews, onViewBill, onViewAllBills }) {
   const { t } = useTranslation()
@@ -142,6 +143,11 @@ export default function DesktopHome({ crews, recentBills, onStartNewBill, onSele
           <p className="text-sm text-desktop-textMuted3">{t('home.emptyBody')}</p>
         </div>
       )}
+      <footer className="text-center">
+        <a href="/privacy" onClick={inAppLinkClick('/privacy')} className="text-xs text-desktop-textMuted3 hover:text-desktop-textMuted hover:underline">
+          {t('legal.privacy')}
+        </a>
+      </footer>
     </div>
   )
 }
