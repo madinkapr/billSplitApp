@@ -1,6 +1,7 @@
 const express = require('express')
 const multer = require('multer')
 const { ERROR_MAP, runVoiceAmount, runVoiceMembers, runVoiceBill } = require('../services/voiceService')
+const { usageLimit } = require('../middleware/usageLimit')
 
 const router = express.Router()
 
@@ -29,7 +30,7 @@ function handleUpload(req, res, next) {
   })
 }
 
-router.post('/amount', handleUpload, async (req, res) => {
+router.post('/amount', usageLimit('voice_mini'), handleUpload, async (req, res) => {
   const { result, errorCode } = await runVoiceAmount(req.file.buffer, req.file.mimetype)
 
   if (errorCode) {
@@ -40,7 +41,7 @@ router.post('/amount', handleUpload, async (req, res) => {
   return res.json({ success: true, data: result })
 })
 
-router.post('/members', handleUpload, async (req, res) => {
+router.post('/members', usageLimit('voice_mini'), handleUpload, async (req, res) => {
   const { result, errorCode } = await runVoiceMembers(req.file.buffer, req.file.mimetype)
 
   if (errorCode) {
@@ -51,7 +52,7 @@ router.post('/members', handleUpload, async (req, res) => {
   return res.json({ success: true, data: result })
 })
 
-router.post('/bill', handleUpload, async (req, res) => {
+router.post('/bill', usageLimit('voice'), handleUpload, async (req, res) => {
   const { result, errorCode } = await runVoiceBill(req.file.buffer, req.file.mimetype)
 
   if (errorCode) {

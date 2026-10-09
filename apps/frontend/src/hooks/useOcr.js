@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { requestSignIn, notifyUsageChanged } from './useAuth'
 
 const MAX_DIMENSION = 1600
 const TARGET_SIZE = 2 * 1024 * 1024
@@ -133,12 +134,14 @@ export function useOcr() {
         })
       }
 
+      notifyUsageChanged()
       return { ...json.data, receiptId: json.receiptId }
     } catch (err) {
       let message
       if (err.name === 'AbortError' || controller?.signal.aborted) {
         message = 'Scan took too long. Try again.'
       } else if (err.errorCode) {
+        if (err.errorCode === 'GUEST_LIMIT') requestSignIn('limit')
         message = err.message
       } else {
         message = 'Connection error. Please try again.'

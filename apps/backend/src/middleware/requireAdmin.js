@@ -10,7 +10,11 @@ function requireAdmin(req, res, next) {
   }
 
   try {
-    req.admin = jwt.verify(token, secret)
+    const payload = jwt.verify(token, secret)
+    // User sessions are signed with the same secret (middleware/auth.js) — only a token
+    // issued by the admin login (it carries adminId) may pass here.
+    if (!payload.adminId || payload.typ === 'user') return res.status(401).json({ error: 'unauthorized' })
+    req.admin = payload
     next()
   } catch {
     return res.status(401).json({ error: 'unauthorized' })

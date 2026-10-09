@@ -153,3 +153,51 @@ CREATE TABLE IF NOT EXISTS calorie_cache (
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_used_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- App users (web login). Separate from `admins`: an account here is a regular customer.
+-- password_hash is NULL for Google-only accounts; google_sub is Google's stable user id.
+-- Emails are stored lowercased so "Ali@Mail.com" and "ali@mail.com" are one account.
+CREATE TABLE IF NOT EXISTS users (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email          TEXT UNIQUE NOT NULL,
+  name           TEXT,
+  password_hash  TEXT,
+  google_sub     TEXT UNIQUE,
+  avatar_url     TEXT,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_login_at  TIMESTAMPTZ
+);
+
+-- Who did it, when logged in — lets the admin activity table show the account
+-- instead of just an IP. NULL for guests and for rows from before login existed.
+ALTER TABLE page_views ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE manual_entries ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE voice_entries ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL;
+
+-- Daily usage of the Gemini-backed features (scan, voice), per guest IP ("ip:1.2.3.4")
+-- or per user ("user:<uuid>"), keyed by Tashkent calendar day. Backs the guest limits
+-- in middleware/usageLimit.js; only successful calls are counted.
+CREATE TABLE IF NOT EXISTS usage_counters (
+  subject  TEXT NOT NULL,
+  kind     TEXT NOT NULL,
+  day      DATE NOT NULL,
+  count    INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (subject, kind, day)
+);
+
+-- Bumped whenever the password changes; sessions carry the version they were issued
+-- with (middleware/auth.js), so a reset signs out every other device at once.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version INT NOT NULL DEFAULT 0;
+
+-- "Forgot password" links. Only a SHA-256 of the token is stored, so a database leak
+-- doesn't hand out working links; each one expires after an hour and works once.
+CREATE TABLE IF NOT EXISTS password_resets (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash  TEXT UNIQUE NOT NULL,
+  expires_at  TIMESTAMPTZ NOT NULL,
+  used_at     TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets (user_id);

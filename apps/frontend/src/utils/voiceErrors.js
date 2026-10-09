@@ -4,6 +4,8 @@ const ERROR_KEYS = {
   MIC_ERROR: 'billSetup.voiceMicDenied',
   TIMEOUT: 'billSetup.voiceErrorGeneric',
   NETWORK_ERROR: 'billSetup.voiceErrorGeneric',
+  GUEST_LIMIT: 'auth.limitShort',
+  USER_LIMIT: 'auth.userLimit',
 }
 
 // Maps a useVoiceInput errorCode to a localized message, falling back to a

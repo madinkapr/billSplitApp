@@ -5,6 +5,7 @@ const fs = require('fs')
 const { v4: uuidv4 } = require('uuid')
 const { UPLOADS_DIR, ERROR_MAP, resolveMimeType, runOcr, saveReceiptRecord } = require('../services/ocrService')
 const clientIp = require('../middleware/clientIp')
+const { usageLimit } = require('../middleware/usageLimit')
 
 const router = express.Router()
 
@@ -30,7 +31,7 @@ const upload = multer({
   },
 })
 
-router.post('/scan', (req, res) => {
+router.post('/scan', usageLimit('scan'), (req, res) => {
   upload.single('receipt')(req, res, async (uploadErr) => {
     // Handle multer errors
     if (uploadErr) {
@@ -53,6 +54,7 @@ router.post('/scan', (req, res) => {
       mimetype,
       ocrResult,
       ip: clientIp(req),
+      userId: req.user?.id,
     })
 
     if (errorCode) {

@@ -2,20 +2,39 @@ import React from 'react'
 import { Plus, Users, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrency } from '../../hooks/useCurrency'
+import { useAuth, openLogin } from '../../hooks/useAuth'
 
 export default function DesktopHome({ crews, recentBills, onStartNewBill, onSelectCrew, onManageCrews, onViewBill, onViewAllBills }) {
   const { t } = useTranslation()
   const { fmt } = useCurrency()
   const recentCrews = crews.slice(0, 4)
+  const { user, loading: authLoading } = useAuth()
 
   return (
     <div className="flex flex-col gap-[30px]" style={{ padding: '40px 44px' }}>
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <img src="/logo-schet.png" alt="SCHET.uz" className="h-14 w-auto object-contain" />
           <p className="text-sm text-desktop-textMuted mt-1">{t('home.tagline')}</p>
         </div>
+        {/* Guests: sign-in up top where it's seen; signed-in users get their profile in the sidebar */}
+        {!authLoading && !user && (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => openLogin('login')}
+              className="rounded-xl px-4 py-2.5 text-sm font-semibold text-desktop-text hover:bg-white transition-colors"
+            >
+              {t('auth.signIn')}
+            </button>
+            <button
+              onClick={() => openLogin('register')}
+              className="rounded-xl px-4 py-2.5 text-sm font-semibold bg-desktop-primary text-white hover:opacity-90 transition-opacity"
+            >
+              {t('auth.registerButton')}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Primary actions */}

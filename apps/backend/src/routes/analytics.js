@@ -19,7 +19,7 @@ router.post('/track', async (req, res) => {
   }
 
   try {
-    await pool.query('INSERT INTO page_views (visitor_id, ip) VALUES ($1, $2)', [visitorId, clientIp(req)])
+    await pool.query('INSERT INTO page_views (visitor_id, ip, user_id) VALUES ($1, $2, $3)', [visitorId, clientIp(req), req.user?.id || null])
     res.status(204).end()
   } catch (err) {
     console.error('Track pageview failed:', err.message)
@@ -32,7 +32,7 @@ const LOCAL_ID_RE = /^[a-zA-Z0-9-]{1,64}$/
 router.post('/manual-entry', async (req, res) => {
   const localId = typeof req.body?.localId === 'string' && LOCAL_ID_RE.test(req.body.localId) ? req.body.localId : null
   try {
-    await pool.query(`INSERT INTO manual_entries (source, local_id, ip) VALUES ('web', $1, $2)`, [localId, clientIp(req)])
+    await pool.query(`INSERT INTO manual_entries (source, local_id, ip, user_id) VALUES ('web', $1, $2, $3)`, [localId, clientIp(req), req.user?.id || null])
     res.status(204).end()
   } catch (err) {
     console.error('Track manual entry failed:', err.message)
@@ -68,7 +68,7 @@ router.put('/manual-entry/:localId', async (req, res) => {
 
 router.post('/voice-entry', async (req, res) => {
   try {
-    await pool.query('INSERT INTO voice_entries (ip) VALUES ($1)', [clientIp(req)])
+    await pool.query('INSERT INTO voice_entries (ip, user_id) VALUES ($1, $2)', [clientIp(req), req.user?.id || null])
     res.status(204).end()
   } catch (err) {
     console.error('Track voice entry failed:', err.message)
@@ -254,16 +254,17 @@ router.get('/activity', requireAdmin, async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT created_at, type, ip, tg_user FROM (
-         SELECT created_at, 'visit' AS type, ip, NULL AS tg_user FROM page_views WHERE ${day}
+      `SELECT a.created_at, a.type, a.ip, a.tg_user, u.email AS user_email, u.name AS user_name FROM (
+         SELECT created_at, 'visit' AS type, ip, NULL AS tg_user, user_id FROM page_views WHERE ${day}
          UNION ALL
-         SELECT created_at, 'scan', ip, tg_user FROM receipts WHERE ocr_result IS NOT NULL AND ${day}
+         SELECT created_at, 'scan', ip, tg_user, user_id FROM receipts WHERE ocr_result IS NOT NULL AND ${day}
          UNION ALL
-         SELECT created_at, 'manual', ip, tg_user FROM manual_entries WHERE ${MANUAL_DONE} AND ${day}
+         SELECT created_at, 'manual', ip, tg_user, user_id FROM manual_entries WHERE ${MANUAL_DONE} AND ${day}
          UNION ALL
-         SELECT created_at, 'voice', ip, tg_user FROM voice_entries WHERE ${day}
+         SELECT created_at, 'voice', ip, tg_user, user_id FROM voice_entries WHERE ${day}
        ) a
-       ORDER BY created_at DESC
+       LEFT JOIN users u ON u.id = a.user_id
+       ORDER BY a.created_at DESC
        LIMIT ${ACTIVITY_LIMIT + 1}`,
       date ? [date] : []
     )
@@ -274,6 +275,8 @@ router.get('/activity', requireAdmin, async (req, res) => {
         type: r.type,
         ip: r.ip,
         tgUser: r.tg_user,
+        userEmail: r.user_email,
+        userName: r.user_name,
       })),
     })
   } catch (err) {

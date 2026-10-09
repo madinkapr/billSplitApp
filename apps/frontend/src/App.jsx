@@ -5,15 +5,41 @@ import MobileApp from './mobile/MobileApp'
 import DesktopApp from './desktop/DesktopApp'
 import AdminStatsPage from './admin/AdminStatsPage'
 import { trackPageView } from './utils/analytics'
+import AuthPage from './components/AuthPage'
+import ResetPasswordPage from './components/ResetPasswordPage'
+import SignInPromptModal from './components/SignInPromptModal'
+import { AUTH_REQUIRED_EVENT, OPEN_LOGIN_EVENT } from './hooks/useAuth'
 
 function getRouteFromLocation() {
-  return window.location.pathname.startsWith('/admin') ? 'admin' : 'app'
+  const path = window.location.pathname
+  if (path.startsWith('/admin')) return 'admin'
+  if (path.startsWith('/login')) return 'login'
+  if (path.startsWith('/reset-password')) return 'reset'
+  return 'app'
 }
 
 export default function App() {
   const billApp = useBillApp()
   const isDesktop = useIsDesktop()
   const [route, setRoute] = useState(getRouteFromLocation)
+  const [authMode, setAuthMode] = useState(() => {
+    const mode = new URLSearchParams(window.location.search).get('mode')
+    return mode === 'register' || mode === 'forgot' ? mode : 'login'
+  })
+  const [signInPrompt, setSignInPrompt] = useState(false)
+
+  // Scan/voice hooks fire this when a guest runs out of free uses (GUEST_LIMIT).
+  useEffect(() => {
+    const onAuthRequired = () => setSignInPrompt(true)
+    const onOpenLogin = (e) => goToLogin(e.detail?.mode)
+    window.addEventListener(AUTH_REQUIRED_EVENT, onAuthRequired)
+    window.addEventListener(OPEN_LOGIN_EVENT, onOpenLogin)
+    return () => {
+      window.removeEventListener(AUTH_REQUIRED_EVENT, onAuthRequired)
+      window.removeEventListener(OPEN_LOGIN_EVENT, onOpenLogin)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     function onPopState() {
@@ -34,6 +60,13 @@ export default function App() {
     setRoute('admin')
   }
 
+  function goToLogin(mode = 'login') {
+    setSignInPrompt(false)
+    setAuthMode(mode)
+    window.history.pushState(null, '', mode === 'login' ? '/login' : `/login?mode=${mode}`)
+    setRoute('login')
+  }
+
   function goToApp(screen) {
     window.history.pushState(null, '', '/')
     setRoute('app')
@@ -41,10 +74,27 @@ export default function App() {
   }
 
   if (route === 'admin') return <AdminStatsPage onBack={goToApp} />
+  // The bill in progress lives in useBillApp state, so going to /login and back keeps it.
+  if (route === 'reset') {
+    const token = new URLSearchParams(window.location.search).get('token') || ''
+    return <ResetPasswordPage token={token} onDone={() => goToApp()} onForgotAgain={() => goToLogin('forgot')} />
+  }
+  if (route === 'login') return <AuthPage key={authMode} initialMode={authMode} onDone={() => goToApp()} onBack={() => goToApp()} />
 
-  return isDesktop ? (
-    <DesktopApp {...billApp} onOpenStats={goToStats} />
-  ) : (
-    <MobileApp {...billApp} onOpenStats={goToStats} />
+  return (
+    <>
+      {isDesktop ? (
+        <DesktopApp {...billApp} onOpenStats={goToStats} onOpenLogin={goToLogin} />
+      ) : (
+        <MobileApp {...billApp} onOpenStats={goToStats} onOpenLogin={goToLogin} />
+      )}
+      {signInPrompt && (
+        <SignInPromptModal
+          onLogin={() => goToLogin('login')}
+          onRegister={() => goToLogin('register')}
+          onClose={() => setSignInPrompt(false)}
+        />
+      )}
+    </>
   )
 }

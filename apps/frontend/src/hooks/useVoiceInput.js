@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { WavRecorder } from '../utils/wavRecorder'
+import { requestSignIn, notifyUsageChanged } from './useAuth'
 
 const MIN_RECORDING_MS = 400
 // Generous margins because the upload itself (not just Gemini's response) has to fit
@@ -68,6 +69,7 @@ export function useVoiceInput(endpoint, { timeout: timeoutMs = DEFAULT_TIMEOUT }
       }
 
       setState('idle')
+      notifyUsageChanged()
       return json.data
     } catch (err) {
       const isTimeout = err.name === 'AbortError' || controller.signal.aborted
@@ -77,6 +79,7 @@ export function useVoiceInput(endpoint, { timeout: timeoutMs = DEFAULT_TIMEOUT }
       // a CORS/mixed-content block, etc.) never showed up anywhere, only the generic
       // UI message. Logging it is what makes the next failure actually diagnosable.
       console.error('[useVoiceInput] request failed:', { endpoint, name: err.name, message: err.message, errorCode: err.errorCode, err })
+      if (code === 'GUEST_LIMIT') requestSignIn('limit')
       setErrorCode(code)
       setError(message)
       setState('error')

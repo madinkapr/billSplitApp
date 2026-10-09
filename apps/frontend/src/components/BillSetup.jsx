@@ -10,6 +10,7 @@ import { voiceErrorMessage } from '../utils/voiceErrors'
 import { trackManualEntry, trackVoiceEntry } from '../utils/analytics'
 import OcrReviewModal from './OcrReviewModal'
 import VoiceBillButton from './VoiceBillButton'
+import GuestUsageBar from './GuestUsageBar'
 import VoiceBillReviewModal from './VoiceBillReviewModal'
 
 const TIP_PRESETS = [15, 18, 20]
@@ -367,6 +368,7 @@ export default function BillSetup({ bill, crews, onBack, onNext }) {
             onRescan={() => setScanState('idle')}
           />
           <VoiceBillButton onResult={setVoiceBillData} />
+          <GuestUsageBar />
         </div>
 
         {/* Totals */}

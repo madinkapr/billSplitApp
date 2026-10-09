@@ -5,6 +5,7 @@ import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { useCurrency } from '../../hooks/useCurrency'
 import { useIsAdmin } from '../../hooks/useIsAdmin'
 import { SCREENS } from '../../hooks/useBillApp'
+import UserMenu from '../../components/UserMenu'
 
 const LANGUAGES = [
   { code: 'uz', label: "O'zbek" },
@@ -45,7 +46,7 @@ function FooterPill({ icon: Icon, value, open, onToggle, children, collapsed }) 
   )
 }
 
-export default function Sidebar({ screen, onNavigate, collapsed, onToggleCollapse, statsActive = false, onStatsClick }) {
+export default function Sidebar({ screen, onNavigate, collapsed, onToggleCollapse, statsActive = false, onStatsClick, onOpenLogin }) {
   const { t, i18n } = useTranslation()
   const { currency, setCurrency, CURRENCIES } = useCurrency()
   const [language, setLanguage] = useLocalStorage('tabup_language', 'ru')
@@ -127,6 +128,8 @@ export default function Sidebar({ screen, onNavigate, collapsed, onToggleCollaps
 
       {/* Footer */}
       <div className="flex flex-col gap-2 mt-auto pt-4">
+        {/* Signed-in profile only — guests sign in from the top-right of the home page */}
+        {onOpenLogin && <UserMenu variant="sidebar" collapsed={collapsed} onOpenLogin={onOpenLogin} hideWhenGuest />}
         <FooterPill
           icon={Globe}
           value={LANGUAGES.find((l) => l.code === language)?.label}

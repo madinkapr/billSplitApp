@@ -10,6 +10,7 @@ import { voiceErrorMessage } from '../../utils/voiceErrors'
 import { trackManualEntry, trackVoiceEntry } from '../../utils/analytics'
 import OcrReviewModal from '../../components/OcrReviewModal'
 import VoiceBillButton from '../../components/VoiceBillButton'
+import GuestUsageBar from '../../components/GuestUsageBar'
 import VoiceBillReviewModal from '../../components/VoiceBillReviewModal'
 
 const TIP_PRESETS = [15, 18, 20]
@@ -348,6 +349,7 @@ export default function DesktopBillSetup({ bill, crews, onBack, onNext }) {
             onRescan={() => setScanState('idle')}
           />
           <VoiceBillButton onResult={setVoiceBillData} />
+          <GuestUsageBar variant="desktop" />
         </div>
 
         <div className="flex gap-5 items-start">

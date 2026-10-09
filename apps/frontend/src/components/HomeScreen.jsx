@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { useCurrency } from '../hooks/useCurrency'
 import { useIsAdmin } from '../hooks/useIsAdmin'
+import UserMenu from './UserMenu'
 
 const LANGUAGES = [
   { code: 'uz', label: "O'zbek" },
@@ -12,7 +13,7 @@ const LANGUAGES = [
   { code: 'en', label: 'English' },
 ]
 
-export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelectCrew, onManageCrews, onViewBill, onViewAllBills, onOpenStats }) {
+export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelectCrew, onManageCrews, onViewBill, onViewAllBills, onOpenStats, onOpenLogin }) {
   const { t, i18n } = useTranslation()
   const { currency, setCurrency, fmt, CURRENCIES } = useCurrency()
   const [language, setLanguage] = useLocalStorage('tabup_language', 'ru')
@@ -32,6 +33,7 @@ export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelec
         <div className="flex items-center justify-between mb-1">
           <img src="/logo-schet-white.png" alt="SCHET.uz" className="h-12 w-auto object-contain" />
           <div className="flex items-center gap-2">
+            <UserMenu variant="header" onOpenLogin={onOpenLogin} />
             <div className="relative">
               <button
                 onClick={() => setCurrencyOpen((p) => !p)}

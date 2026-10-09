@@ -11,6 +11,8 @@ const analyticsRouter = require('./routes/analytics')
 const adminAuthRouter = require('./routes/adminAuth')
 const caloriesRouter = require('./routes/calories')
 const voiceRouter = require('./routes/voice')
+const authRouter = require('./routes/auth')
+const { attachUser } = require('./middleware/auth')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -22,6 +24,8 @@ app.set('trust proxy', 'loopback, linklocal, uniquelocal')
 
 app.use(cors())
 app.use(express.json())
+// Resolves the signed-in user (if any) from the session cookie for every route below.
+app.use(attachUser)
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' })
@@ -31,6 +35,7 @@ app.use('/api/ocr', ocrRouter)
 app.use('/api/settle', settleRouter)
 app.use('/api/analytics', analyticsRouter)
 app.use('/api/admin', adminAuthRouter)
+app.use('/api/auth', authRouter)
 app.use('/api/calories', caloriesRouter)
 app.use('/api/voice', voiceRouter)
 

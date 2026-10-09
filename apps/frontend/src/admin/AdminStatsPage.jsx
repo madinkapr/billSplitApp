@@ -452,8 +452,10 @@ function fmtTashkentDateTime(iso) {
   return `${parts.day}.${parts.month}.${parts.year} ${parts.hour}:${parts.minute}:${parts.second}`
 }
 
-const activitySource = (r) => (r.tgUser ? 'Telegram' : r.ip ? 'Web' : '—')
-const activityUser = (r) => r.tgUser || r.ip || '—'
+const activitySource = (r) => (r.tgUser ? 'Telegram' : r.ip || r.userEmail ? 'Web' : '—')
+// Signed-in web users show as "Name · email", guests by IP, bot users by @username.
+const activityUser = (r) =>
+  r.userEmail ? [r.userName, r.userEmail].filter(Boolean).join(' · ') : r.tgUser || r.ip || '—'
 
 // Phone-width variant of the table: one two-line row per entry instead of four columns,
 // so nothing needs horizontal scrolling.

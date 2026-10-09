@@ -245,11 +245,11 @@ async function runOcr(imageBuffer, mimetype) {
 }
 
 // Always logged (even on OCR failure — for ML training), matching the original route's behavior.
-async function saveReceiptRecord({ filename, filepath, mimetype, ocrResult, ip, tgUser }) {
+async function saveReceiptRecord({ filename, filepath, mimetype, ocrResult, ip, tgUser, userId }) {
   try {
     const dbResult = await pool.query(
-      'INSERT INTO receipts (filename, filepath, mimetype, language, ocr_result, ip, tg_user) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-      [filename, filepath, mimetype, ocrResult?.detectedLanguage || null, ocrResult ? JSON.stringify(ocrResult) : null, ip || null, tgUser || null]
+      'INSERT INTO receipts (filename, filepath, mimetype, language, ocr_result, ip, tg_user, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+      [filename, filepath, mimetype, ocrResult?.detectedLanguage || null, ocrResult ? JSON.stringify(ocrResult) : null, ip || null, tgUser || null, userId || null]
     )
     return dbResult.rows[0].id
   } catch (dbErr) {
