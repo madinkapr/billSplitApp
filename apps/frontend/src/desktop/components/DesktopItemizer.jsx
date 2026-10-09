@@ -23,6 +23,7 @@ import { copyText } from '../../utils/clipboard'
 import QuantityStepper from '../../components/QuantityStepper'
 import SettleShareMenu from '../../components/SettleShareMenu'
 import SplitGroupPicker from '../../components/SplitGroupPicker'
+import { useCelebrateWhenDone } from '../../hooks/useCelebration'
 
 const EVERYONE_ID = 'everyone'
 
@@ -296,6 +297,9 @@ export default function DesktopItemizer({ bill, onBack, onNext, onChange }) {
   // Live final split (tip/discount-adjusted) for the sticky summary panel
   const summary = useBillSummary({ ...bill, items })
   const share = useSettleShare({ bill, results: summary.results })
+
+  // Fireworks the moment the last dish is placed and the sums check out.
+  useCelebrateWhenDone(allAssigned && isBalanced, bill.id)
 
   useEffect(() => {
     if (allAssigned && isBalanced) {

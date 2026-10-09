@@ -743,11 +743,27 @@ function payerTypeKeyboard(msgs) {
   }
 }
 
+// Telegram's built-in 🎉 message effect (confetti over the chat), the bot's counterpart
+// of the web app's fireworks when a bill is fully split. Effects only work in private
+// chats (positive chat ids); if Telegram rejects it anyway, the message goes out plain.
+const CONFETTI_EFFECT_ID = '5046509860389126442'
+
+async function sendWithConfetti(bot, chatId, text, options) {
+  if (chatId > 0) {
+    try {
+      return await bot.sendMessage(chatId, text, { ...options, message_effect_id: CONFETTI_EFFECT_ID })
+    } catch (err) {
+      console.error('Message effect rejected, sending without it:', err.message)
+    }
+  }
+  return bot.sendMessage(chatId, text, options)
+}
+
 async function askForReport(bot, chatId, draft, msgs) {
   await saveSession(chatId, STATES.AWAITING_REPORT, draft)
   saveManualEntryBill(draft)
   const results = calculateSplits({ items: draft.items, members: draft.members, grandTotal: draft.grandTotal })
-  await bot.sendMessage(chatId, buildReportText(msgs, draft, results), { reply_markup: settleStartKeyboard(msgs) })
+  await sendWithConfetti(bot, chatId, buildReportText(msgs, draft, results), { reply_markup: settleStartKeyboard(msgs) })
 }
 
 // Appends the same per-person breakdown (tip share, dishes, shared items) used in

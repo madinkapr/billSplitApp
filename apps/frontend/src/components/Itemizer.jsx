@@ -14,6 +14,7 @@ import ItemChip, { ItemChipPreview } from './ItemChip'
 import ItemDetailSheet from './ItemDetailSheet'
 import SettleShareMenu from './SettleShareMenu'
 import SplitGroupPicker from './SplitGroupPicker'
+import { useCelebrateWhenDone } from '../hooks/useCelebration'
 
 const EVERYONE_ID = 'everyone'
 
@@ -157,6 +158,9 @@ export default function Itemizer({ bill, onBack, onNext, onChange }) {
   // Live final split (tip/discount-adjusted)
   const summary = useBillSummary({ ...bill, items })
   const share = useSettleShare({ bill, results: summary.results })
+
+  // Fireworks the moment the last dish is placed and the sums check out.
+  useCelebrateWhenDone(allAssigned && isBalanced, bill.id)
 
   useEffect(() => {
     if (allAssigned && isBalanced) {
