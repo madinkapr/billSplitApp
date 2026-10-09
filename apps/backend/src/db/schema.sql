@@ -201,3 +201,27 @@ CREATE TABLE IF NOT EXISTS password_resets (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets (user_id);
+
+-- A signed-in user's groups ("crews") and bill history, so they follow the account across
+-- devices. Guests keep both in browser localStorage only. `id` is the client-generated id;
+-- `data` is the object exactly as the frontend keeps it. Crews list in creation order
+-- (clock_timestamp so rows inserted in one statement still keep their order); bills by
+-- the bill's own createdAt.
+CREATE TABLE IF NOT EXISTS user_crews (
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  id          TEXT NOT NULL,
+  data        JSONB NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS user_bills (
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  id          TEXT NOT NULL,
+  data        JSONB NOT NULL,
+  created_at  TIMESTAMPTZ,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, id)
+);
+CREATE INDEX IF NOT EXISTS idx_user_bills_recent ON user_bills (user_id, created_at DESC NULLS LAST);

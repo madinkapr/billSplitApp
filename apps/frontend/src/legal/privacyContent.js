@@ -46,7 +46,9 @@ export const PRIVACY = {
         h: '4. Cookie va brauzer xotirasi',
         items: [
           "Tizimga kirganingizni eslab qolish uchun bitta xavfsiz cookie (30 kun) ishlatamiz.",
-          "Hisoblar tarixi, guruhlar, til va valyuta sozlamalari brauzeringizning o'zida (localStorage) saqlanadi va bizning serverga yuborilmaydi.",
+          "Akkauntga kirgan bo'lsangiz, hisoblar tarixi (oxirgi 100 ta) va guruhlaringiz serverimizda akkauntingizga bog'lab saqlanadi, shuning uchun boshqa qurilmadan kirganda ham ko'rinadi.",
+          "Kirmagan bo'lsangiz, tarix va guruhlar faqat brauzeringizda (localStorage) saqlanadi. Akkauntga kirganingizda ular akkauntingizga qo'shiladi va brauzerdan o'chiriladi.",
+          "Til va valyuta sozlamalari brauzeringizda saqlanadi va serverga yuborilmaydi.",
         ],
       },
       {
@@ -119,7 +121,9 @@ export const PRIVACY = {
         h: '4. Cookie и память браузера',
         items: [
           'Мы используем один защищённый cookie (30 дней), чтобы помнить, что вы вошли в аккаунт.',
-          'История счетов, группы, язык и валюта хранятся в вашем браузере (localStorage) и не отправляются на наш сервер.',
+          'Если вы вошли в аккаунт, история счетов (последние 100) и ваши группы хранятся на нашем сервере в привязке к аккаунту, поэтому они доступны и с других устройств.',
+          'Если вы не вошли, история и группы хранятся только в вашем браузере (localStorage). При входе в аккаунт они добавляются в аккаунт и удаляются из браузера.',
+          'Настройки языка и валюты хранятся в вашем браузере и не отправляются на сервер.',
         ],
       },
       {
@@ -192,7 +196,9 @@ export const PRIVACY = {
         h: '4. Cookies and browser storage',
         items: [
           'We use one secure cookie (30 days) to keep you signed in.',
-          'Bill history, groups, language and currency settings are stored in your browser (localStorage) and are not sent to our server.',
+          'If you are signed in, your bill history (the latest 100) and groups are stored on our server under your account, so they are available on other devices too.',
+          'If you are not signed in, history and groups are stored only in your browser (localStorage). When you sign in, they are added to your account and removed from the browser.',
+          'Language and currency settings are stored in your browser and are not sent to the server.',
         ],
       },
       {

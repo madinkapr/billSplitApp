@@ -12,6 +12,7 @@ const adminAuthRouter = require('./routes/adminAuth')
 const caloriesRouter = require('./routes/calories')
 const voiceRouter = require('./routes/voice')
 const authRouter = require('./routes/auth')
+const userDataRouter = require('./routes/userData')
 const { attachUser } = require('./middleware/auth')
 
 const app = express()
@@ -23,6 +24,9 @@ const PORT = process.env.PORT || 3001
 app.set('trust proxy', 'loopback, linklocal, uniquelocal')
 
 app.use(cors())
+// Bill history can run past the default 100kb when a guest's whole history is imported
+// on sign-in; the global parser below skips bodies that are already parsed.
+app.use('/api/me', express.json({ limit: '2mb' }))
 app.use(express.json())
 // Resolves the signed-in user (if any) from the session cookie for every route below.
 app.use(attachUser)
@@ -36,6 +40,7 @@ app.use('/api/settle', settleRouter)
 app.use('/api/analytics', analyticsRouter)
 app.use('/api/admin', adminAuthRouter)
 app.use('/api/auth', authRouter)
+app.use('/api/me', userDataRouter)
 app.use('/api/calories', caloriesRouter)
 app.use('/api/voice', voiceRouter)
 
