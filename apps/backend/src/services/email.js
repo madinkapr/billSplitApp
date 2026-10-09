@@ -56,21 +56,47 @@ const VERIFY_COPY = {
     hello: (name) => (name ? `Salom, ${name}!` : 'Salom!'),
     body: "SCHET.uz'da ro'yxatdan o'tganingiz uchun rahmat. Bu email sizniki ekanini tasdiqlash uchun tugmani bosing:",
     button: 'Emailni tasdiqlash',
-    note: "Havola 24 soat amal qiladi. Agar siz ro'yxatdan o'tmagan bo'lsangiz, bu xatga e'tibor bermang va havolani bosmang.",
+    note: "Havola 7 kun amal qiladi. Email 1 oy ichida tasdiqlanmasa, akkaunt o'chiriladi. Agar siz ro'yxatdan o'tmagan bo'lsangiz, bu xatga e'tibor bermang va havolani bosmang.",
   },
   ru: {
     subject: 'SCHET.uz — подтвердите email',
     hello: (name) => (name ? `Здравствуйте, ${name}!` : 'Здравствуйте!'),
     body: 'Спасибо за регистрацию в SCHET.uz. Чтобы подтвердить, что это ваш email, нажмите кнопку:',
     button: 'Подтвердить email',
-    note: 'Ссылка действует 24 часа. Если вы не регистрировались, просто проигнорируйте письмо и не нажимайте ссылку.',
+    note: 'Ссылка действует 7 дней. Если email не подтвердить в течение месяца, аккаунт будет удалён. Если вы не регистрировались, просто проигнорируйте письмо и не нажимайте ссылку.',
   },
   en: {
     subject: 'SCHET.uz — confirm your email',
     hello: (name) => (name ? `Hi ${name},` : 'Hi,'),
     body: 'Thanks for signing up for SCHET.uz. Click the button to confirm this email address is yours:',
     button: 'Confirm email',
-    note: "The link expires in 24 hours. If you didn't sign up, ignore this email and don't click the link.",
+    note: "The link expires in 7 days. If the email isn't confirmed within a month, the account is deleted. If you didn't sign up, ignore this email and don't click the link.",
+  },
+}
+
+// Two weeks after sign-up, if the email still isn't confirmed. Two weeks later the account
+// is deleted (services/emailVerification.js).
+const REMINDER_COPY = {
+  uz: {
+    subject: 'SCHET.uz — emailingizni hali tasdiqlamadingiz',
+    hello: (name) => (name ? `Salom, ${name}!` : 'Salom!'),
+    body: "Siz SCHET.uz'da ro'yxatdan o'tgansiz, lekin emailingizni hali tasdiqlamadingiz. 2 hafta ichida tasdiqlanmasa, akkaunt undagi guruhlar va tarix bilan birga o'chiriladi. Tasdiqlash uchun tugmani bosing:",
+    button: 'Emailni tasdiqlash',
+    note: "Havola 7 kun amal qiladi. Agar siz ro'yxatdan o'tmagan bo'lsangiz, bu xatga e'tibor bermang — akkaunt o'zi o'chib ketadi.",
+  },
+  ru: {
+    subject: 'SCHET.uz — вы ещё не подтвердили email',
+    hello: (name) => (name ? `Здравствуйте, ${name}!` : 'Здравствуйте!'),
+    body: 'Вы зарегистрировались в SCHET.uz, но ещё не подтвердили email. Если не подтвердить его в течение 2 недель, аккаунт будет удалён вместе с группами и историей. Чтобы подтвердить, нажмите кнопку:',
+    button: 'Подтвердить email',
+    note: 'Ссылка действует 7 дней. Если вы не регистрировались, просто проигнорируйте письмо — аккаунт удалится сам.',
+  },
+  en: {
+    subject: "SCHET.uz — you haven't confirmed your email yet",
+    hello: (name) => (name ? `Hi ${name},` : 'Hi,'),
+    body: "You signed up for SCHET.uz but haven't confirmed your email yet. If it isn't confirmed within 2 weeks, the account will be deleted along with its groups and history. Click the button to confirm:",
+    button: 'Confirm email',
+    note: "The link expires in 7 days. If you didn't sign up, ignore this email — the account will be removed on its own.",
   },
 }
 
@@ -104,5 +130,15 @@ function verifyEmailEmail({ name, link, lang }) {
   return buttonEmail(VERIFY_COPY[lang] || VERIFY_COPY.uz, { name, link })
 }
 
+function verifyReminderEmail({ name, link, lang }) {
+  return buttonEmail(REMINDER_COPY[lang] || REMINDER_COPY.uz, { name, link })
+}
 
-module.exports = { sendEmail, passwordResetEmail, verifyEmailEmail }
+// Base URL for links in emails. Never derived from request headers (Host/Origin): a forged
+// header would otherwise put an attacker's domain in the emailed link and leak the token
+// when the recipient clicks.
+function appBaseUrl() {
+  return (process.env.PUBLIC_BASE_URL || 'http://localhost:5173').replace(/\/+$/, '')
+}
+
+module.exports = { sendEmail, passwordResetEmail, verifyEmailEmail, verifyReminderEmail, appBaseUrl }

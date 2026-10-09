@@ -6,7 +6,8 @@ const { OAuth2Client } = require('google-auth-library')
 const pool = require('../db')
 const { setSessionCookie, clearSessionCookie, publicUser } = require('../middleware/auth')
 const { getUsage } = require('../middleware/usageLimit')
-const { sendEmail, passwordResetEmail, verifyEmailEmail } = require('../services/email')
+const { sendEmail, passwordResetEmail, appBaseUrl } = require('../services/email')
+const { sendVerificationEmail } = require('../services/emailVerification')
 
 const router = express.Router()
 
@@ -79,7 +80,9 @@ router.post('/register', authLimiter, async (req, res) => {
        RETURNING id, email, name, avatar_url, email_verified, session_version`,
       [email, name, hash]
     )
-    await sendVerificationEmail(rows[0], lang)
+    // A delivery failure is only logged: the account still works, and the user can ask
+    // for another link from the app.
+    await sendVerificationEmail(rows[0], lang).catch((err) => console.error('Verification email failed:', err.message))
     setSessionCookie(res, rows[0].id, rows[0].session_version)
     res.status(201).json({ user: publicUser(rows[0]) })
   } catch (err) {
@@ -205,11 +208,6 @@ const resetLimiter = rateLimit({
 const RESET_TTL_MINUTES = 60
 const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex')
 
-// Never derived from request headers (Host/Origin): a forged header would otherwise put
-// an attacker's domain in the emailed link and leak the token when the victim clicks.
-function appBaseUrl() {
-  return (process.env.PUBLIC_BASE_URL || 'http://localhost:5173').replace(/\/+$/, '')
-}
 
 // Always answers the same way whether or not the email has an account, so this can't be
 // used to find out who is registered. Google-only accounts may also set a password here.
@@ -283,31 +281,17 @@ router.post('/reset', resetLimiter, async (req, res) => {
   }
 })
 
-const VERIFY_TTL_HOURS = 24
-
-// Sends a fresh "confirm your email" link (cancelling any earlier one). A delivery
-// failure is only logged: the account still works, and the user can ask for another.
-async function sendVerificationEmail(user, lang) {
-  try {
-    const token = crypto.randomBytes(32).toString('hex')
-    await pool.query('DELETE FROM email_verifications WHERE user_id = $1 AND used_at IS NULL', [user.id])
-    await pool.query(
-      `INSERT INTO email_verifications (user_id, token_hash, expires_at) VALUES ($1, $2, NOW() + interval '${VERIFY_TTL_HOURS} hours')`,
-      [user.id, sha256(token)]
-    )
-    const link = `${appBaseUrl()}/verify-email?token=${token}`
-    await sendEmail({ to: user.email, ...verifyEmailEmail({ name: user.name, link, lang }) })
-  } catch (err) {
-    console.error('Verification email failed:', err.message)
-  }
-}
-
 // Each call sends an email, so it shares the tight bucket with "forgot password".
 router.post('/verify-email/resend', forgotLimiter, async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'not_signed_in' })
   if (req.user.emailVerified) return res.json({ ok: true, alreadyVerified: true })
-  await sendVerificationEmail(req.user, pickLang(req.body?.lang))
-  res.json({ ok: true })
+  try {
+    await sendVerificationEmail(req.user, pickLang(req.body?.lang))
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('Verification email failed:', err.message)
+    res.status(500).json({ error: 'server_error' })
+  }
 })
 
 // Opened from the emailed link (/verify-email?token=…). Doesn't sign anyone in — the link

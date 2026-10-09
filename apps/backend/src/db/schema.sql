@@ -246,3 +246,11 @@ CREATE TABLE IF NOT EXISTS email_verifications (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_email_verifications_user ON email_verifications (user_id);
+
+-- Unconfirmed sign-ups get one reminder two weeks after the first confirmation email and
+-- are deleted two weeks after that (services/emailVerification.js). verification_sent_at
+-- is the first send; NULL for accounts from before confirmation existed, which are left
+-- alone. `lang` is the UI language at sign-up, for the reminder email.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_sent_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_reminded_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS lang TEXT;

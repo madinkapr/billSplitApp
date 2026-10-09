@@ -14,6 +14,7 @@ const voiceRouter = require('./routes/voice')
 const authRouter = require('./routes/auth')
 const userDataRouter = require('./routes/userData')
 const { attachUser } = require('./middleware/auth')
+const { startUnverifiedCleanup } = require('./services/emailVerification')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -65,6 +66,7 @@ initDb()
   .then(ensureInitialAdmin)
   .then(async () => {
     app.listen(PORT, () => console.log(`Backend running on port ${PORT}`))
+    startUnverifiedCleanup()
     if (process.env.TELEGRAM_BOT_TOKEN) {
       await require('./bot').start()
     } else {

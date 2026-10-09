@@ -56,6 +56,7 @@ export const PRIVACY = {
         items: [
           "Akkaunt ma'lumotlari akkaunt mavjud ekan saqlanadi.",
           "Chek rasmlari, ovozli yozuvlar va texnik loglar xizmatni ko'rsatish va yaxshilash uchun zarur bo'lgan muddat davomida saqlanadi. Ularni o'chirishni so'rashingiz mumkin (6-bo'lim).",
+          "Emaili tasdiqlanmagan akkauntlar: 2 haftadan keyin eslatma yuboriladi, yana 2 hafta ichida ham tasdiqlanmasa, akkaunt undagi guruhlar va tarix bilan birga o'chiriladi.",
         ],
       },
       {
@@ -131,6 +132,7 @@ export const PRIVACY = {
         items: [
           'Данные аккаунта хранятся, пока существует аккаунт.',
           'Фото чеков, голосовые записи и технические логи хранятся столько, сколько нужно для работы и улучшения сервиса. Вы можете попросить их удалить (раздел 6).',
+          'Аккаунты с неподтверждённым email: через 2 недели отправляем напоминание; если email не подтвердить ещё в течение 2 недель, аккаунт удаляется вместе с группами и историей.',
         ],
       },
       {
@@ -206,6 +208,7 @@ export const PRIVACY = {
         items: [
           'Account data is kept for as long as the account exists.',
           'Receipt photos, voice recordings and technical logs are kept as long as needed to run and improve the service. You can ask us to delete them (section 6).',
+          "Accounts with an unconfirmed email: we send a reminder after 2 weeks; if the email still isn't confirmed 2 weeks later, the account is deleted along with its groups and history.",
         ],
       },
       {

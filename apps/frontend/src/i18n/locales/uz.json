@@ -341,7 +341,7 @@
     "usageVoiceLabel": "Ovoz",
     "usageUnlimited": "Cheksiz — kiring",
     "verifyBannerTitle": "Emailingizni tasdiqlang",
-    "verifyBannerBody": "{{email}} manziliga tasdiqlash havolasini yubordik. Havolani bosganingizdan keyin limitlar olib tashlanadi.",
+    "verifyBannerBody": "{{email}} manziliga tasdiqlash havolasini yubordik. Havolani bosganingizdan keyin limitlar olib tashlanadi. 1 oy ichida tasdiqlanmasa, akkaunt o'chiriladi.",
     "verifyResend": "Xatni qayta yuborish",
     "verifyResendNew": "Yangi havola yuborish",
     "verifySent": "Xat yuborildi ✓ Pochtangizni (va Spam papkasini) tekshiring.",

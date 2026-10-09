@@ -341,7 +341,7 @@
     "usageVoiceLabel": "Voice",
     "usageUnlimited": "Unlimited — sign in",
     "verifyBannerTitle": "Confirm your email",
-    "verifyBannerBody": "We sent a confirmation link to {{email}}. Once you click it, the limits are lifted.",
+    "verifyBannerBody": "We sent a confirmation link to {{email}}. Once you click it, the limits are lifted. If the email isn't confirmed within a month, the account is deleted.",
     "verifyResend": "Send the email again",
     "verifyResendNew": "Send a new link",
     "verifySent": "Email sent ✓ Check your inbox (and the Spam folder).",
