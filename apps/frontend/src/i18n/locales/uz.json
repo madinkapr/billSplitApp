@@ -337,6 +337,8 @@
       "server_error": "Xatolik yuz berdi. Qayta urinib ko'ring."
     },
     "usageFree": "Bugun bepul:",
+    "usageScanLabel": "Kamera/Galereya",
+    "usageVoiceLabel": "Ovoz",
     "usageUnlimited": "Cheksiz — kiring",
     "usageScan": "chek scan",
     "usageVoice": "ovozli kiritish",

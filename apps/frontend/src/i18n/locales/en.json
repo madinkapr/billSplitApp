@@ -337,6 +337,8 @@
       "server_error": "Something went wrong. Please try again."
     },
     "usageFree": "Free today:",
+    "usageScanLabel": "Camera/Gallery",
+    "usageVoiceLabel": "Voice",
     "usageUnlimited": "Unlimited — sign in",
     "usageScan": "receipt scan",
     "usageVoice": "voice entry",

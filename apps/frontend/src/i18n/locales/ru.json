@@ -345,6 +345,8 @@
       "server_error": "Произошла ошибка. Попробуйте ещё раз."
     },
     "usageFree": "Бесплатно сегодня:",
+    "usageScanLabel": "Камера/Галерея",
+    "usageVoiceLabel": "Голос",
     "usageUnlimited": "Без лимита — войдите",
     "usageScan": "скан чека",
     "usageVoice": "голосовой ввод",

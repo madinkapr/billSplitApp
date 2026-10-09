@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { useAuth, openLogin } from '../hooks/useAuth'
 
 // Under the scan / voice buttons, for guests only: how many free uses are left today
-// ("Free today: scan 2/3 · voice 3/3"), turning amber at the last one and red when one
-// runs out — so the limit doesn't come as a surprise. Signed-in users see nothing.
+// ("Free today: Camera/Gallery 2/3 · Voice 3/3" — one scan limit covers both the camera
+// and the gallery button), turning amber at the last one and red when one runs out — so
+// the limit doesn't come as a surprise. Signed-in users see nothing.
 export default function GuestUsageBar({ variant = 'mobile' }) {
   const { t } = useTranslation()
   const { usage } = useAuth()
@@ -37,11 +38,11 @@ export default function GuestUsageBar({ variant = 'mobile' }) {
         <span className="font-semibold">{t('auth.usageFree')}</span>
         <span className="inline-flex items-center gap-1 tabular-nums">
           <ScanLine size={13} />
-          {scanLeft}/{usage.scan.limit}
+          {t('auth.usageScanLabel')} {scanLeft}/{usage.scan.limit}
         </span>
         <span className="inline-flex items-center gap-1 tabular-nums">
           <Mic size={13} />
-          {voiceLeft}/{usage.voice.limit}
+          {t('auth.usageVoiceLabel')} {voiceLeft}/{usage.voice.limit}
         </span>
         <button onClick={() => openLogin('register')} className="ml-auto font-semibold underline underline-offset-2">
           {t('auth.usageUnlimited')}
