@@ -59,7 +59,7 @@ export const PRIVACY = {
       {
         h: '6. Sizning huquqlaringiz',
         items: [
-          "Biz saqlagan ma'lumotlaringizni olish, tuzatish yoki akkauntingizni va unga bog'liq ma'lumotlarni o'chirishni so'rashingiz mumkin. Buning uchun quyidagi manzilga yozing — 30 kun ichida javob beramiz.",
+          `Biz saqlagan ma'lumotlaringizni olish, tuzatish yoki akkauntingizni va unga bog'liq ma'lumotlarni o'chirishni so'rashingiz mumkin. Buning uchun ${PRIVACY_CONTACT_EMAIL} emailiga yozing — 30 kun ichida javob beramiz.`,
         ],
       },
       {
@@ -132,7 +132,7 @@ export const PRIVACY = {
       {
         h: '6. Ваши права',
         items: [
-          'Вы можете запросить копию своих данных, их исправление или удаление аккаунта и связанных с ним данных. Напишите на адрес ниже — ответим в течение 30 дней.',
+          `Вы можете запросить копию своих данных, их исправление или удаление аккаунта и связанных с ним данных. Напишите на ${PRIVACY_CONTACT_EMAIL} — ответим в течение 30 дней.`,
         ],
       },
       {
@@ -205,7 +205,7 @@ export const PRIVACY = {
       {
         h: '6. Your rights',
         items: [
-          'You can ask for a copy of your data, its correction, or deletion of your account and related data. Write to the address below — we reply within 30 days.',
+          `You can ask for a copy of your data, its correction, or deletion of your account and related data. Email ${PRIVACY_CONTACT_EMAIL} — we reply within 30 days.`,
         ],
       },
       {
