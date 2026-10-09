@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useCurrency } from '../../hooks/useCurrency'
 import { useAuth, openLogin } from '../../hooks/useAuth'
 import { inAppLinkClick } from '../../utils/navigate'
+import VerifyEmailBanner from '../../components/VerifyEmailBanner'
 
 export default function DesktopHome({ crews, recentBills, onStartNewBill, onSelectCrew, onManageCrews, onViewBill, onViewAllBills }) {
   const { t } = useTranslation()
@@ -37,6 +38,8 @@ export default function DesktopHome({ crews, recentBills, onStartNewBill, onSele
           </div>
         )}
       </div>
+
+      <VerifyEmailBanner />
 
       {/* Primary actions */}
       <div className="flex gap-5">

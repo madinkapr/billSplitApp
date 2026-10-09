@@ -2,11 +2,13 @@ import React from 'react'
 import { ScanLine, Mic, AlertTriangle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuth, openLogin } from '../hooks/useAuth'
+import ResendVerificationButton from './ResendVerificationButton'
 
 // Under the scan / voice buttons, for guests only: how many free uses are left today
 // ("Free today: Camera/Gallery 2/3 · Voice 3/3" — one scan limit covers both the camera
 // and the gallery button), turning amber at the last one and red when one runs out — so
-// the limit doesn't come as a surprise. Signed-in users see nothing.
+// the limit doesn't come as a surprise. Signed-in users see nothing, except while their
+// email is unconfirmed (usage.verify): they share the guest limits and are asked to confirm.
 export default function GuestUsageBar({ variant = 'mobile' }) {
   const { t } = useTranslation()
   const { usage } = useAuth()
@@ -26,10 +28,11 @@ export default function GuestUsageBar({ variant = 'mobile' }) {
         ? 'bg-desktop-content border-desktop-cardBorder text-desktop-textMuted'
         : 'bg-gray-50 border-gray-200 text-gray-600'
 
+  const verify = !!usage.verify
   const message = out
-    ? t('auth.usageOut', { what: scanLeft === 0 && voiceLeft === 0 ? t('auth.usageBoth') : scanLeft === 0 ? t('auth.usageScan') : t('auth.usageVoice') })
+    ? t(verify ? 'auth.usageOutVerify' : 'auth.usageOut', { what: scanLeft === 0 && voiceLeft === 0 ? t('auth.usageBoth') : scanLeft === 0 ? t('auth.usageScan') : t('auth.usageVoice') })
     : last
-      ? t('auth.usageLast', { what: scanLeft === 1 ? t('auth.usageScan') : t('auth.usageVoice') })
+      ? t(verify ? 'auth.usageLastVerify' : 'auth.usageLast', { what: scanLeft === 1 ? t('auth.usageScan') : t('auth.usageVoice') })
       : null
 
   return (
@@ -44,9 +47,13 @@ export default function GuestUsageBar({ variant = 'mobile' }) {
           <Mic size={13} />
           {t('auth.usageVoiceLabel')} {voiceLeft}/{usage.voice.limit}
         </span>
-        <button onClick={() => openLogin('register')} className="ml-auto font-semibold underline underline-offset-2">
-          {t('auth.usageUnlimited')}
-        </button>
+        {verify ? (
+          <ResendVerificationButton className="ml-auto inline-flex items-center font-semibold underline underline-offset-2" label={t('auth.verifyUsageButton')} />
+        ) : (
+          <button onClick={() => openLogin('register')} className="ml-auto font-semibold underline underline-offset-2">
+            {t('auth.usageUnlimited')}
+          </button>
+        )}
       </div>
       {message && (
         <p className="flex items-start gap-1.5">

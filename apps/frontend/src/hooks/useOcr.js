@@ -142,6 +142,7 @@ export function useOcr() {
         message = 'Scan took too long. Try again.'
       } else if (err.errorCode) {
         if (err.errorCode === 'GUEST_LIMIT') requestSignIn('limit')
+        if (err.errorCode === 'VERIFY_EMAIL') requestSignIn('verify')
         message = err.message
       } else {
         message = 'Connection error. Please try again.'

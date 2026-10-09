@@ -50,9 +50,38 @@ const RESET_COPY = {
   },
 }
 
-function passwordResetEmail({ name, link, lang }) {
-  const c = RESET_COPY[lang] || RESET_COPY.uz
-  const text = `${c.hello(name)}\n\n${c.body}\n${link}\n\n${c.note}`
+const VERIFY_COPY = {
+  uz: {
+    subject: 'SCHET.uz — emailingizni tasdiqlang',
+    hello: (name) => (name ? `Salom, ${name}!` : 'Salom!'),
+    body: "SCHET.uz'da ro'yxatdan o'tganingiz uchun rahmat. Bu email sizniki ekanini tasdiqlash uchun tugmani bosing:",
+    button: 'Emailni tasdiqlash',
+    note: "Havola 24 soat amal qiladi. Agar siz ro'yxatdan o'tmagan bo'lsangiz, bu xatga e'tibor bermang va havolani bosmang.",
+  },
+  ru: {
+    subject: 'SCHET.uz — подтвердите email',
+    hello: (name) => (name ? `Здравствуйте, ${name}!` : 'Здравствуйте!'),
+    body: 'Спасибо за регистрацию в SCHET.uz. Чтобы подтвердить, что это ваш email, нажмите кнопку:',
+    button: 'Подтвердить email',
+    note: 'Ссылка действует 24 часа. Если вы не регистрировались, просто проигнорируйте письмо и не нажимайте ссылку.',
+  },
+  en: {
+    subject: 'SCHET.uz — confirm your email',
+    hello: (name) => (name ? `Hi ${name},` : 'Hi,'),
+    body: 'Thanks for signing up for SCHET.uz. Click the button to confirm this email address is yours:',
+    button: 'Confirm email',
+    note: "The link expires in 24 hours. If you didn't sign up, ignore this email and don't click the link.",
+  },
+}
+
+// One look for every transactional email: greeting, text, a button, a note, the raw link.
+function buttonEmail(c, { name, link }) {
+  const text = `${c.hello(name)}
+
+${c.body}
+${link}
+
+${c.note}`
   const html = `<!doctype html><html><body style="margin:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#1f2937">
   <div style="max-width:480px;margin:0 auto;padding:32px 16px">
     <div style="background:#ffffff;border-radius:16px;padding:28px">
@@ -67,4 +96,13 @@ function passwordResetEmail({ name, link, lang }) {
   return { subject: c.subject, html, text }
 }
 
-module.exports = { sendEmail, passwordResetEmail }
+function passwordResetEmail({ name, link, lang }) {
+  return buttonEmail(RESET_COPY[lang] || RESET_COPY.uz, { name, link })
+}
+
+function verifyEmailEmail({ name, link, lang }) {
+  return buttonEmail(VERIFY_COPY[lang] || VERIFY_COPY.uz, { name, link })
+}
+
+
+module.exports = { sendEmail, passwordResetEmail, verifyEmailEmail }

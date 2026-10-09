@@ -2,8 +2,9 @@ const pool = require('../db')
 const clientIp = require('./clientIp')
 
 // Daily caps on the Gemini-backed features. Guests (no login) get a small free taste;
-// signed-in users get a generous ceiling that only exists to stop a runaway script from
-// running up the Gemini bill. Override with env vars, e.g. GUEST_SCAN_LIMIT=5.
+// signed-in users with a confirmed email get a generous ceiling that only exists to stop
+// a runaway script from running up the Gemini bill. Override with env vars, e.g.
+// GUEST_SCAN_LIMIT=5.
 const LIMITS = {
   scan: { guest: 'GUEST_SCAN_LIMIT', guestDefault: 3, user: 'USER_SCAN_LIMIT', userDefault: 100 },
   voice: { guest: 'GUEST_VOICE_LIMIT', guestDefault: 3, user: 'USER_VOICE_LIMIT', userDefault: 100 },
@@ -19,13 +20,20 @@ function limitFor(kind, isUser) {
 
 const TODAY = `(NOW() AT TIME ZONE 'Asia/Tashkent')::date`
 
+// Only accounts with a confirmed email get their own (larger) allowance. Unconfirmed ones
+// count against their IP exactly like guests — otherwise signing up with made-up emails
+// would hand out a fresh set of free uses each time.
+function isFullUser(req) {
+  return !!req.user?.emailVerified
+}
+
 function subjectOf(req) {
-  return req.user ? `user:${req.user.id}` : `ip:${clientIp(req) || 'unknown'}`
+  return isFullUser(req) ? `user:${req.user.id}` : `ip:${clientIp(req) || 'unknown'}`
 }
 
 // Today's usage vs. caps for the given kinds — feeds the "Free: 2/3 left" hint.
 async function getUsage(req, kinds) {
-  const isUser = !!req.user
+  const isUser = isFullUser(req)
   const { rows } = await pool.query(
     `SELECT kind, count FROM usage_counters WHERE subject = $1 AND kind = ANY($2) AND day = ${TODAY}`,
     [subjectOf(req), kinds]
@@ -39,7 +47,7 @@ async function getUsage(req, kinds) {
 // or an unreadable photo shouldn't eat one of a guest's three tries.
 function usageLimit(kind) {
   return async (req, res, next) => {
-    const isUser = !!req.user
+    const isUser = isFullUser(req)
     const subject = subjectOf(req)
     const limit = limitFor(kind, isUser)
 
@@ -52,8 +60,12 @@ function usageLimit(kind) {
       if (used >= limit) {
         return res.status(429).json({
           success: false,
-          errorCode: isUser ? 'USER_LIMIT' : 'GUEST_LIMIT',
-          error: isUser ? 'Daily limit reached. Try again tomorrow.' : 'Free daily limit reached. Sign in to continue.',
+          errorCode: isUser ? 'USER_LIMIT' : req.user ? 'VERIFY_EMAIL' : 'GUEST_LIMIT',
+          error: isUser
+            ? 'Daily limit reached. Try again tomorrow.'
+            : req.user
+              ? 'Free daily limit reached. Confirm your email to continue.'
+              : 'Free daily limit reached. Sign in to continue.',
           limit,
         })
       }

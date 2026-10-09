@@ -69,11 +69,43 @@ export function AuthProvider({ children }) {
     return user
   }, [])
 
-  const register = useCallback(async (name, email, password) => {
-    const { user } = await post('/api/auth/register', { name, email, password })
+  // `lang` picks the language of the "confirm your email" message sent right away.
+  const register = useCallback(async (name, email, password, lang) => {
+    const { user } = await post('/api/auth/register', { name, email, password, lang })
     setUser(user)
     return user
   }, [])
+
+  const refreshUser = useCallback(async () => {
+    const r = await fetch('/api/auth/me')
+    if (r.ok) setUser((await r.json()).user || null)
+  }, [])
+
+  const resendVerification = useCallback(async (lang) => {
+    await post('/api/auth/verify-email/resend', { lang })
+  }, [])
+
+  // From the emailed link; refreshes the session user in case it's the same account.
+  const verifyEmail = useCallback(
+    async (token) => {
+      await post('/api/auth/verify-email', { token })
+      await refreshUser().catch(() => {})
+    },
+    [refreshUser]
+  )
+
+  // The link is often opened on another device (phone mail app): re-check when the user
+  // comes back to this tab, so the "confirm your email" notices go away by themselves.
+  useEffect(() => {
+    if (!user || user.emailVerified) return
+    const onFocus = () => document.visibilityState === 'visible' && refreshUser().catch(() => {})
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onFocus)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onFocus)
+    }
+  }, [user, refreshUser])
 
   const loginWithGoogle = useCallback(async (credential) => {
     const { user } = await post('/api/auth/google', { credential })
@@ -99,7 +131,23 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, googleClientId, usage, refreshUsage, login, register, loginWithGoogle, forgotPassword, resetPassword, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        googleClientId,
+        usage,
+        refreshUsage,
+        login,
+        register,
+        loginWithGoogle,
+        forgotPassword,
+        resetPassword,
+        resendVerification,
+        verifyEmail,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
@@ -109,8 +157,9 @@ export function useAuth() {
   return useContext(AuthContext)
 }
 
-// Scan/voice hooks call this when the backend answers GUEST_LIMIT; App shows the
-// "sign in to keep going" dialog. An event keeps those hooks free of UI wiring.
+// Scan/voice hooks call this when the backend answers GUEST_LIMIT (reason 'limit') or
+// VERIFY_EMAIL (reason 'verify'); App shows the "sign in" or "confirm your email" dialog.
+// An event keeps those hooks free of UI wiring.
 export const AUTH_REQUIRED_EVENT = 'schet:auth-required'
 
 export function requestSignIn(reason) {

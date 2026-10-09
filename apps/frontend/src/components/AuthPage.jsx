@@ -119,7 +119,7 @@ export default function AuthPage({ initialMode = 'login', onDone, onBack }) {
       run(() => forgotPassword(email.trim(), i18n.language), () => setResetSent(true))
       return
     }
-    run(() => (isRegister ? register(name.trim(), email.trim(), password) : login(email.trim(), password)))
+    run(() => (isRegister ? register(name.trim(), email.trim(), password, i18n.language) : login(email.trim(), password)))
   }
 
   const canSubmit = email.trim() && (isForgot || password) && (!isRegister || name.trim()) && !busy

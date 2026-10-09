@@ -225,3 +225,24 @@ CREATE TABLE IF NOT EXISTS user_bills (
   PRIMARY KEY (user_id, id)
 );
 CREATE INDEX IF NOT EXISTS idx_user_bills_recent ON user_bills (user_id, created_at DESC NULLS LAST);
+
+-- Email ownership. Email/password sign-ups start unverified until they click the emailed
+-- link; Google sign-in and a completed password reset prove ownership too. Unverified
+-- accounts get guest-level limits, and linking Google keeps the password only when the
+-- email was verified (routes/auth.js /google).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE;
+UPDATE users SET email_verified = TRUE
+WHERE NOT email_verified
+  AND (google_sub IS NOT NULL OR id IN (SELECT user_id FROM password_resets WHERE used_at IS NOT NULL));
+
+-- "Confirm your email" links — same scheme as password_resets (SHA-256 of the token only,
+-- one live link per account), valid for 24 hours.
+CREATE TABLE IF NOT EXISTS email_verifications (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash  TEXT UNIQUE NOT NULL,
+  expires_at  TIMESTAMPTZ NOT NULL,
+  used_at     TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_email_verifications_user ON email_verifications (user_id);

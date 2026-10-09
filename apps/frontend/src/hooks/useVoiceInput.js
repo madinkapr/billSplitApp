@@ -80,6 +80,7 @@ export function useVoiceInput(endpoint, { timeout: timeoutMs = DEFAULT_TIMEOUT }
       // UI message. Logging it is what makes the next failure actually diagnosable.
       console.error('[useVoiceInput] request failed:', { endpoint, name: err.name, message: err.message, errorCode: err.errorCode, err })
       if (code === 'GUEST_LIMIT') requestSignIn('limit')
+      if (code === 'VERIFY_EMAIL') requestSignIn('verify')
       setErrorCode(code)
       setError(message)
       setState('error')

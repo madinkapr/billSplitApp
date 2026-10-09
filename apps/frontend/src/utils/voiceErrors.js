@@ -5,6 +5,7 @@ const ERROR_KEYS = {
   TIMEOUT: 'billSetup.voiceErrorGeneric',
   NETWORK_ERROR: 'billSetup.voiceErrorGeneric',
   GUEST_LIMIT: 'auth.limitShort',
+  VERIFY_EMAIL: 'auth.verifyLimitShort',
   USER_LIMIT: 'auth.userLimit',
 }
 

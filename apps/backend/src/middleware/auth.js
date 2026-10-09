@@ -40,7 +40,7 @@ function clearSessionCookie(res) {
   res.clearCookie(COOKIE_NAME, { httpOnly: true, sameSite: 'lax', secure: cookieIsSecure(), path: '/' })
 }
 
-// Runs on every request: sets req.user = { id, email, name, avatarUrl } for a valid
+// Runs on every request: sets req.user = { id, email, name, avatarUrl, emailVerified } for a valid
 // session, otherwise leaves it null (guest). Never rejects — use requireUser for that.
 async function attachUser(req, res, next) {
   req.user = null
@@ -49,8 +49,8 @@ async function attachUser(req, res, next) {
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET)
     if (payload.typ !== 'user' || !payload.uid) return next()
-    const { rows } = await pool.query('SELECT id, email, name, avatar_url, session_version FROM users WHERE id = $1', [payload.uid])
-    if (rows[0] && rows[0].session_version === (payload.sv || 0)) req.user = { id: rows[0].id, email: rows[0].email, name: rows[0].name, avatarUrl: rows[0].avatar_url }
+    const { rows } = await pool.query('SELECT id, email, name, avatar_url, email_verified, session_version FROM users WHERE id = $1', [payload.uid])
+    if (rows[0] && rows[0].session_version === (payload.sv || 0)) req.user = publicUser(rows[0])
   } catch {
     // expired/forged token or deleted user — treat as a guest
   }
@@ -58,7 +58,13 @@ async function attachUser(req, res, next) {
 }
 
 function publicUser(row) {
-  return { id: row.id, email: row.email, name: row.name, avatarUrl: row.avatar_url ?? row.avatarUrl ?? null }
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    avatarUrl: row.avatar_url ?? row.avatarUrl ?? null,
+    emailVerified: !!(row.email_verified ?? row.emailVerified),
+  }
 }
 
 module.exports = { attachUser, setSessionCookie, clearSessionCookie, publicUser, COOKIE_NAME }

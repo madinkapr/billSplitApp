@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { LogIn, LogOut } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../hooks/useAuth'
+import ResendVerificationButton from './ResendVerificationButton'
 
 function Avatar({ user, size }) {
   const initial = (user.name || user.email || '?').trim().charAt(0).toUpperCase()
@@ -57,6 +58,12 @@ export default function UserMenu({ variant = 'sidebar', collapsed = false, onOpe
         <div className="px-3 py-2 border-b border-gray-100">
           <p className="text-sm font-semibold truncate">{user.name || user.email}</p>
           <p className="text-xs text-gray-400 truncate">{user.email}</p>
+          {!user.emailVerified && (
+            <div className="mt-1.5 flex flex-col items-start gap-0.5">
+              <p className="text-xs font-medium text-amber-600">{t('auth.verifyUnconfirmed')}</p>
+              <ResendVerificationButton className="text-xs font-semibold text-indigo-600 hover:underline" />
+            </div>
+          )}
         </div>
         <button
           onClick={async () => {

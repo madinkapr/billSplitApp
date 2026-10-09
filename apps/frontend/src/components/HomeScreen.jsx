@@ -6,6 +6,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage'
 import { useCurrency } from '../hooks/useCurrency'
 import { useIsAdmin } from '../hooks/useIsAdmin'
 import UserMenu from './UserMenu'
+import VerifyEmailBanner from './VerifyEmailBanner'
 import { inAppLinkClick } from '../utils/navigate'
 
 const LANGUAGES = [
@@ -104,6 +105,8 @@ export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelec
       </div>
 
       <div className="flex flex-col gap-4 px-5 pt-6">
+        <VerifyEmailBanner />
+
         {/* Primary actions */}
         <div className="grid grid-cols-2 gap-3">
           <motion.button
