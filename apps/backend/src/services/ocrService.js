@@ -154,9 +154,9 @@ function validateAndNormalize(parsed) {
 // 404) — it only kept working on older grandfathered keys. Pinned, not
 // gemini-flash-latest: OCR_PROMPT is tuned for this model and a floating
 // alias could regress parsing without warning.
-const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash'
+const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash'
 // Falls back to the lighter tier when the full model is unavailable/overloaded
-// (measured: 'gemini-3.5-flash' hanging past 25s / 503 "high demand" while
+// (measured: 'gemini-3.6-flash' hanging past 25s / 503 "high demand" while
 // flash-lite answered the same receipt correctly in ~7s) so a Gemini-side
 // outage on one tier doesn't take scanning down entirely.
 const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite'

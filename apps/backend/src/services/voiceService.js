@@ -58,10 +58,10 @@ async function saveVoiceRecord({ kind, audioBuffer, mimetype, geminiResponse, re
 // tuned independently later if whole-bill dictation ever needs to go even stronger
 // (e.g. gemini-3.5-pro) without also raising cost/latency on the simpler name/amount
 // endpoints. Both currently default to the same tier.
-const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash'
-const BILL_MODEL = process.env.GEMINI_BILL_MODEL || 'gemini-3.5-flash'
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash'
+const BILL_MODEL = process.env.GEMINI_BILL_MODEL || 'gemini-3.6-flash'
 // Same fallback tier OCR uses (ocrService.js): when the main model answers 503 "high
-// demand" (seen intermittently on gemini-3.5-flash), retry once on flash-lite instead of
+// demand" (seen intermittently on gemini-3.6-flash), retry once on flash-lite instead of
 // failing the recording outright.
 const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite'
 const RETRYABLE_ERRORS = new Set(['TIMEOUT', 'GEMINI_SERVER_ERROR', 'GEMINI_MODEL_UNAVAILABLE'])
