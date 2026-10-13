@@ -8,6 +8,7 @@ import BillSetup from '../components/BillSetup'
 import Itemizer from '../components/Itemizer'
 import Report from '../components/Report'
 import BillHistory from '../components/BillHistory'
+import CafesPage from '../components/CafesPage'
 
 const slide = {
   initial: (dir) => ({ x: dir > 0 ? '100%' : '-100%', opacity: 0 }),
@@ -31,6 +32,7 @@ export default function MobileApp({ crews, setCrews, recentBills, screen, bill, 
                 onManageCrews={() => navigate(SCREENS.CREWS)}
                 onViewBill={(bill) => navigate(SCREENS.REPORT, bill)}
                 onViewAllBills={() => navigate(SCREENS.HISTORY)}
+                onOpenCafes={() => navigate(SCREENS.CAFES)}
                 onOpenStats={onOpenStats}
                 onOpenLogin={onOpenLogin}
               />
@@ -44,6 +46,12 @@ export default function MobileApp({ crews, setCrews, recentBills, screen, bill, 
                 onBack={() => navigate(SCREENS.HOME)}
                 onViewBill={(bill) => navigate(SCREENS.REPORT, bill)}
               />
+            </motion.div>
+          )}
+
+          {screen === SCREENS.CAFES && (
+            <motion.div key="cafes" custom={direction} {...slide} className="absolute inset-0">
+              <CafesPage onBack={() => navigate(SCREENS.HOME)} />
             </motion.div>
           )}
 

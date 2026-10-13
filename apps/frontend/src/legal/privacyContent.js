@@ -1,7 +1,7 @@
 // Privacy policy text (uz/ru/en). Kept here rather than in the i18n JSON because it's
 // long-form prose. It must describe what the app really does — update it whenever data
 // collection changes (new tables, new third-party services, new uploads).
-export const PRIVACY_UPDATED = '2026-10-09'
+export const PRIVACY_UPDATED = '2026-10-13'
 export const PRIVACY_CONTACT_EMAIL = 'support@schet.uz'
 
 export const PRIVACY = {
@@ -20,6 +20,7 @@ export const PRIVACY = {
           "Hisob ma'lumotlari: qo'lda kiritilgan hisoblar (ishtirokchilarning ismlari, taomlar, narxlar) va hisob-kitob uchun ulashilgan hisoblar, jumladan to'lovni qabul qiluvchining karta yoki telefon raqami (agar kiritilgan bo'lsa).",
           "Telegram: botdan foydalansangiz — Telegram chat identifikatori, ismingiz va @username.",
           "Texnik ma'lumotlar: IP manzil, saytga kirish va funksiyalardan foydalanish vaqti, brauzer identifikatori (statistika va suiiste'mollikka qarshi himoya uchun).",
+          "Joylashuv: Kafelar xaritasida \"Menga yaqin joylar\" tugmasini bossangiz, brauzeringiz joylashuvingizni so'raydi. U yaqin joylarni topish uchun faqat brauzeringizda ishlatiladi va bizning serverga yuborilmaydi.",
         ],
       },
       {
@@ -39,6 +40,8 @@ export const PRIVACY = {
           'Google Sign-In — Google orqali kirishni tanlasangiz.',
           'Resend — parolni tiklash kabi xizmat xatlarini yuborish uchun (email manzilingiz uzatiladi).',
           "Telegram — bot orqali xabarlar almashish uchun.",
+          "OpenStreetMap — Kafelar xaritasidagi ko'chalar tasviri uchun (xarita ochilganda IP manzilingiz ularning serverlariga ko'rinadi).",
+          "routing.openstreetmap.de (FOSSGIS) — Kafelar xaritasida yo'l chizilganda, boshlang'ich nuqta (joylashuvingiz) va manzil koordinatalari shu xizmatga yuboriladi.",
           "Bu xizmatlar ma'lumotlarni o'z maxfiylik siyosatlariga muvofiq qayta ishlaydi va ularning serverlari O'zbekistondan tashqarida joylashgan bo'lishi mumkin.",
         ],
       },
@@ -96,6 +99,7 @@ export const PRIVACY = {
           'Данные счетов: счета, введённые вручную (имена участников, блюда, цены), и счета, отправленные на расчёт, включая номер карты или телефона получателя оплаты (если он указан).',
           'Telegram: если вы пользуетесь ботом — идентификатор чата, имя и @username.',
           'Технические данные: IP-адрес, время посещений и использования функций, идентификатор браузера (для статистики и защиты от злоупотреблений).',
+          'Местоположение: если в карте кафе нажать «Места рядом со мной», браузер запросит ваше местоположение. Оно используется только в браузере для поиска ближайших мест и не отправляется на наш сервер.',
         ],
       },
       {
@@ -115,6 +119,8 @@ export const PRIVACY = {
           'Google Sign-In — если вы выбираете вход через Google.',
           'Resend — для служебных писем, например восстановления пароля (передаётся ваш email).',
           'Telegram — для обмена сообщениями через бот.',
+          'OpenStreetMap — изображение улиц на карте кафе (при открытии карты их серверам виден ваш IP-адрес).',
+          'routing.openstreetmap.de (FOSSGIS) — при построении маршрута на карте кафе этому сервису передаются координаты начальной точки (вашего местоположения) и места назначения.',
           'Эти сервисы обрабатывают данные по своим политикам конфиденциальности; их серверы могут находиться за пределами Узбекистана.',
         ],
       },
@@ -172,6 +178,7 @@ export const PRIVACY = {
           "Bill data: bills entered by hand (participants' names, dishes, prices) and bills shared for settling up, including the payee's card or phone number if provided.",
           'Telegram: if you use the bot — your Telegram chat ID, name and @username.',
           'Technical data: IP address, times of visits and feature use, a browser identifier (for statistics and abuse prevention).',
+          'Location: if you tap "Places near me" on the cafe map, your browser asks for your location. It is used only in your browser to find nearby places and is not sent to our server.',
         ],
       },
       {
@@ -191,6 +198,8 @@ export const PRIVACY = {
           'Google Sign-In — if you choose to sign in with Google.',
           'Resend — to send service emails such as password resets (your email address is shared).',
           'Telegram — for messages through the bot.',
+          'OpenStreetMap — street imagery on the cafe map (their servers see your IP address when the map loads).',
+          'routing.openstreetmap.de (FOSSGIS) — when you draw a route on the cafe map, the start point (your location) and destination coordinates are sent to this service.',
           'These services process data under their own privacy policies; their servers may be located outside Uzbekistan.',
         ],
       },

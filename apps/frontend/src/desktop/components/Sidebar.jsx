@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Home, Users, Clock, ChevronsLeft, ChevronsRight, Globe, Coins, Check, ChevronDown, BarChart2 } from 'lucide-react'
+import { Home, Users, Clock, Coffee, ChevronsLeft, ChevronsRight, Globe, Coins, Check, ChevronDown, BarChart2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { useCurrency } from '../../hooks/useCurrency'
@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { screen: SCREENS.HOME, icon: Home, labelKey: 'nav.home' },
   { screen: SCREENS.CREWS, icon: Users, labelKey: 'nav.crews' },
   { screen: SCREENS.HISTORY, icon: Clock, labelKey: 'nav.history' },
+  { screen: SCREENS.CAFES, icon: Coffee, labelKey: 'nav.cafes' },
 ]
 
 function FooterPill({ icon: Icon, value, open, onToggle, children, collapsed }) {

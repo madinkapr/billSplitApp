@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { PlusCircle, Users, Receipt, ChevronRight, Clock, Globe, Check, BarChart2 } from 'lucide-react'
+import { PlusCircle, Users, Receipt, ChevronRight, Clock, Globe, Check, BarChart2, Coffee } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { useCurrency } from '../hooks/useCurrency'
@@ -15,7 +15,7 @@ const LANGUAGES = [
   { code: 'en', label: 'English' },
 ]
 
-export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelectCrew, onManageCrews, onViewBill, onViewAllBills, onOpenStats, onOpenLogin }) {
+export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelectCrew, onManageCrews, onViewBill, onViewAllBills, onOpenCafes, onOpenStats, onOpenLogin }) {
   const { t, i18n } = useTranslation()
   const { currency, setCurrency, fmt, CURRENCIES } = useCurrency()
   const [language, setLanguage] = useLocalStorage('tabup_language', 'ru')
@@ -124,6 +124,14 @@ export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelec
           >
             <Users size={24} className="text-indigo-500" />
             <span className="text-sm mt-1">{t('home.myCrews')}</span>
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={onOpenCafes}
+            className="col-span-2 bg-white border border-gray-200 text-gray-700 rounded-2xl font-semibold py-3.5 touch-btn flex items-center justify-center gap-2 active:bg-gray-50 transition-colors shadow-sm"
+          >
+            <Coffee size={20} className="text-indigo-500" />
+            <span className="text-sm">{t('nav.cafes')}</span>
           </motion.button>
         </div>
 

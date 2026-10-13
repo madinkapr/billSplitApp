@@ -40,6 +40,8 @@ services:
       - EMAIL_FROM=${EMAIL_FROM:-}
     volumes:
       - ./apps/backend/uploads:/app/uploads
+      # Cafe map file, kept out of git (see apps/backend/src/routes/kafelar.js)
+      - ./apps/backend/data:/app/data:ro
     depends_on:
       - db
     restart: unless-stopped

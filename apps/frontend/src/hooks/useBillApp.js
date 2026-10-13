@@ -15,9 +15,9 @@ function addToHistory(prev, finalBill, limit) {
   return { saved, list: [saved, ...prev.filter((b) => b.id !== finalBill.id)].slice(0, limit) }
 }
 
-export const SCREENS = { HOME: 'home', CREWS: 'crews', SETUP: 'setup', ITEMS: 'items', REPORT: 'report', HISTORY: 'history' }
+export const SCREENS = { HOME: 'home', CREWS: 'crews', SETUP: 'setup', ITEMS: 'items', REPORT: 'report', HISTORY: 'history', CAFES: 'cafes' }
 
-export const SCREEN_ORDER = [SCREENS.HOME, SCREENS.CREWS, SCREENS.SETUP, SCREENS.ITEMS, SCREENS.REPORT, SCREENS.HISTORY]
+export const SCREEN_ORDER = [SCREENS.HOME, SCREENS.CREWS, SCREENS.SETUP, SCREENS.ITEMS, SCREENS.REPORT, SCREENS.HISTORY, SCREENS.CAFES]
 
 export function useBillApp() {
   const { user, loading: authLoading } = useAuth()

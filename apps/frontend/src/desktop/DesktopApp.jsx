@@ -9,6 +9,7 @@ import DesktopHistory from './components/DesktopHistory'
 import DesktopBillSetup from './components/DesktopBillSetup'
 import DesktopItemizer from './components/DesktopItemizer'
 import DesktopSummary from './components/DesktopSummary'
+import CafesMap from '../components/CafesMap'
 
 export default function DesktopApp({ crews, setCrews, recentBills, screen, bill, setBill, navigate, startNewBillWithCrew, saveBillToRecent, onOpenStats, onOpenLogin }) {
   const [collapsed, setCollapsed] = useLocalStorage('tabup_sidebar_collapsed', false)
@@ -41,6 +42,8 @@ export default function DesktopApp({ crews, setCrews, recentBills, screen, bill,
             onViewAllBills={() => navigate(SCREENS.HISTORY)}
           />
         )}
+
+        {screen === SCREENS.CAFES && <CafesMap className="h-full block" />}
 
         {screen === SCREENS.HISTORY && (
           <DesktopHistory
