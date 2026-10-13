@@ -35,3 +35,6 @@ docker-compose.override.yml
 
 # Uploaded receipts + voice recordings (ML training data — not tracked in git)
 apps/backend/uploads/
+
+# Cafe map (built in the private map repo from scraped sources; must never be committed — this repo is public)
+apps/backend/data/
