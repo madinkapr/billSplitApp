@@ -31,10 +31,11 @@ export default function UserMenu({ variant = 'sidebar', collapsed = false, onOpe
     return variant === 'header' ? (
       <button
         onClick={() => onOpenLogin?.('login')}
-        className="h-9 px-3 flex items-center gap-1.5 rounded-full bg-white/15 active:bg-white/25 transition-colors text-sm font-semibold"
+        className="h-9 px-3 flex items-center gap-1.5 rounded-full bg-white/15 active:bg-white/25 transition-colors text-sm font-semibold flex-shrink-0"
+        aria-label={t('auth.signIn')}
       >
         <LogIn size={16} />
-        {t('auth.signIn')}
+        <span className="hidden min-[420px]:inline">{t('auth.signIn')}</span>
       </button>
     ) : (
       <button

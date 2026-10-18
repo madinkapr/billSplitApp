@@ -33,8 +33,8 @@ export default function HomeScreen({ crews, recentBills, onStartNewBill, onSelec
       {/* Header */}
       <div className="bg-indigo-600 px-5 pt-14 pb-8 text-white relative">
         <div className="flex items-center justify-between mb-1">
-          <img src="/logo-schet-white.png" alt="SCHET.uz" className="h-12 w-auto object-contain" />
-          <div className="flex items-center gap-2">
+          <img src="/logo-schet-white.png" alt="SCHET.uz" className="h-9 min-[420px]:h-12 w-auto min-w-0 object-contain" />
+          <div className="flex items-center gap-2 flex-shrink-0">
             <UserMenu variant="header" onOpenLogin={onOpenLogin} />
             <div className="relative">
               <button

@@ -8,7 +8,7 @@ export default function CafesPage({ onBack }) {
   const { t } = useTranslation()
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-4 pt-12 pb-3 flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 pt-3 pb-2 flex-shrink-0">
         <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
           <ArrowLeft size={20} />
         </button>
