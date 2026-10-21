@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useBillApp } from './hooks/useBillApp'
-import { useIsDesktop } from './hooks/useIsDesktop'
-import MobileApp from './mobile/MobileApp'
-import DesktopApp from './desktop/DesktopApp'
+import AppShell from './shell/AppShell'
 import AdminStatsPage from './admin/AdminStatsPage'
 import { trackPageView } from './utils/analytics'
 import AuthPage from './components/AuthPage'
@@ -25,7 +23,6 @@ function getRouteFromLocation() {
 
 export default function App() {
   const billApp = useBillApp()
-  const isDesktop = useIsDesktop()
   const [route, setRoute] = useState(getRouteFromLocation)
   const [authMode, setAuthMode] = useState(() => {
     const mode = new URLSearchParams(window.location.search).get('mode')
@@ -79,7 +76,7 @@ export default function App() {
     if (screen) billApp.navigate(screen)
   }
 
-  if (route === 'admin') return <AdminStatsPage onBack={goToApp} />
+  if (route === 'admin') return <AdminStatsPage onBack={goToApp} onNewBill={() => { goToApp(); billApp.startNewBill() }} onOpenLogin={goToLogin} />
   // The bill in progress lives in useBillApp state, so going to /login and back keeps it.
   if (route === 'privacy') return <PrivacyPage onBack={() => (canGoBackInApp() ? window.history.back() : goToApp())} />
   if (route === 'reset') {
@@ -94,11 +91,7 @@ export default function App() {
 
   return (
     <>
-      {isDesktop ? (
-        <DesktopApp {...billApp} onOpenStats={goToStats} onOpenLogin={goToLogin} />
-      ) : (
-        <MobileApp {...billApp} onOpenStats={goToStats} onOpenLogin={goToLogin} />
-      )}
+      <AppShell {...billApp} onOpenStats={goToStats} onOpenLogin={goToLogin} />
       {signInPrompt && (
         <SignInPromptModal
           reason={signInPrompt}

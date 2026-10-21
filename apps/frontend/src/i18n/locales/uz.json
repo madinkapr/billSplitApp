@@ -386,5 +386,18 @@
   },
   "legal": {
     "privacy": "Maxfiylik siyosati"
+  },
+  "shell": {
+    "newBill": "Yangi hisob",
+    "prefs": "Til va valyuta",
+    "mainNav": "Asosiy navigatsiya",
+    "accountSubtitle": "Akkaunt va sozlamalar",
+    "guestSubtitle": "Hisoblar barcha qurilmalarda",
+    "tabs": {
+      "home": "Asosiy",
+      "crews": "Guruhlar",
+      "history": "Tarix",
+      "cafes": "Kafelar"
+    }
   }
 }

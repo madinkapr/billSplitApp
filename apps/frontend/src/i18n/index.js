@@ -27,4 +27,10 @@ i18next.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 })
 
+// Screen readers and hyphenation follow the UI language.
+document.documentElement.lang = i18next.language
+i18next.on('languageChanged', (lng) => {
+  document.documentElement.lang = lng
+})
+
 export default i18next

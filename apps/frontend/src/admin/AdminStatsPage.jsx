@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Lock, Loader2, Table as TableIcon, LineChart as LineChartIcon, ArrowLeft, LogOut, Eye, EyeOff, Download } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useLocalStorage } from '../hooks/useLocalStorage'
 import { useIsDesktop } from '../hooks/useIsDesktop'
-import Sidebar from '../desktop/components/Sidebar'
+import Sidebar from '../shell/Sidebar'
 
 const ADMIN_TOKEN_STORAGE = 'tabup_admin_token'
 const RANGE_OPTIONS = [7, 30, 90]
@@ -714,19 +713,12 @@ function MobileLayout(props) {
 }
 
 function DesktopLayout(props) {
-  const { t, days, setDays, onBack, onLogout } = props
+  const { t, days, setDays, onBack, onNewBill, onOpenLogin, onLogout } = props
   const theme = THEMES.desktop
-  const [collapsed, setCollapsed] = useLocalStorage('tabup_sidebar_collapsed', false)
 
   return (
     <div className="h-screen flex bg-desktop-content overflow-hidden">
-      <Sidebar
-        screen={null}
-        onNavigate={(screen) => onBack(screen)}
-        collapsed={collapsed}
-        onToggleCollapse={() => setCollapsed((p) => !p)}
-        statsActive
-      />
+      <Sidebar active={null} onNavigate={(screen) => onBack(screen)} onNewBill={onNewBill} onOpenLogin={onOpenLogin} statsActive />
 
       <div className="flex-1 min-w-0 overflow-y-auto">
         <div className="flex flex-col gap-[30px]" style={{ padding: '40px 44px' }}>
@@ -750,7 +742,7 @@ function DesktopLayout(props) {
   )
 }
 
-export default function AdminStatsPage({ onBack }) {
+export default function AdminStatsPage({ onBack, onNewBill, onOpenLogin }) {
   const { t } = useTranslation()
   const isDesktop = useIsDesktop()
   const [authed, setAuthed] = useState(() => !!localStorage.getItem(ADMIN_TOKEN_STORAGE))
@@ -826,7 +818,7 @@ export default function AdminStatsPage({ onBack }) {
     return <LoginForm onSubmit={handleLogin} error={loginError} loading={loginLoading} />
   }
 
-  const layoutProps = { t, days, setDays, rows, error, data, today, periodTotals, trafficLabels, entryLabels, onBack, onLogout: handleLogout }
+  const layoutProps = { t, days, setDays, rows, error, data, today, periodTotals, trafficLabels, entryLabels, onBack, onNewBill, onOpenLogin, onLogout: handleLogout }
 
   return isDesktop ? <DesktopLayout {...layoutProps} /> : <MobileLayout {...layoutProps} />
 }

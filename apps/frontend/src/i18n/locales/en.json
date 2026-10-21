@@ -386,5 +386,18 @@
   },
   "legal": {
     "privacy": "Privacy Policy"
+  },
+  "shell": {
+    "newBill": "New bill",
+    "prefs": "Language and currency",
+    "mainNav": "Main navigation",
+    "accountSubtitle": "Account and settings",
+    "guestSubtitle": "Keep your bills on every device",
+    "tabs": {
+      "home": "Home",
+      "crews": "Crews",
+      "history": "History",
+      "cafes": "Cafés"
+    }
   }
 }
