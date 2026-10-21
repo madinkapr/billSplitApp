@@ -20,7 +20,7 @@ export default function DesktopApp({ crews, setCrews, recentBills, screen, bill,
   }
 
   return (
-    <div className="h-screen flex bg-desktop-content font-desktop overflow-hidden">
+    <div className="h-screen flex bg-desktop-content overflow-hidden">
       <Sidebar
         screen={screen === SCREENS.SETUP || screen === SCREENS.ITEMS || screen === SCREENS.REPORT ? null : screen}
         onNavigate={navFromSidebar}

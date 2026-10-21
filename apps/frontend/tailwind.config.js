@@ -1,9 +1,53 @@
 /** @type {import('tailwindcss').Config} */
+
+// Design tokens live as CSS variables in src/index.css (light + dark).
+// color-mix keeps Tailwind opacity modifiers (e.g. `border-accent/40`) working with them.
+const token = (name) => `color-mix(in srgb, var(--${name}) calc(<alpha-value> * 100%), transparent)`
+
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  future: {
+    // `hover:` only applies on devices that can actually hover.
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     extend: {
       colors: {
+        bg: token('bg'),
+        surface: { DEFAULT: token('surface'), 2: token('surface-2') },
+        line: {
+          DEFAULT: token('line'),
+          strong: token('line-strong'),
+          // Legacy, remove once nothing uses it.
+          dashed: '#D8D8E2',
+        },
+        ink: {
+          DEFAULT: token('ink'),
+          2: token('ink-2'),
+          // Legacy, remove once nothing uses them.
+          muted: '#8D8D97',
+          faint: '#B7B7C1',
+        },
+        accent: {
+          DEFAULT: token('accent'),
+          ink: token('accent-ink'),
+          tint: token('accent-tint'),
+          line: token('accent-line'),
+          // Legacy, remove once nothing uses it.
+          grip: '#9DC2ED',
+        },
+        'on-accent': token('on-accent'),
+        link: token('link'),
+        ok: { DEFAULT: token('ok'), fill: token('ok-fill'), tint: token('ok-tint') },
+        warn: { DEFAULT: token('warn'), tint: token('warn-tint') },
+        'muted-pill': token('muted-pill'),
+        a1: { DEFAULT: token('a1-bg'), fg: token('a1-fg') },
+        a2: { DEFAULT: token('a2-bg'), fg: token('a2-fg') },
+        a3: { DEFAULT: token('a3-bg'), fg: token('a3-fg') },
+        a4: { DEFAULT: token('a4-bg'), fg: token('a4-fg') },
+        a5: { DEFAULT: token('a5-bg'), fg: token('a5-fg') },
+
+        // Legacy palettes, removed once the old screens are rebuilt on the tokens above.
         indigo: {
           50: '#eef4fc',
           100: '#d6e6fa',
@@ -11,10 +55,6 @@ export default {
           600: '#1669d3',
           700: '#114f9e',
         },
-        accent: { DEFAULT: '#1669D3', tint: '#E6F0FC', grip: '#9DC2ED' },
-        line: { DEFAULT: '#E6E6EC', dashed: '#D8D8E2' },
-        ink: { DEFAULT: '#1B1B22', muted: '#8D8D97', faint: '#B7B7C1' },
-        warn: '#F5A623',
         success: '#2FAE66',
         canvas: { DEFAULT: '#F4F4F7', track: '#EDEDF2' },
         desktop: {
@@ -42,7 +82,14 @@ export default {
         },
       },
       fontFamily: {
-        desktop: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Onest', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+      },
+      borderRadius: {
+        card: '16px',
+        ctl: '12px',
+      },
+      boxShadow: {
+        fab: 'var(--shadow-fab)',
       },
     },
   },

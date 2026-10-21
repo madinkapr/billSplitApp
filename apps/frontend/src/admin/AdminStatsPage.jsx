@@ -719,7 +719,7 @@ function DesktopLayout(props) {
   const [collapsed, setCollapsed] = useLocalStorage('tabup_sidebar_collapsed', false)
 
   return (
-    <div className="h-screen flex bg-desktop-content font-desktop overflow-hidden">
+    <div className="h-screen flex bg-desktop-content overflow-hidden">
       <Sidebar
         screen={null}
         onNavigate={(screen) => onBack(screen)}

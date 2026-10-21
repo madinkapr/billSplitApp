@@ -63,7 +63,7 @@ export default function Sidebar({ screen, onNavigate, collapsed, onToggleCollaps
 
   return (
     <div
-      className={`flex flex-col flex-shrink-0 bg-desktop-sidebar font-desktop transition-[width] duration-200 ${collapsed ? 'w-16' : 'w-[236px]'}`}
+      className={`flex flex-col flex-shrink-0 bg-desktop-sidebar transition-[width] duration-200 ${collapsed ? 'w-16' : 'w-[236px]'}`}
       style={{ padding: collapsed ? '28px 10px' : '28px 18px', boxSizing: 'border-box' }}
     >
       {/* Header */}

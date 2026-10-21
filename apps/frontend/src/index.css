@@ -2,17 +2,103 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design tokens (source of truth: design/redesign/app.css). */
+:root {
+  --bg: #F4F6F9;
+  --surface: #FFFFFF;
+  --surface-2: #EEF1F5;
+  --line: #E1E5EC;
+  --line-strong: #CBD2DC;
+  --ink: #10141B;
+  --ink-2: #535C6D;
+  --accent: #1669D3;
+  --on-accent: #FFFFFF;
+  --link: #1669D3;
+  --accent-ink: #0F4E9E;
+  --accent-tint: #E7F0FC;
+  --accent-line: #BCD5F5;
+  --ok: #1A7A4C;
+  --ok-fill: #1E8A55;
+  --ok-tint: #E3F3EA;
+  --warn: #8A4108;
+  --warn-tint: #FCEFE1;
+  --muted-pill: #3A4150;
+  --a1-bg: #E7F0FC; --a1-fg: #0F4E9E;
+  --a2-bg: #FCEFE1; --a2-fg: #8A4108;
+  --a3-bg: #E3F3EA; --a3-fg: #1A6B44;
+  --a4-bg: #F0E9FB; --a4-fg: #5B2E9C;
+  --a5-bg: #FBE8EF; --a5-fg: #9C2A55;
+  --shadow-fab: 0 6px 16px rgba(22, 105, 211, 0.32);
+  color-scheme: light;
+}
+
+/* Dark tokens. `data-legacy-light` (set in index.html) keeps the old screens,
+   which still hardcode white surfaces, in light mode until they are rebuilt.
+   TODO(redesign): drop the attribute once every screen uses the tokens. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-legacy-light]) {
+    --bg: #0E1116;
+    --surface: #161A21;
+    --surface-2: #1F242D;
+    --line: #2A303B;
+    --line-strong: #3B4250;
+    --ink: #EEF1F5;
+    --ink-2: #A4ADBC;
+    --accent: #2B74D6;
+    --link: #8DB9F2;
+    --accent-ink: #A9CBF7;
+    --accent-tint: #16263D;
+    --accent-line: #2D4E7A;
+    --ok: #6FD3A2;
+    --ok-fill: #3BAF77;
+    --ok-tint: #12291E;
+    --warn: #F2B074;
+    --warn-tint: #2E1F10;
+    --muted-pill: #C5CCD8;
+    --a1-bg: #16263D; --a1-fg: #A9CBF7;
+    --a2-bg: #2E1F10; --a2-fg: #F2B074;
+    --a3-bg: #12291E; --a3-fg: #6FD3A2;
+    --a4-bg: #251A38; --a4-fg: #C9AEF3;
+    --a5-bg: #33141F; --a5-fg: #F2A6C1;
+    --shadow-fab: 0 6px 16px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
+}
+
 @layer base {
   * {
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply bg-gray-100 text-gray-900;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+    @apply bg-bg text-ink font-sans antialiased;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+  ::selection {
+    background: var(--accent-tint);
+    color: var(--ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
 @layer utilities {
+  /* Money and other figures: digits line up and never wrap. */
+  .num {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
   .touch-btn {
     min-height: 44px;
     min-width: 44px;
