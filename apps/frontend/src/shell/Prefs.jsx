@@ -1,9 +1,16 @@
 import React from 'react'
-import { Globe } from 'lucide-react'
+import { Globe, Sun, Moon, Monitor } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrency } from '../hooks/useCurrency'
-import { useLanguage, LANGUAGES } from '../hooks/usePrefs'
+import { useLanguage, useTheme, LANGUAGES } from '../hooks/usePrefs'
 import Menu, { MenuLabel, MenuOption } from '../ui/Menu'
+import Segmented from '../ui/Segmented'
+
+const THEME_OPTIONS = [
+  { value: 'light', icon: Sun },
+  { value: 'dark', icon: Moon },
+  { value: 'system', icon: Monitor },
+]
 
 const prefButton =
   'w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-2.5 rounded-ctl border border-line bg-surface text-[15px] font-semibold text-ink hover:bg-surface-2'
@@ -27,13 +34,50 @@ function CurrencyOptions({ close }) {
   ))
 }
 
-// Sidebar footer: two buttons side by side, menus open upward.
+function ThemeOptions({ close }) {
+  const { t } = useTranslation()
+  const { theme, setTheme } = useTheme()
+  return THEME_OPTIONS.map(({ value, icon: Icon }) => (
+    <MenuOption key={value} selected={theme === value} onSelect={() => { setTheme(value); close() }}>
+      <span className="inline-flex items-center gap-2">
+        <Icon size={16} aria-hidden="true" />
+        {t(`theme.${value}`)}
+      </span>
+    </MenuOption>
+  ))
+}
+
+// Light / dark / auto as three icon buttons.
+function ThemeSwitch() {
+  const { t } = useTranslation()
+  const { theme, setTheme } = useTheme()
+  return (
+    <>
+      <span id="theme-label" className="sr-only">{t('theme.picker')}</span>
+      <Segmented
+        labelledBy="theme-label"
+        value={theme}
+        onChange={setTheme}
+        options={THEME_OPTIONS.map(({ value, icon: Icon }) => ({
+          value,
+          ariaLabel: t(`theme.${value}`),
+          label: <Icon size={18} className="mx-auto" aria-hidden="true" />,
+        }))}
+      />
+    </>
+  )
+}
+
+// Sidebar footer: the theme switch, then language and currency (menus open upward).
 export function SidebarPrefs() {
   const { t } = useTranslation()
   const { label } = useLanguage()
   const { symbol } = useCurrency()
   return (
     <div className="grid grid-cols-2 gap-2">
+      <div className="col-span-2">
+        <ThemeSwitch />
+      </div>
       <Menu side="top" align="start" trigger={(p) => <button type="button" {...p} className={prefButton} aria-label={`${t('language.picker')}: ${label}`}>{label}</button>}>
         {(close) => <LanguageOptions close={close} />}
       </Menu>
@@ -62,6 +106,9 @@ export function TopBarPrefs() {
           <div className="my-1 border-t border-line" />
           <MenuLabel>{t('currency.picker')}</MenuLabel>
           <CurrencyOptions close={close} />
+          <div className="my-1 border-t border-line" />
+          <MenuLabel>{t('theme.picker')}</MenuLabel>
+          <ThemeOptions close={close} />
         </>
       )}
     </Menu>

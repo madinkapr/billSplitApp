@@ -27,6 +27,7 @@ export default function Segmented({ options, value, onChange, labelledBy, classN
             type="button"
             role="radio"
             aria-checked={checked}
+            aria-label={o.ariaLabel}
             tabIndex={checked || (selectedIndex === -1 && i === 0) ? 0 : -1}
             onClick={() => onChange(o.value)}
             onKeyDown={(e) => onKeyDown(e, i)}

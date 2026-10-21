@@ -436,5 +436,11 @@
     "splitEquallyItalic": "Split equally",
     "dragHere": "Drag here",
     "remove": "Remove {{item}} from {{name}}"
+  },
+  "theme": {
+    "picker": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "Auto (device)"
   }
 }

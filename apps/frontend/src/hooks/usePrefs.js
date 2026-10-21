@@ -1,4 +1,6 @@
+import { useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
+import { getThemePref, setThemePref, subscribeTheme } from '../theme'
 
 export const LANGUAGES = [
   { code: 'uz', label: "O'zbek" },
@@ -22,4 +24,10 @@ export function useLanguage() {
   }
 
   return { language, setLanguage, label: LANGUAGES.find((l) => l.code === language)?.label ?? language }
+}
+
+// Light / dark / system theme (see src/theme.js).
+export function useTheme() {
+  const theme = useSyncExternalStore(subscribeTheme, getThemePref)
+  return { theme, setTheme: setThemePref }
 }

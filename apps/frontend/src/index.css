@@ -32,34 +32,33 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0E1116;
-    --surface: #161A21;
-    --surface-2: #1F242D;
-    --line: #2A303B;
-    --line-strong: #3B4250;
-    --ink: #EEF1F5;
-    --ink-2: #A4ADBC;
-    --accent: #2B74D6;
-    --link: #8DB9F2;
-    --accent-ink: #A9CBF7;
-    --accent-tint: #16263D;
-    --accent-line: #2D4E7A;
-    --ok: #6FD3A2;
-    --ok-fill: #3BAF77;
-    --ok-tint: #12291E;
-    --warn: #F2B074;
-    --warn-tint: #2E1F10;
-    --muted-pill: #C5CCD8;
-    --a1-bg: #16263D; --a1-fg: #A9CBF7;
-    --a2-bg: #2E1F10; --a2-fg: #F2B074;
-    --a3-bg: #12291E; --a3-fg: #6FD3A2;
-    --a4-bg: #251A38; --a4-fg: #C9AEF3;
-    --a5-bg: #33141F; --a5-fg: #F2A6C1;
-    --shadow-fab: 0 6px 16px rgba(0, 0, 0, 0.5);
-    color-scheme: dark;
-  }
+/* Dark tokens: <html data-theme="dark">, set from the saved theme or the device (src/theme.js). */
+:root[data-theme="dark"] {
+  --bg: #0E1116;
+  --surface: #161A21;
+  --surface-2: #1F242D;
+  --line: #2A303B;
+  --line-strong: #3B4250;
+  --ink: #EEF1F5;
+  --ink-2: #A4ADBC;
+  --accent: #2B74D6;
+  --link: #8DB9F2;
+  --accent-ink: #A9CBF7;
+  --accent-tint: #16263D;
+  --accent-line: #2D4E7A;
+  --ok: #6FD3A2;
+  --ok-fill: #3BAF77;
+  --ok-tint: #12291E;
+  --warn: #F2B074;
+  --warn-tint: #2E1F10;
+  --muted-pill: #C5CCD8;
+  --a1-bg: #16263D; --a1-fg: #A9CBF7;
+  --a2-bg: #2E1F10; --a2-fg: #F2B074;
+  --a3-bg: #12291E; --a3-fg: #6FD3A2;
+  --a4-bg: #251A38; --a4-fg: #C9AEF3;
+  --a5-bg: #33141F; --a5-fg: #F2A6C1;
+  --shadow-fab: 0 6px 16px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
 }
 
 @layer base {

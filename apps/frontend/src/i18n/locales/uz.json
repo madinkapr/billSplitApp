@@ -436,5 +436,11 @@
     "splitEquallyItalic": "Teng taqsimlanadi",
     "dragHere": "Shu yerga torting",
     "remove": "{{name}}dan olib tashlash: {{item}}"
+  },
+  "theme": {
+    "picker": "Mavzu",
+    "light": "Yorug'",
+    "dark": "Qorong'i",
+    "system": "Avto (qurilmadagidek)"
   }
 }
