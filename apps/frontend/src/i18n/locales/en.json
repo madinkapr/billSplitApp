@@ -350,7 +350,8 @@
       "crews": "Crews",
       "history": "History",
       "cafes": "Cafés"
-    }
+    },
+    "settings": "Settings"
   },
   "status": {
     "notSent": "Not sent",
@@ -441,6 +442,9 @@
     "picker": "Theme",
     "light": "Light",
     "dark": "Dark",
-    "system": "Auto (device)"
+    "system": "Auto (device)",
+    "lightShort": "Light",
+    "darkShort": "Dark",
+    "systemShort": "Auto"
   }
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { motion } from 'framer-motion'
+import { motion, useDragControls } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import Button from './Button'
@@ -11,6 +11,7 @@ export default function Sheet({ title, subtitle, onClose, footer, children, wide
   const { t } = useTranslation()
   const titleId = useId()
   const panelRef = useRef(null)
+  const dragControls = useDragControls()
 
   useEffect(() => {
     const opener = document.activeElement
@@ -43,9 +44,23 @@ export default function Sheet({ title, subtitle, onClose, footer, children, wide
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
+        drag="y"
+        dragListener={false}
+        dragControls={dragControls}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.6 }}
+        onDragEnd={(_, info) => (info.offset.y > 100 || info.velocity.y > 500) && onClose()}
         className={`w-full ${wide ? 'sm:max-w-2xl' : 'sm:max-w-md'} max-h-[90dvh] flex flex-col bg-surface text-ink rounded-t-[20px] sm:rounded-card shadow-xl outline-none`}
       >
-        <div className="flex items-start gap-3 px-5 pt-4 pb-3 border-b border-line">
+        {/* Grab handle: pull the sheet down to close it (phones). */}
+        <div
+          aria-hidden="true"
+          onPointerDown={(e) => dragControls.start(e)}
+          className="sm:hidden flex justify-center pt-2.5 pb-1 touch-none cursor-grab"
+        >
+          <span className="w-10 h-1.5 rounded-full bg-line-strong" />
+        </div>
+        <div className="flex items-start gap-3 px-5 pt-1 sm:pt-4 pb-3 border-b border-line">
           <div className="flex-1 min-w-0 pt-2">
             <h2 id={titleId} className="text-[18px] font-semibold leading-tight">{title}</h2>
             {subtitle && <p className="text-[14px] text-ink-2 mt-0.5">{subtitle}</p>}
@@ -54,7 +69,7 @@ export default function Sheet({ title, subtitle, onClose, footer, children, wide
             <X size={20} aria-hidden="true" />
           </Button>
         </div>
-        <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-4">{children}</div>
+        <div className={`overflow-y-auto flex-1 px-5 pt-4 flex flex-col gap-4 ${footer ? 'pb-4' : 'pb-[calc(20px+env(safe-area-inset-bottom))] sm:pb-5'}`}>{children}</div>
         {footer && <div className="px-5 pt-3 pb-[calc(16px+env(safe-area-inset-bottom))] sm:pb-4 border-t border-line flex gap-2">{footer}</div>}
       </motion.div>
     </motion.div>,

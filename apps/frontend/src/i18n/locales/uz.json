@@ -350,7 +350,8 @@
       "crews": "Guruhlar",
       "history": "Tarix",
       "cafes": "Kafelar"
-    }
+    },
+    "settings": "Sozlamalar"
   },
   "status": {
     "notSent": "Yuborilmagan",
@@ -441,6 +442,9 @@
     "picker": "Mavzu",
     "light": "Yorug'",
     "dark": "Qorong'i",
-    "system": "Avto (qurilmadagidek)"
+    "system": "Avto (qurilmadagidek)",
+    "lightShort": "Yorug'",
+    "darkShort": "Qorong'i",
+    "systemShort": "Avto"
   }
 }
