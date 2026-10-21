@@ -86,7 +86,10 @@
     "qty": "Soni",
     "totalPrice": "Umumiy narxi",
     "everyone": "Hammaga",
-    "liveSplit": "Jonli bo'linma"
+    "liveSplit": "Jonli bo'linma",
+    "members": "A'zolar",
+    "itemsHeader": "Mahsulotlar",
+    "addItemsBelow": "Quyida mahsulot qo'shing"
   },
   "itemChip": {
     "item": "Mahsulot"
@@ -388,17 +391,11 @@
     "dishCount_other": "{{count}} ta taom",
     "addDish": "Taom qo'shish",
     "dishName": "Taom nomi",
-    "tapToAssign": "Biriktirish uchun bosing",
-    "portionsOf": "{{total}} tadan {{done}} porsiya",
     "you": "Siz",
-    "removePortion": "{{name}}: bitta porsiyani olib tashlash",
-    "tapHint": "Odamga porsiya berish uchun uni bosing. Yana bossangiz — yana bitta.",
     "shareEqually": "Teng bo'lish",
     "editDish": "Taomni tahrirlash",
     "deleteDish": "Taomni o'chirish",
     "portions": "Porsiyalar",
-    "toAssign": "Biriktirilmagan",
-    "done": "Tayyor",
     "dishesDone": "{{total}} ta taomdan {{done}} tasi tayyor",
     "missing": "Taomlar chekdagidan {{amount}} kam. Qolganlarini qo'shing.",
     "over": "Taomlar chekdagidan {{amount}} ko'p. Narxlarni tekshiring.",
@@ -409,7 +406,8 @@
     "addDishesFirst": "Avval taomlarni qo'shing",
     "dishesLeft_one": "{{count}} ta taom qoldi",
     "dishesLeft_other": "{{count}} ta taom qoldi",
-    "totalsDontMatch": "Summalar hali mos emas"
+    "totalsDontMatch": "Summalar hali mos emas",
+    "dragHint": "Taomni odamning ustiga sudrab tashlang. Tahrirlash yoki boshqacha bo'lish uchun taomni bosing."
   },
   "split": {
     "plusShared_one": "+{{count}} ta umumiy",
@@ -426,5 +424,17 @@
     "amountOf": "{{total}} dan {{paid}}",
     "eachPays": "Kim qancha to'laydi",
     "dishes": "Taomlar ({{count}})"
+  },
+  "quantityStepper": {
+    "question": "{{member}} uchun nechta {{item}}?",
+    "cancel": "Bekor qilish",
+    "add": "Qo'shish"
+  },
+  "memberCard": {
+    "splitEqually": "teng taqsimlangan",
+    "releaseHere": "Shu yerga qo'yib yuboring",
+    "splitEquallyItalic": "Teng taqsimlanadi",
+    "dragHere": "Shu yerga torting",
+    "remove": "{{name}}dan olib tashlash: {{item}}"
   }
 }

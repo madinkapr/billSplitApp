@@ -88,7 +88,10 @@
     "qty": "Кол-во",
     "totalPrice": "Общая цена",
     "everyone": "Все",
-    "liveSplit": "Разделение в реальном времени"
+    "liveSplit": "Разделение в реальном времени",
+    "members": "Участники",
+    "itemsHeader": "Товары",
+    "addItemsBelow": "Добавьте товары ниже"
   },
   "itemChip": {
     "item": "Товар"
@@ -400,17 +403,11 @@
     "dishCount_other": "{{count}} блюда",
     "addDish": "Добавить блюдо",
     "dishName": "Название блюда",
-    "tapToAssign": "Нажмите, чтобы назначить",
-    "portionsOf": "{{done}} из {{total}} порций",
     "you": "Вы",
-    "removePortion": "Убрать порцию у: {{name}}",
-    "tapHint": "Нажмите на человека, чтобы дать ему порцию. Ещё раз — ещё одну.",
     "shareEqually": "Разделить поровну",
     "editDish": "Изменить блюдо",
     "deleteDish": "Удалить блюдо",
     "portions": "Порции",
-    "toAssign": "Не назначено",
-    "done": "Готово",
     "dishesDone": "Готово {{done}} из {{total}} блюд",
     "missing": "Блюд на {{amount}} меньше, чем в чеке. Добавьте недостающие.",
     "over": "Блюд на {{amount}} больше, чем в чеке. Проверьте цены.",
@@ -423,7 +420,8 @@
     "dishesLeft_few": "Осталось {{count}} блюда",
     "dishesLeft_many": "Осталось {{count}} блюд",
     "dishesLeft_other": "Осталось {{count}} блюда",
-    "totalsDontMatch": "Суммы пока не сходятся"
+    "totalsDontMatch": "Суммы пока не сходятся",
+    "dragHint": "Перетащите блюдо на человека. Нажмите на блюдо, чтобы изменить его или разделить иначе."
   },
   "split": {
     "plusShared_one": "+{{count}} общее",
@@ -444,5 +442,17 @@
     "amountOf": "{{paid}} из {{total}}",
     "eachPays": "Кто сколько платит",
     "dishes": "Блюда ({{count}})"
+  },
+  "quantityStepper": {
+    "question": "Сколько {{item}} для {{member}}?",
+    "cancel": "Отмена",
+    "add": "Добавить"
+  },
+  "memberCard": {
+    "splitEqually": "поровну",
+    "releaseHere": "Отпустите здесь",
+    "splitEquallyItalic": "Делится поровну",
+    "dragHere": "Перетащите сюда",
+    "remove": "Убрать {{item}} у: {{name}}"
   }
 }

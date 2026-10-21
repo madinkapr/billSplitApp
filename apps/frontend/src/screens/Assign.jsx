@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Plus, Minus, ArrowRight, Check } from 'lucide-react'
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { Plus, ArrowRight, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { generateId, getItemShares } from '../utils/math'
 import {
   getTotalUnits,
   getAssignedUnits,
-  getItemState,
+  getRemainingUnits,
   isItemComplete,
   applySplitGroup,
   getGroupSelection,
@@ -15,14 +16,15 @@ import { useCurrency } from '../hooks/useCurrency'
 import { useBillSummary } from '../hooks/useBillSummary'
 import { useCelebrateWhenDone } from '../hooks/useCelebration'
 import Page, { PageHeader, ActionBar, ActionSum } from '../ui/Page'
-import Card, { List } from '../ui/Card'
+import Card from '../ui/Card'
 import Button from '../ui/Button'
-import Avatar, { AvatarStack } from '../ui/Avatar'
-import StatusPill from '../ui/StatusPill'
+import Avatar from '../ui/Avatar'
 import ProgressBar from '../ui/ProgressBar'
 import Stepper from '../ui/Stepper'
 import MoneyInput from '../ui/MoneyInput'
 import ItemDetailSheet from '../components/ItemDetailSheet'
+import MemberCard from '../components/MemberCard'
+import ItemChip, { ItemChipPreview } from '../components/ItemChip'
 import SplitGroupPicker from '../components/SplitGroupPicker'
 
 const fieldClass = 'w-full min-h-[48px] px-3.5 rounded-ctl border border-line-strong bg-surface text-[16px] text-ink placeholder:text-ink-2 focus:outline focus:outline-2 focus:outline-accent focus:border-transparent'
@@ -31,11 +33,6 @@ const fieldClass = 'w-full min-h-[48px] px-3.5 rounded-ctl border border-line-st
 function assignedValue(item) {
   if (isItemComplete(item)) return item.price
   return item.price * Math.min(getAssignedUnits(item) / getTotalUnits(item), 1)
-}
-
-function sharersOf(item, persons) {
-  const shares = getItemShares(item)
-  return persons.filter((p) => shares[p.id] > 0)
 }
 
 function AddDishForm({ onAdd, onClose, autoFocus }) {
@@ -125,93 +122,35 @@ function AddDishForm({ onAdd, onClose, autoFocus }) {
   )
 }
 
-// A dish in the list: tap to open it.
-function DishRow({ item, persons, onOpen }) {
+const EVERYONE_ID = 'everyone'
+
+// Everyone's final amount as dishes get assigned (service and discount included).
+function LiveSplit({ results, grandTotal, unassigned, children }) {
   const { t } = useTranslation()
   const { fmt } = useCurrency()
-  const state = getItemState(item)
-  const total = getTotalUnits(item)
-  let marker
-  if (state === 'unassigned') marker = <span className="text-[13px] font-semibold text-link border-[1.5px] border-dashed border-accent-line rounded-full px-2.5 py-1 whitespace-nowrap">{t('assign.tapToAssign')}</span>
-  else if (state === 'partial') marker = <StatusPill tone="warn">{t('assign.portionsOf', { done: getAssignedUnits(item), total })}</StatusPill>
-  else if (state === 'everyone') marker = <StatusPill tone="accent">{t('itemizer.everyone')}</StatusPill>
-  else marker = <AvatarStack people={sharersOf(item, persons)} />
-
   return (
-    <button type="button" aria-expanded={false} onClick={onOpen} className="w-full flex items-center gap-3 min-h-[60px] px-4 py-2 text-left text-ink hover:bg-surface-2">
-      <span className="flex-1 min-w-0 text-[16px] font-medium line-clamp-2 break-words">
-        {item.name || t('itemChip.item')}
-        {total > 1 && <em className="not-italic text-ink-2"> ×{total}</em>}
-      </span>
-      {marker}
-      <span className="num min-w-[84px] text-right text-[16px] font-medium">{fmt(item.price)}</span>
-    </button>
+    <>
+      <h2 className="text-[18px] font-semibold">{t('itemizer.liveSplit')}</h2>
+      <ul className="flex flex-col gap-3">
+        {results.map((r) => (
+          <li key={r.id} className="flex items-center gap-2.5 text-[15px]">
+            <Avatar size="sm" id={r.id} name={r.name} />
+            <span className={`flex-1 min-w-0 truncate ${r.isMe ? 'font-semibold' : ''}`}>{r.isMe ? t('assign.you') : r.name}</span>
+            <span className={`num ${r.isMe ? 'font-bold' : ''}`}>{fmt(r.finalTotal)}</span>
+          </li>
+        ))}
+      </ul>
+      {unassigned && <p className="text-[14px] text-ink-2">{t('assign.unassignedHint')}</p>}
+      <div className="flex justify-between gap-3 border-t border-line pt-3 font-semibold">
+        <span>{t('assign.totalWithService')}</span>
+        <span className="num">{fmt(grandTotal)}</span>
+      </div>
+      {children}
+    </>
   )
 }
 
-// The open dish: tap a person to give them one portion, "−" takes one back.
-function OpenDish({ item, persons, onAddPortion, onRemovePortion, onShareEqually, onEdit, onCollapse }) {
-  const { t } = useTranslation()
-  const { fmt } = useCurrency()
-  const shares = getItemShares(item)
-  const state = getItemState(item)
-  const total = getTotalUnits(item)
-  const assigned = getAssignedUnits(item)
-  const complete = isItemComplete(item)
-
-  return (
-    <div className="bg-surface border-2 border-accent rounded-card p-4 flex flex-col gap-3">
-      <button type="button" aria-expanded onClick={onCollapse} className="flex items-baseline justify-between gap-3 text-left text-[17px] font-semibold">
-        <span className="min-w-0">
-          {item.name || t('itemChip.item')}
-          {total > 1 && <span className="text-ink-2 font-medium"> ×{total}</span>}
-        </span>
-        <span className="num">{fmt(item.price)}</span>
-      </button>
-      {state === 'everyone' ? (
-        <p className="text-[14px] text-ink-2">{t('itemDetail.splitEquallyAmongEveryone', { amount: fmt(item.price) })}</p>
-      ) : (
-        !complete && <p className="text-[14px] text-ink-2">{t('assign.tapHint')}</p>
-      )}
-      <div className="flex flex-wrap gap-2">
-        {persons.map((p) => {
-          const count = shares[p.id] || 0
-          const on = count > 0
-          return (
-            <span key={p.id} className={`inline-flex items-center min-h-[44px] rounded-full ${on ? 'border-2 border-accent bg-accent-tint' : 'border border-line-strong bg-surface'}`}>
-              <button
-                type="button"
-                aria-pressed={on}
-                onClick={() => onAddPortion(p.id)}
-                className={`inline-flex items-center gap-2 min-h-[40px] rounded-full text-[15px] text-ink ${on ? 'pl-[5px] pr-2 font-semibold' : 'pl-1.5 pr-3.5 font-medium hover:bg-surface-2'}`}
-              >
-                <Avatar size="sm" id={p.id} name={p.name} />
-                {p.isMe ? t('assign.you') : p.name}
-                {on && <span className="num">×{count}</span>}
-              </button>
-              {on && (
-                <button type="button" onClick={() => onRemovePortion(p.id)} aria-label={t('assign.removePortion', { name: p.name })} className="w-9 h-9 mr-0.5 rounded-full inline-flex items-center justify-center text-accent-ink hover:bg-surface">
-                  <Minus size={16} aria-hidden="true" />
-                </button>
-              )}
-            </span>
-          )
-        })}
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-2">
-        <span className={`text-[15px] font-semibold ${complete ? 'text-ok' : 'text-warn'}`}>
-          {state === 'everyone' ? t('itemizer.everyone') : state === 'group' ? t('itemDetail.sharedChecked', { count: Object.keys(shares).length }) : t('assign.portionsOf', { done: assigned, total })}
-        </span>
-        <span className="flex flex-wrap gap-1">
-          {persons.length > 1 && <Button variant="quiet" size="sm" onClick={onShareEqually}>{t('assign.shareEqually')}</Button>}
-          <Button variant="quiet" size="sm" onClick={onEdit}>{t('assign.editDish')}</Button>
-        </span>
-      </div>
-    </div>
-  )
-}
-
-// Step 2 of 3: who ate what. Tap a dish, then tap people — each tap is one portion.
+// Step 2 of 3: who ate what. Drag a dish onto a person (or onto Everyone); tap a dish to edit it.
 export default function Assign({ bill, onBack, onNext }) {
   const { t } = useTranslation()
   const { fmt } = useCurrency()
@@ -229,7 +168,8 @@ export default function Assign({ bill, onBack, onNext }) {
     }
     return []
   })
-  const [openId, setOpenId] = useState(() => items.find((i) => !isItemComplete(i))?.id ?? null)
+  const [activeDragItemId, setActiveDragItemId] = useState(null)
+  const [pendingStepper, setPendingStepper] = useState(null) // { itemId, memberId, itemName, max }
   const [addOpen, setAddOpen] = useState(items.length === 0)
   const [editingItemId, setEditingItemId] = useState(null)
   const [groupPickerItemId, setGroupPickerItemId] = useState(null)
@@ -246,6 +186,8 @@ export default function Assign({ bill, onBack, onNext }) {
 
   const toAssign = items.filter((i) => !isItemComplete(i))
   const done = items.filter(isItemComplete)
+  const activeDragItem = activeDragItemId ? items.find((i) => i.id === activeDragItemId) : null
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
   const coveredValue = items.reduce((s, i) => s + assignedValue(i), 0)
   const leftValue = Math.max(itemsTotal - coveredValue, 0)
 
@@ -264,41 +206,64 @@ export default function Assign({ bill, onBack, onNext }) {
     setItems((prev) => prev.filter((i) => i.id !== id))
   }
 
-  // When a dish is fully handed out, jump to the next one still to assign.
-  function afterChange(before, after) {
-    if (!isItemComplete(before) && isItemComplete(after)) {
-      const next = items.find((i) => i.id !== after.id && !isItemComplete(i))
-      setOpenId(next?.id ?? null)
+  function handleDragEnd(event) {
+    setActiveDragItemId(null)
+    const { active, over } = event
+    if (!over) return
+    const item = items.find((i) => i.id === active.id)
+    if (!item) return
+
+    // Dropping on the shared card asks who shares it (everyone pre-checked).
+    if (over.id === EVERYONE_ID) {
+      setGroupPickerItemId(item.id)
+      return
     }
+
+    const remainingUnits = getRemainingUnits(item)
+    if (remainingUnits <= 0) return
+    const member = activePersons.find((m) => m.id === over.id)
+    if (!member) return
+
+    if (remainingUnits === 1) {
+      assignQuantity(item.id, member.id, 1)
+      return
+    }
+    setPendingStepper({ itemId: item.id, memberId: member.id, itemName: item.name, max: remainingUnits })
   }
 
-  function addPortion(item, memberId) {
-    const shares = item.everyone ? {} : { ...getItemShares(item) }
-    shares[memberId] = (shares[memberId] || 0) + 1
-    const updated = { ...item, shares, everyone: false }
-    updateItem(updated)
-    afterChange(item, updated)
-  }
-
-  function removePortion(item, memberId) {
+  function assignQuantity(itemId, memberId, qty) {
+    const item = items.find((i) => i.id === itemId)
+    if (!item) return
     const shares = { ...getItemShares(item) }
-    if ((shares[memberId] || 0) <= 1) delete shares[memberId]
-    else shares[memberId] -= 1
+    shares[memberId] = (shares[memberId] || 0) + qty
+    updateItem({ ...item, shares, everyone: false })
+  }
+
+  function commitStepper(qty) {
+    if (!pendingStepper) return
+    assignQuantity(pendingStepper.itemId, pendingStepper.memberId, qty)
+    setPendingStepper(null)
+  }
+
+  function removeAssignment(itemId, memberId) {
+    const item = items.find((i) => i.id === itemId)
+    if (!item) return
+    if (memberId === EVERYONE_ID) {
+      updateItem({ ...item, everyone: false, shares: {} })
+      return
+    }
+    const shares = { ...getItemShares(item) }
+    delete shares[memberId]
     updateItem(normalizeGroupItem({ ...item, shares }))
   }
 
   function confirmGroup(selectedIds) {
-    if (groupPickerItem) {
-      const updated = applySplitGroup(groupPickerItem, selectedIds, activeIds)
-      updateItem(updated)
-      afterChange(groupPickerItem, updated)
-    }
+    if (groupPickerItem) updateItem(applySplitGroup(groupPickerItem, selectedIds, activeIds))
     setGroupPickerItemId(null)
   }
 
   function addItem(newItem) {
     setItems((prev) => [...prev, newItem])
-    if (!openId) setOpenId(newItem.id)
   }
 
   // Fireworks the moment the last dish is placed and the sums check out.
@@ -323,37 +288,6 @@ export default function Assign({ bill, onBack, onNext }) {
     : !allAssigned
       ? t('assign.dishesLeft', { count: toAssign.length })
       : t('assign.totalsDontMatch')
-
-  function renderGroup(list, titleKey) {
-    if (list.length === 0) return null
-    const open = list.find((i) => i.id === openId)
-    const rest = list.filter((i) => i.id !== openId)
-    return (
-      <section className="flex flex-col gap-2.5" aria-label={t(titleKey)}>
-        <h2 className="mt-2 text-[16px] font-semibold text-ink-2">
-          <b className="text-ink">{t(titleKey)}</b> · {list.length}
-        </h2>
-        {open && (
-          <OpenDish
-            item={open}
-            persons={activePersons}
-            onAddPortion={(id) => addPortion(open, id)}
-            onRemovePortion={(id) => removePortion(open, id)}
-            onShareEqually={() => setGroupPickerItemId(open.id)}
-            onEdit={() => setEditingItemId(open.id)}
-            onCollapse={() => setOpenId(null)}
-          />
-        )}
-        {rest.length > 0 && (
-          <List>
-            {rest.map((item) => (
-              <DishRow key={item.id} item={item} persons={activePersons} onOpen={() => setOpenId(item.id)} />
-            ))}
-          </List>
-        )}
-      </section>
-    )
-  }
 
   const title = bill.crewName || t('report.billSplitFallback')
 
@@ -403,34 +337,65 @@ export default function Assign({ bill, onBack, onNext }) {
 
           {addOpen && <AddDishForm onAdd={addItem} onClose={items.length > 0 ? () => setAddOpen(false) : null} autoFocus={items.length > 0} />}
 
-          {renderGroup(toAssign, 'assign.toAssign')}
-          {renderGroup(done, 'assign.done')}
+          <DndContext sensors={sensors} onDragStart={(e) => setActiveDragItemId(e.active.id)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveDragItemId(null)}>
+            {toAssign.length > 0 && <p className="text-[14px] text-ink-2">{t('assign.dragHint')}</p>}
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-4 items-start">
+              <section aria-labelledby="members-col" className="flex flex-col gap-2 min-w-0">
+                <h2 id="members-col" className="text-[13px] font-semibold uppercase tracking-wide text-ink-2">{t('itemizer.members')}</h2>
+                {activePersons.map((member) => (
+                  <MemberCard
+                    key={member.id}
+                    member={member}
+                    isEveryone={false}
+                    items={items}
+                    pendingStepper={pendingStepper}
+                    activeDragItem={!!activeDragItem}
+                    onCommitStepper={commitStepper}
+                    onCancelStepper={() => setPendingStepper(null)}
+                    onRemoveAssignment={(itemId) => removeAssignment(itemId, member.id)}
+                  />
+                ))}
+                {activePersons.length > 1 && (
+                  <MemberCard
+                    member={{ id: EVERYONE_ID, name: t('itemizer.everyone') }}
+                    isEveryone
+                    items={items}
+                    pendingStepper={pendingStepper}
+                    activeDragItem={!!activeDragItem}
+                    onCommitStepper={commitStepper}
+                    onCancelStepper={() => setPendingStepper(null)}
+                    onRemoveAssignment={(itemId) => removeAssignment(itemId, EVERYONE_ID)}
+                  />
+                )}
+              </section>
+
+              <section aria-labelledby="items-col" className="flex flex-col gap-2.5 min-w-0">
+                <h2 id="items-col" className="text-[13px] font-semibold uppercase tracking-wide text-ink-2">{t('itemizer.itemsHeader')}</h2>
+                {[...toAssign, ...done].map((item) => (
+                  <ItemChip key={item.id} item={item} onTap={() => setEditingItemId(item.id)} />
+                ))}
+                {items.length === 0 && <p className="text-[14px] text-ink-2 py-2">{t('assign.addDishesFirst')}</p>}
+              </section>
+            </div>
+            <DragOverlay dropAnimation={null}>{activeDragItem ? <ItemChipPreview item={activeDragItem} /> : null}</DragOverlay>
+          </DndContext>
+
+          <Card className="lg:hidden">
+            <LiveSplit results={summary.results} grandTotal={bill.grandTotal || 0} unassigned={leftValue > 0.004} />
+          </Card>
         </div>
 
-        <Card as="aside" aria-labelledby="live-title" className="hidden lg:flex lg:sticky lg:top-10">
-          <h2 id="live-title" className="text-[18px] font-semibold">{t('itemizer.liveSplit')}</h2>
-          <ul className="flex flex-col gap-3">
-            {summary.results.map((r) => (
-              <li key={r.id} className="flex items-center gap-2.5 text-[15px]">
-                <Avatar size="sm" id={r.id} name={r.name} />
-                <span className={`flex-1 min-w-0 truncate ${r.isMe ? 'font-semibold' : ''}`}>{r.isMe ? t('assign.you') : r.name}</span>
-                <span className={`num ${r.isMe ? 'font-bold' : ''}`}>{fmt(r.finalTotal)}</span>
-              </li>
-            ))}
-          </ul>
-          {leftValue > 0.004 && <p className="text-[14px] text-ink-2">{t('assign.unassignedHint')}</p>}
-          <div className="flex justify-between gap-3 border-t border-line pt-3 font-semibold">
-            <span>{t('assign.totalWithService')}</span>
-            <span className="num">{fmt(bill.grandTotal || 0)}</span>
-          </div>
-          {complete ? (
-            <Button block size="lg" variant="primary" onClick={finish}>
-              {t('assign.seeSplit')}
-              <ArrowRight size={20} aria-hidden="true" />
-            </Button>
-          ) : (
-            <Button block size="lg" disabled>{blockedLabel}</Button>
-          )}
+        <Card as="aside" aria-label={t('itemizer.liveSplit')} className="hidden lg:flex lg:sticky lg:top-10">
+          <LiveSplit results={summary.results} grandTotal={bill.grandTotal || 0} unassigned={leftValue > 0.004}>
+            {complete ? (
+              <Button block size="lg" variant="primary" onClick={finish}>
+                {t('assign.seeSplit')}
+                <ArrowRight size={20} aria-hidden="true" />
+              </Button>
+            ) : (
+              <Button block size="lg" disabled>{blockedLabel}</Button>
+            )}
+          </LiveSplit>
         </Card>
       </div>
 

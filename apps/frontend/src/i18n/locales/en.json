@@ -86,7 +86,10 @@
     "qty": "Qty",
     "totalPrice": "Total price",
     "everyone": "Everyone",
-    "liveSplit": "Live Split"
+    "liveSplit": "Live Split",
+    "members": "Members",
+    "itemsHeader": "Items",
+    "addItemsBelow": "Add items below"
   },
   "itemChip": {
     "item": "Item"
@@ -388,17 +391,11 @@
     "dishCount_other": "{{count}} dishes",
     "addDish": "Add dish",
     "dishName": "Dish name",
-    "tapToAssign": "Tap to assign",
-    "portionsOf": "{{done}} of {{total}} portions",
     "you": "You",
-    "removePortion": "Take a portion from {{name}}",
-    "tapHint": "Tap a person to give them a portion. Tap again for another one.",
     "shareEqually": "Share equally instead",
     "editDish": "Edit dish",
     "deleteDish": "Delete dish",
     "portions": "Portions",
-    "toAssign": "To assign",
-    "done": "Done",
     "dishesDone": "{{done}} of {{total}} dishes done",
     "missing": "Dishes are {{amount}} short of the receipt. Add the missing ones.",
     "over": "Dishes are {{amount}} over the receipt. Check the prices.",
@@ -409,7 +406,8 @@
     "addDishesFirst": "Add the dishes first",
     "dishesLeft_one": "{{count}} dish left",
     "dishesLeft_other": "{{count}} dishes left",
-    "totalsDontMatch": "Totals don't match yet"
+    "totalsDontMatch": "Totals don't match yet",
+    "dragHint": "Drag a dish onto a person. Tap a dish to edit it or split it differently."
   },
   "split": {
     "plusShared_one": "+{{count}} shared",
@@ -426,5 +424,17 @@
     "amountOf": "{{paid}} of {{total}}",
     "eachPays": "Each person pays",
     "dishes": "Dishes ({{count}})"
+  },
+  "quantityStepper": {
+    "question": "How many {{item}} for {{member}}?",
+    "cancel": "Cancel",
+    "add": "Add"
+  },
+  "memberCard": {
+    "splitEqually": "split equally",
+    "releaseHere": "Release here",
+    "splitEquallyItalic": "Split equally",
+    "dragHere": "Drag here",
+    "remove": "Remove {{item}} from {{name}}"
   }
 }
