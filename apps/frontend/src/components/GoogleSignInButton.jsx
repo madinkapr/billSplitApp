@@ -73,7 +73,7 @@ export default function GoogleSignInButton({ clientId, onCredential, onError }) 
 
   if (inApp) {
     return (
-      <p className="text-xs text-center text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+      <p className="text-[13px] text-center text-warn bg-warn-tint border border-warn rounded-xl px-3 py-2.5">
         {t('auth.googleInAppHint')}
       </p>
     )

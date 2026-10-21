@@ -1,13 +1,23 @@
 import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { X, Check, Users } from 'lucide-react'
+import { Check, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrency } from '../hooks/useCurrency'
+import Sheet from '../ui/Sheet'
+import Button from '../ui/Button'
+import Avatar from '../ui/Avatar'
 
-// "Who shares this item?" — opened when an item is dropped on the shared card or the
-// "Shared" button is tapped. Everyone starts checked, so splitting with the whole table
-// stays a single tap ("Done"); unchecking people narrows it to a subset (e.g. two friends
-// sharing one salad). The caller turns the selection into an item via applySplitGroup().
+function Checkbox({ on }) {
+  return (
+    <span aria-hidden="true" className={`w-5 h-5 rounded-md inline-flex items-center justify-center flex-none ${on ? 'bg-accent text-on-accent' : 'border-2 border-line-strong'}`}>
+      {on && <Check size={14} strokeWidth={2.5} />}
+    </span>
+  )
+}
+
+// "Who shares this item?" — opened from "Share equally instead". Everyone starts checked,
+// so splitting with the whole table stays a single tap ("Done"); unchecking people narrows
+// it to a subset (e.g. two friends sharing one salad). The caller turns the selection into
+// an item via applySplitGroup().
 export default function SplitGroupPicker({ item, persons, initialSelected, onConfirm, onClose }) {
   const { t } = useTranslation()
   const { fmt } = useCurrency()
@@ -29,87 +39,46 @@ export default function SplitGroupPicker({ item, persons, initialSelected, onCon
     setSelected(allSelected ? new Set() : new Set(persons.map((p) => p.id)))
   }
 
+  const rowClass = (on) =>
+    `w-full flex items-center gap-3 min-h-[52px] px-3 rounded-ctl text-left ${on ? 'border-2 border-accent bg-accent-tint' : 'border border-line bg-surface hover:bg-surface-2'}`
+
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4"
-        onClick={(e) => e.target === e.currentTarget && onClose()}
-      >
-        <motion.div
-          initial={{ y: 60, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 60, opacity: 0 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col shadow-xl"
-        >
-          <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3 border-b border-gray-100">
-            <div className="min-w-0">
-              <h2 className="text-base font-bold text-gray-900">{t('splitGroup.title')}</h2>
-              <p className="text-xs text-gray-500 truncate mt-0.5">{t('splitGroup.subtitle', { name: item.name, amount: fmt(item.price) })}</p>
-            </div>
-            <button onClick={onClose} className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full hover:bg-gray-100">
-              <X size={16} />
-            </button>
-          </div>
-
-          <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={toggleAll}
-              className={`flex items-center gap-3 rounded-xl px-3 py-3 border-2 text-left transition-colors ${
-                allSelected ? 'border-accent bg-accent-tint' : 'border-gray-200 bg-white'
-              }`}
-            >
-              <span className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 ${allSelected ? 'bg-accent text-white' : 'border-2 border-gray-300'}`}>
-                {allSelected && <Check size={13} />}
+    <Sheet
+      title={t('splitGroup.title')}
+      subtitle={t('splitGroup.subtitle', { name: item.name, amount: fmt(item.price) })}
+      onClose={onClose}
+      footer={
+        <div className="w-full flex flex-col gap-2">
+          <p className="text-[14px] text-ink-2 text-center" aria-live="polite">
+            {selected.size === 0 ? t('splitGroup.pickAtLeastOne') : t('splitGroup.summary', { count: selected.size, amount: fmt(perPerson) })}
+          </p>
+          <Button block variant="primary" onClick={() => onConfirm([...selected])} disabled={selected.size === 0}>
+            {t('splitGroup.done')}
+          </Button>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-2">
+        <button type="button" aria-pressed={allSelected} onClick={toggleAll} className={rowClass(allSelected)}>
+          <Checkbox on={allSelected} />
+          <Users size={18} className="text-accent-ink flex-none" aria-hidden="true" />
+          <span className="flex-1 font-semibold text-[15px]">{t('splitGroup.everyone')}</span>
+        </button>
+        {persons.map((p) => {
+          const on = selected.has(p.id)
+          return (
+            <button key={p.id} type="button" aria-pressed={on} onClick={() => toggle(p.id)} className={rowClass(on)}>
+              <Checkbox on={on} />
+              <Avatar size="sm" id={p.id} name={p.name} />
+              <span className={`flex-1 min-w-0 truncate text-[15px] ${on ? 'font-semibold' : 'text-ink-2'}`}>
+                {p.name}
+                {p.isMe ? t('common.you') : ''}
               </span>
-              <Users size={16} className="text-accent flex-shrink-0" />
-              <span className="font-semibold text-sm text-gray-900 flex-1">{t('splitGroup.everyone')}</span>
+              {on && <span className="num text-[14px] font-semibold text-accent-ink">{fmt(perPerson)}</span>}
             </button>
-
-            {persons.map((p) => {
-              const on = selected.has(p.id)
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => toggle(p.id)}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border text-left transition-colors ${
-                    on ? 'border-accent/50 bg-white' : 'border-gray-200 bg-gray-50'
-                  }`}
-                >
-                  <span className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 ${on ? 'bg-accent text-white' : 'border-2 border-gray-300'}`}>
-                    {on && <Check size={13} />}
-                  </span>
-                  <span className={`text-sm flex-1 min-w-0 truncate ${on ? 'font-semibold text-gray-900' : 'text-gray-400'}`}>
-                    {p.name}
-                    {p.isMe ? t('common.you') : ''}
-                  </span>
-                  {on && <span className="text-xs font-bold text-accent flex-shrink-0">{fmt(perPerson)}</span>}
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="px-5 py-4 border-t border-gray-100 flex flex-col gap-2">
-            <p className="text-xs text-gray-500 text-center">
-              {selected.size === 0
-                ? t('splitGroup.pickAtLeastOne')
-                : t('splitGroup.summary', { count: selected.size, amount: fmt(perPerson) })}
-            </p>
-            <button
-              onClick={() => onConfirm([...selected])}
-              disabled={selected.size === 0}
-              className="btn-primary w-full text-sm disabled:opacity-40"
-            >
-              {t('splitGroup.done')}
-            </button>
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+          )
+        })}
+      </div>
+    </Sheet>
   )
 }

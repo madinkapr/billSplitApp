@@ -38,7 +38,7 @@ function PasswordInput({ value, onChange, placeholder, autoComplete }) {
       <button
         type="button"
         onClick={() => setShow((p) => !p)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-2 hover:text-ink"
         tabIndex={-1}
         aria-label={t('auth.togglePassword')}
       >
@@ -52,20 +52,23 @@ function PasswordInput({ value, onChange, placeholder, autoComplete }) {
 export function AuthShell({ title, subtitle, onBack, children, footer }) {
   const { t } = useTranslation()
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-surface-2 flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
         {onBack && (
-          <button onClick={onBack} className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700">
+          <button onClick={onBack} className="mb-4 inline-flex items-center gap-1.5 min-h-[44px] text-sm font-medium text-ink-2 hover:text-ink">
             <ArrowLeft size={16} />
             {t('auth.back')}
           </button>
         )}
         <div className="card p-6 flex flex-col gap-5">
           <div className="flex flex-col items-center gap-3 text-center">
-            <img src="/logo-schet.png" alt="SCHET.uz" className="h-10 w-auto object-contain" />
+            <picture>
+              <source srcSet="/logo-schet-white.png" media="(prefers-color-scheme: dark)" />
+              <img src="/logo-schet.png" alt="SCHET.uz" className="h-10 w-auto object-contain" />
+            </picture>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">{title}</h1>
-              {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+              <h1 className="text-xl font-bold text-ink">{title}</h1>
+              {subtitle && <p className="text-sm text-ink-2 mt-1">{subtitle}</p>}
             </div>
           </div>
           {children}
@@ -134,10 +137,10 @@ export default function AuthPage({ initialMode = 'login', onDone, onBack }) {
       >
         {resetSent ? (
           <div className="flex flex-col items-center gap-3 text-center">
-            <div className="w-12 h-12 rounded-full bg-green-50 text-green-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-ok-tint text-ok flex items-center justify-center">
               <MailCheck size={22} />
             </div>
-            <p className="text-sm text-gray-600">{t('auth.forgotSent', { email: email.trim() })}</p>
+            <p className="text-sm text-ink-2">{t('auth.forgotSent', { email: email.trim() })}</p>
             <button onClick={() => switchTo('login')} className="btn-primary w-full mt-1">
               {t('auth.backToLogin')}
             </button>
@@ -153,7 +156,7 @@ export default function AuthPage({ initialMode = 'login', onDone, onBack }) {
               placeholder={t('auth.email')}
               className="input-field"
             />
-            {errorText && <p className="text-sm text-red-600">{errorText}</p>}
+            {errorText && <p className="text-sm text-warn">{errorText}</p>}
             <button type="submit" disabled={!canSubmit} className="btn-primary w-full disabled:opacity-50">
               {busy ? <Loader2 size={16} className="animate-spin" /> : t('auth.forgotButton')}
             </button>
@@ -169,7 +172,7 @@ export default function AuthPage({ initialMode = 'login', onDone, onBack }) {
       subtitle={isRegister ? t('auth.registerSubtitle') : t('auth.loginSubtitle')}
       onBack={onBack}
       footer={
-        <button onClick={onBack} className="mt-4 w-full text-center text-sm text-gray-500 hover:text-gray-700">
+        <button onClick={onBack} className="mt-4 w-full text-center text-sm text-ink-2 hover:text-ink">
           {t('auth.continueAsGuest')}
         </button>
       }
@@ -202,20 +205,20 @@ export default function AuthPage({ initialMode = 'login', onDone, onBack }) {
           placeholder={isRegister ? t('auth.passwordNew') : t('auth.password')}
         />
         {!isRegister && (
-          <button type="button" onClick={() => switchTo('forgot')} className="self-end -mt-1 text-xs font-semibold text-indigo-600 hover:underline">
+          <button type="button" onClick={() => switchTo('forgot')} className="self-end -mt-1 text-[13px] font-semibold text-link hover:underline">
             {t('auth.forgotLink')}
           </button>
         )}
 
-        {errorText && <p className="text-sm text-red-600">{errorText}</p>}
+        {errorText && <p className="text-sm text-warn">{errorText}</p>}
 
         <button type="submit" disabled={!canSubmit} className="btn-primary w-full disabled:opacity-50">
           {busy ? <Loader2 size={16} className="animate-spin" /> : isRegister ? t('auth.registerButton') : t('auth.loginButton')}
         </button>
         {isRegister && (
-          <p className="text-xs text-center text-gray-400">
+          <p className="text-[13px] text-center text-ink-2">
             {t('auth.agreePrefix')}{' '}
-            <a href="/privacy" onClick={inAppLinkClick('/privacy')} className="underline hover:text-gray-600">
+            <a href="/privacy" onClick={inAppLinkClick('/privacy')} className="underline hover:text-ink-2">
               {t('legal.privacy')}
             </a>
             {t('auth.agreeSuffix')}
@@ -223,19 +226,19 @@ export default function AuthPage({ initialMode = 'login', onDone, onBack }) {
         )}
       </form>
 
-      <p className="text-sm text-center text-gray-500">
+      <p className="text-sm text-center text-ink-2">
         {isRegister ? t('auth.haveAccount') : t('auth.noAccount')}{' '}
-        <button onClick={() => switchTo(isRegister ? 'login' : 'register')} className="font-semibold text-indigo-600 hover:underline">
+        <button onClick={() => switchTo(isRegister ? 'login' : 'register')} className="font-semibold text-link hover:underline">
           {isRegister ? t('auth.loginLink') : t('auth.registerLink')}
         </button>
       </p>
 
       {googleClientId && (
         <>
-          <div className="flex items-center gap-3 text-xs text-gray-400">
-            <div className="flex-1 h-px bg-gray-200" />
+          <div className="flex items-center gap-3 text-[13px] text-ink-2">
+            <div className="flex-1 h-px bg-line" />
             {t('auth.or')}
-            <div className="flex-1 h-px bg-gray-200" />
+            <div className="flex-1 h-px bg-line" />
           </div>
           <GoogleSignInButton
             clientId={googleClientId}

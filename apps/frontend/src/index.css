@@ -2,34 +2,117 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design tokens: colours, light and dark. Change them here; tailwind.config.js maps them to classes. */
+:root {
+  --bg: #F4F6F9;
+  --surface: #FFFFFF;
+  --surface-2: #EEF1F5;
+  --line: #E1E5EC;
+  --line-strong: #CBD2DC;
+  --ink: #10141B;
+  --ink-2: #535C6D;
+  --accent: #1669D3;
+  --on-accent: #FFFFFF;
+  --link: #1669D3;
+  --accent-ink: #0F4E9E;
+  --accent-tint: #E7F0FC;
+  --accent-line: #BCD5F5;
+  --ok: #1A7A4C;
+  --ok-fill: #1E8A55;
+  --ok-tint: #E3F3EA;
+  --warn: #8A4108;
+  --warn-tint: #FCEFE1;
+  --muted-pill: #3A4150;
+  --a1-bg: #E7F0FC; --a1-fg: #0F4E9E;
+  --a2-bg: #FCEFE1; --a2-fg: #8A4108;
+  --a3-bg: #E3F3EA; --a3-fg: #1A6B44;
+  --a4-bg: #F0E9FB; --a4-fg: #5B2E9C;
+  --a5-bg: #FBE8EF; --a5-fg: #9C2A55;
+  --shadow-fab: 0 6px 16px rgba(22, 105, 211, 0.32);
+  color-scheme: light;
+}
+
+/* Dark tokens: <html data-theme="dark">, set from the saved theme or the device (src/theme.js). */
+:root[data-theme="dark"] {
+  --bg: #0E1116;
+  --surface: #161A21;
+  --surface-2: #1F242D;
+  --line: #2A303B;
+  --line-strong: #3B4250;
+  --ink: #EEF1F5;
+  --ink-2: #A4ADBC;
+  --accent: #2B74D6;
+  --link: #8DB9F2;
+  --accent-ink: #A9CBF7;
+  --accent-tint: #16263D;
+  --accent-line: #2D4E7A;
+  --ok: #6FD3A2;
+  --ok-fill: #3BAF77;
+  --ok-tint: #12291E;
+  --warn: #F2B074;
+  --warn-tint: #2E1F10;
+  --muted-pill: #C5CCD8;
+  --a1-bg: #16263D; --a1-fg: #A9CBF7;
+  --a2-bg: #2E1F10; --a2-fg: #F2B074;
+  --a3-bg: #12291E; --a3-fg: #6FD3A2;
+  --a4-bg: #251A38; --a4-fg: #C9AEF3;
+  --a5-bg: #33141F; --a5-fg: #F2A6C1;
+  --shadow-fab: 0 6px 16px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+
 @layer base {
   * {
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply bg-gray-100 text-gray-900;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+    @apply bg-bg text-ink font-sans antialiased;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+  ::selection {
+    background: var(--accent-tint);
+    color: var(--ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
 @layer utilities {
+  /* Money and other figures: digits line up and never wrap. */
+  .num {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
   .touch-btn {
     min-height: 44px;
     min-width: 44px;
   }
+  /* Form helpers kept for the auth, privacy and admin pages. */
   .card {
-    @apply bg-white rounded-2xl shadow-sm border border-gray-100;
+    @apply bg-surface rounded-card border border-line;
   }
   .input-field {
-    @apply w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white;
+    @apply w-full min-h-[48px] rounded-ctl border border-line-strong bg-surface px-3.5 text-[16px] text-ink placeholder:text-ink-2 focus:outline focus:outline-2 focus:outline-accent focus:border-transparent;
   }
   .btn-primary {
-    @apply bg-indigo-600 text-white rounded-xl font-semibold px-5 py-3 touch-btn flex items-center justify-center gap-2 active:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply min-h-[48px] rounded-ctl bg-accent px-5 font-semibold text-on-accent flex items-center justify-center gap-2 hover:bg-accent-ink transition-colors disabled:bg-surface-2 disabled:text-ink-2 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply bg-gray-100 text-gray-700 rounded-xl font-semibold px-5 py-3 touch-btn flex items-center justify-center gap-2 active:bg-gray-200 transition-colors;
+    @apply min-h-[48px] rounded-ctl border border-line bg-surface px-5 font-semibold text-ink flex items-center justify-center gap-2 hover:bg-surface-2 transition-colors;
   }
   .btn-ghost {
-    @apply text-indigo-600 rounded-xl font-semibold px-4 py-2 touch-btn flex items-center justify-center gap-1 active:bg-indigo-50 transition-colors text-sm;
+    @apply min-h-[44px] rounded-ctl px-4 text-[15px] font-semibold text-link flex items-center justify-center gap-1 hover:bg-accent-tint transition-colors;
   }
 }

@@ -31,17 +31,17 @@ export default function VerifyEmailPage({ token, onDone }) {
       <div className="flex flex-col items-center gap-3 text-center">
         {shown === 'checking' && (
           <>
-            <Loader2 size={28} className="animate-spin text-indigo-500" />
-            <p className="text-sm text-gray-600">{t('auth.verifyChecking')}</p>
+            <Loader2 size={28} className="animate-spin text-link" />
+            <p className="text-sm text-ink-2">{t('auth.verifyChecking')}</p>
           </>
         )}
 
         {shown === 'done' && (
           <>
-            <div className="w-12 h-12 rounded-full bg-green-50 text-green-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-ok-tint text-ok flex items-center justify-center">
               <CheckCircle2 size={24} />
             </div>
-            <p className="text-sm text-gray-600">{t('auth.verifyDone')}</p>
+            <p className="text-sm text-ink-2">{t('auth.verifyDone')}</p>
             <button onClick={onDone} className="btn-primary w-full mt-1">
               {t('auth.verifyContinue')}
             </button>
@@ -50,15 +50,15 @@ export default function VerifyEmailPage({ token, onDone }) {
 
         {(shown === 'invalid' || shown === 'error') && (
           <>
-            <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-warn-tint text-warn flex items-center justify-center">
               <AlertCircle size={22} />
             </div>
-            <p className="text-sm text-gray-600">{shown === 'invalid' ? t('auth.verifyInvalid') : authErrorText(t, 'server_error')}</p>
+            <p className="text-sm text-ink-2">{shown === 'invalid' ? t('auth.verifyInvalid') : authErrorText(t, 'server_error')}</p>
             {shown === 'invalid' && user && !user.emailVerified && (
               <ResendVerificationButton className="btn-primary w-full mt-1 flex items-center justify-center" label={t('auth.verifyResendNew')} />
             )}
-            {shown === 'invalid' && !user && <p className="text-xs text-gray-400">{t('auth.verifyLoginToResend')}</p>}
-            <button onClick={onDone} className="w-full py-3 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+            {shown === 'invalid' && !user && <p className="text-[13px] text-ink-2">{t('auth.verifyLoginToResend')}</p>}
+            <button onClick={onDone} className="w-full py-3 rounded-xl border-2 border-line text-sm font-semibold text-ink hover:bg-surface-2">
               {t('auth.verifyContinue')}
             </button>
           </>

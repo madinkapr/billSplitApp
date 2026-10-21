@@ -1,6 +1,7 @@
 import React from 'react'
-import { Flame, Loader2 } from 'lucide-react'
+import { Flame } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import Skeleton from '../ui/Skeleton'
 
 // "92 daqiqa" reads as a big scary number — "1 soat 32 daqiqa" reads the way people
 // actually think about walking time. Math is unchanged, just presentation.
@@ -12,37 +13,32 @@ function formatWalkDuration(totalMinutes, t) {
   return t('report.durationHoursMinutes', { hours, minutes })
 }
 
-export default function CalorieEstimate({ estimate, theme = 'mobile' }) {
+export default function CalorieEstimate({ estimate }) {
   const { t } = useTranslation()
-  const isDesktop = theme === 'desktop'
-
-  const cardBorder = isDesktop ? 'border-desktop-cardBorder' : 'border-gray-100'
-  const textMuted = isDesktop ? 'text-desktop-textMuted3' : 'text-gray-400'
-  const textBody = isDesktop ? 'text-desktop-text' : 'text-gray-800'
-  const rowDivide = isDesktop ? 'divide-desktop-divider' : 'divide-gray-50'
 
   if (estimate.loading) {
     return (
-      <div className={`flex items-center gap-2 px-1 text-xs ${textMuted}`}>
-        <Loader2 size={13} className="animate-spin" /> {t('report.caloriesLoading')}
+      <div className="flex flex-col gap-2" aria-busy="true" aria-label={t('report.caloriesLoading')}>
+        <Skeleton className="h-5 w-40" />
+        <Skeleton className="h-[120px] !rounded-card" />
       </div>
     )
   }
 
   if (estimate.error || !estimate.perPerson) {
-    return <p className={`text-xs px-1 ${textMuted}`}>{t('report.caloriesUnavailable')}</p>
+    return <p className="text-[14px] text-ink-2">{t('report.caloriesUnavailable')}</p>
   }
 
   return (
-    <div>
-      <h2 className={`text-[12px] font-bold uppercase tracking-wide mb-2 ${textMuted}`}>{t('report.caloriesHeader')}</h2>
-      <div className={`bg-white border ${cardBorder} rounded-2xl overflow-hidden divide-y ${rowDivide}`}>
+    <section aria-labelledby="calories-title" className="flex flex-col gap-2.5">
+      <h2 id="calories-title" className="text-[18px] font-semibold">{t('report.caloriesHeader')}</h2>
+      <ul className="bg-surface border border-line rounded-card overflow-hidden divide-y divide-line">
         {estimate.perPerson.map((p) => (
-          <div key={p.id} className="flex items-center gap-3 px-4 py-3">
-            <Flame size={16} className="text-orange-400 flex-shrink-0" />
+          <li key={p.id} className="flex items-center gap-3 px-4 py-3">
+            <Flame size={18} className="text-warn flex-none" aria-hidden="true" />
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-medium truncate ${textBody}`}>{p.name}{p.isMe ? t('common.you') : ''}</p>
-              <p className={`text-xs ${textMuted}`}>
+              <p className="text-[15px] font-medium truncate">{p.name}{p.isMe ? t('common.you') : ''}</p>
+              <p className="text-[14px] text-ink-2">
                 {p.steps > 0
                   ? t('report.caloriesLine', {
                       calories: p.calories.toLocaleString(),
@@ -52,9 +48,9 @@ export default function CalorieEstimate({ estimate, theme = 'mobile' }) {
                   : t('report.caloriesLineCovered', { calories: p.calories.toLocaleString() })}
               </p>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </section>
   )
 }

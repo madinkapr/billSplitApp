@@ -1,104 +1,85 @@
 import React from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { Check } from 'lucide-react'
+import { Check, GripVertical } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getAssignedUnits, getTotalUnits, getItemState } from '../utils/itemizerState'
 import { useCurrency } from '../hooks/useCurrency'
 
-function Grip() {
-  return (
-    <div className="flex flex-col gap-[2px] flex-none">
-      <div className="w-[11px] h-[2px] rounded-sm bg-accent-grip" />
-      <div className="w-[11px] h-[2px] rounded-sm bg-accent-grip" />
-      <div className="w-[11px] h-[2px] rounded-sm bg-accent-grip" />
-    </div>
-  )
-}
-
 const STATE_STYLES = {
-  unassigned: 'border-[1.5px] border-accent bg-white',
-  partial: 'border-[1.5px] border-warn bg-white',
-  done: 'border-[1.5px] border-line bg-canvas opacity-75',
-  everyone: 'border-[1.5px] border-line bg-canvas opacity-75',
-  group: 'border-[1.5px] border-line bg-canvas opacity-75',
+  unassigned: 'border-[1.5px] border-accent bg-surface',
+  partial: 'border-[1.5px] border-warn bg-surface',
+  done: 'border border-line bg-surface-2',
+  everyone: 'border border-line bg-surface-2',
+  group: 'border border-line bg-surface-2',
 }
 
-export function ItemChipPreview({ item }) {
+function ChipBody({ item, done }) {
   const { t } = useTranslation()
   const { fmt } = useCurrency()
-  const assigned = getAssignedUnits(item)
   const total = getTotalUnits(item)
   return (
-    <div
-      style={{ transform: 'rotate(-4deg)', boxShadow: '0 10px 26px rgba(20,20,40,.22)' }}
-      className="rounded-[14px] p-[9px] flex items-center justify-between border-[1.5px] border-accent bg-white w-[170px]"
-    >
-      <div className="flex items-center gap-1.5 min-w-0">
-        <Grip />
-        <span className="font-bold text-[11.5px] truncate text-ink">{item.name || t('itemChip.item')}</span>
-      </div>
-      <span className="text-[10px] font-bold flex-none text-accent">{fmt(item.price)} · {assigned}/{total}</span>
+    <>
+      <span className="flex items-center gap-1.5 min-w-0">
+        <GripVertical size={16} className={`flex-none ${done ? 'text-ink-2' : 'text-accent-line'}`} aria-hidden="true" />
+        <span className={`font-semibold text-[14px] leading-tight line-clamp-2 break-words ${done ? 'line-through text-ink-2' : 'text-ink'}`}>
+          {item.name || t('itemChip.item')}
+          {total > 1 && <span className="font-medium text-ink-2"> ×{total}</span>}
+        </span>
+      </span>
+      <span className={`num text-[13px] font-bold ${done ? 'text-ink-2' : 'text-link'}`}>{fmt(item.price)}</span>
+    </>
+  )
+}
+
+// What follows the finger/cursor while dragging.
+export function ItemChipPreview({ item }) {
+  return (
+    <div className="rounded-[14px] p-2.5 flex flex-col gap-1 border-[1.5px] border-accent bg-surface w-[190px] rotate-[-4deg] shadow-[0_10px_26px_rgba(0,0,0,.25)]">
+      <ChipBody item={item} />
     </div>
   )
 }
 
+// A dish waiting to be dragged onto a person. Tap opens the full edit sheet.
 export default function ItemChip({ item, onTap }) {
   const { t } = useTranslation()
-  const { fmt } = useCurrency()
   const state = getItemState(item)
-  const disabled = state === 'done' || state === 'everyone' || state === 'group'
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: item.id,
-    disabled,
-  })
+  const done = state === 'done' || state === 'everyone' || state === 'group'
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: item.id, disabled: done })
 
   const assigned = getAssignedUnits(item)
   const total = getTotalUnits(item)
-
-  const style = transform
-    ? { transform: CSS.Translate.toString(transform), touchAction: 'none' }
-    : { touchAction: 'none' }
+  const style = { touchAction: 'none', ...(transform ? { transform: CSS.Translate.toString(transform) } : {}) }
 
   if (isDragging) {
     return (
-      <div ref={setNodeRef} style={style} className="rounded-[14px] p-[9px] flex items-center justify-between border-[1.5px] border-dashed border-line bg-white opacity-50">
-        <div className="flex items-center gap-1.5">
-          <Grip />
-          <span className="font-bold text-[11.5px] text-line-dashed">{item.name}</span>
-        </div>
-      </div>
+      <div ref={setNodeRef} style={style} className="min-h-[60px] rounded-[14px] border-[1.5px] border-dashed border-line-strong bg-surface opacity-60" />
     )
   }
 
   return (
-    <div
+    <button
+      type="button"
       ref={setNodeRef}
       style={style}
       {...listeners}
       {...attributes}
       onClick={onTap}
-      className={`relative rounded-[14px] p-[9px] flex items-center justify-between ${STATE_STYLES[state]}`}
+      aria-label={`${item.name || t('itemChip.item')}: ${t('assign.editDish')}`}
+      className={`relative w-full min-h-[60px] rounded-[14px] p-2.5 flex flex-col items-stretch gap-1 text-left ${done ? '' : 'cursor-grab active:cursor-grabbing'} ${STATE_STYLES[state]}`}
     >
       {state === 'partial' && (
-        <div className="absolute -top-[7px] -right-[6px] text-[9.5px] font-bold px-1.5 py-0.5 rounded-full bg-warn text-white">
+        <span className="num absolute -top-2 -right-1.5 text-[13px] font-bold px-1.5 rounded-full bg-warn text-surface">
           {assigned}/{total}
-        </div>
-      )}
-      {disabled && (
-        <div className="absolute -top-[7px] -right-[6px] text-[9.5px] font-bold px-1.5 py-0.5 rounded-full bg-success text-white flex items-center justify-center w-4 h-4">
-          <Check size={10} />
-        </div>
-      )}
-      <div className="flex items-center gap-1.5 min-w-0">
-        <Grip />
-        <span className={`font-bold text-[11.5px] truncate ${disabled ? 'line-through text-ink-muted' : 'text-ink'}`}>
-          {item.name || t('itemChip.item')}
         </span>
-      </div>
-      <span className={`text-[10px] font-bold flex-none ${disabled ? 'text-ink-muted' : 'text-accent'}`}>
-        {disabled ? fmt(item.price) : `${fmt(item.price)} · ${assigned}/${total}`}
-      </span>
-    </div>
+      )}
+      {done && (
+        <span className="absolute -top-2 -right-1.5 w-5 h-5 rounded-full bg-ok-fill text-surface inline-flex items-center justify-center" aria-hidden="true">
+          <Check size={13} strokeWidth={3} />
+        </span>
+      )}
+      <ChipBody item={item} done={done} />
+    </button>
   )
 }

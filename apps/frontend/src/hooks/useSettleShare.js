@@ -7,7 +7,9 @@ import { copyText } from '../utils/clipboard'
 import { getItemShares } from '../utils/math'
 import { getMemberItemAmount, isGroupItem } from '../utils/itemizerState'
 
-export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '' }) {
+// `onSessionCreated(session)` gets the server bill ({ billId, participants }) once links exist,
+// so the caller can follow its payment status.
+export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '', onSessionCreated }) {
   const { t, i18n } = useTranslation()
   const { fmt } = useCurrency()
   const isDesktop = useIsDesktop()
@@ -176,6 +178,7 @@ export function useSettleShare({ bill, results, tipAmount = 0, tipLabel = '' }) 
     setSent(false)
     try {
       const session = await createSession(selected)
+      onSessionCreated?.(session)
       const byLocalId = new Map(session.participants.map((p) => [p.localId, p]))
       const withLinks = selected.map((p) => ({ ...p, deepLink: byLocalId.get(p.id)?.deepLink }))
       const combinedText = buildCombinedText(withLinks, { includeDetails: method !== 'sms' })

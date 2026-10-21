@@ -118,6 +118,12 @@ export function useBillApp() {
     setScreen(to)
   }
 
+  // A blank bill (no crew). `extra` carries a hand-off from Home, e.g. the receipt photo
+  // picked there, which the setup screen starts scanning right away.
+  function startNewBill(extra = {}) {
+    navigate(SCREENS.SETUP, { id: generateId(), crewId: null, crewName: '', crewEmoji: '🍽️', activeMembers: [], grandTotal: '', taxAmount: '', tipPercent: 18, items: [], ...extra })
+  }
+
   function startNewBillWithCrew(crew) {
     const newBill = {
       id: generateId(),
@@ -155,6 +161,7 @@ export function useBillApp() {
     setBill,
     direction,
     navigate,
+    startNewBill,
     startNewBillWithCrew,
     saveBillToRecent,
   }
