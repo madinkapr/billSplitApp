@@ -1,11 +1,13 @@
 import React from 'react'
 import { Mic, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useVoiceInput } from '../hooks/useVoiceInput'
 
 // Tiny hold-to-talk mic for filling in exactly one number the dictation
 // missed (e.g. a forgotten grand total or item price) without redoing the
 // whole VoiceBillReviewModal dictation.
 export default function AmountMicButton({ onResult }) {
+  const { t } = useTranslation()
   const { state, startRecording, stopRecording, cancelRecording } = useVoiceInput('/api/voice/amount', { timeout: 30000 })
 
   function handlePress(e) {
@@ -31,15 +33,16 @@ export default function AmountMicButton({ onResult }) {
       onPointerUp={handleRelease}
       onPointerCancel={cancelRecording}
       disabled={state === 'processing'}
-      className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 select-none touch-none transition-colors ${
+      aria-label={t('voiceReview.holdToSayAmount')}
+      className={`w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 select-none touch-none transition-colors ${
         state === 'recording'
-          ? 'bg-red-500 text-white'
+          ? 'bg-warn text-surface'
           : state === 'error'
-            ? 'bg-red-50 text-red-400'
-            : 'bg-indigo-50 text-indigo-500'
+            ? 'bg-warn-tint text-warn'
+            : 'bg-accent-tint text-link'
       }`}
     >
-      {state === 'processing' ? <Loader2 size={13} className="animate-spin" /> : <Mic size={13} />}
+      {state === 'processing' ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Mic size={16} aria-hidden="true" />}
     </button>
   )
 }

@@ -3,6 +3,7 @@ import { Lock, Loader2, Table as TableIcon, LineChart as LineChartIcon, ArrowLef
 import { useTranslation } from 'react-i18next'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import Sidebar from '../shell/Sidebar'
+import Skeleton from '../ui/Skeleton'
 
 const ADMIN_TOKEN_STORAGE = 'tabup_admin_token'
 const RANGE_OPTIONS = [7, 30, 90]
@@ -14,29 +15,29 @@ const THEMES = {
   mobile: {
     card: 'card',
     tile: 'card p-4 flex-1 min-w-[140px]',
-    heading: 'text-xl font-semibold text-gray-800',
-    sectionHeading: 'text-xs font-semibold text-gray-400 uppercase tracking-wider',
-    tileLabel: 'text-xs font-medium text-gray-500 mb-1',
-    pillWrap: 'flex bg-white rounded-xl border border-gray-200 p-1',
-    pillActive: 'bg-indigo-600 text-white',
-    pillInactive: 'text-gray-600 hover:bg-gray-50',
-    viewToggleWrap: 'flex bg-gray-100 rounded-lg p-0.5',
-    viewToggleActive: 'bg-white shadow-sm',
-    viewToggleInactive: 'text-gray-400',
+    heading: 'text-xl font-semibold text-ink',
+    sectionHeading: 'text-[13px] font-semibold text-ink-2 uppercase tracking-wider',
+    tileLabel: 'text-[13px] font-medium text-ink-2 mb-1',
+    pillWrap: 'flex bg-surface rounded-xl border border-line p-1',
+    pillActive: 'bg-accent text-on-accent',
+    pillInactive: 'text-ink-2 hover:bg-surface-2',
+    viewToggleWrap: 'flex bg-surface-2 rounded-lg p-0.5',
+    viewToggleActive: 'bg-surface shadow-sm',
+    viewToggleInactive: 'text-ink-2',
     compactActivity: true,
   },
   desktop: {
-    card: 'bg-white rounded-2xl border border-desktop-cardBorder',
-    tile: 'bg-white rounded-2xl border border-desktop-cardBorder p-4 flex-1 min-w-[160px]',
-    heading: 'text-[22px] font-extrabold text-desktop-text',
-    sectionHeading: 'text-[12px] font-bold uppercase tracking-wide text-desktop-textMuted3',
-    tileLabel: 'text-xs font-medium text-desktop-textMuted3 mb-1',
-    pillWrap: 'flex bg-white rounded-xl border border-desktop-cardBorder p-1',
-    pillActive: 'bg-desktop-primary text-white',
-    pillInactive: 'text-desktop-textMuted hover:bg-desktop-content',
-    viewToggleWrap: 'flex bg-desktop-content rounded-lg p-0.5',
-    viewToggleActive: 'bg-white shadow-sm',
-    viewToggleInactive: 'text-desktop-textMuted3',
+    card: 'bg-surface rounded-2xl border border-line',
+    tile: 'bg-surface rounded-2xl border border-line p-4 flex-1 min-w-[160px]',
+    heading: 'text-[22px] font-bold text-ink',
+    sectionHeading: 'text-[13px] font-bold uppercase tracking-wide text-ink-2',
+    tileLabel: 'text-[13px] font-medium text-ink-2 mb-1',
+    pillWrap: 'flex bg-surface rounded-xl border border-line p-1',
+    pillActive: 'bg-accent text-on-accent',
+    pillInactive: 'text-ink-2 hover:bg-bg',
+    viewToggleWrap: 'flex bg-bg rounded-lg p-0.5',
+    viewToggleActive: 'bg-surface shadow-sm',
+    viewToggleInactive: 'text-ink-2',
   },
 }
 
@@ -114,7 +115,7 @@ function LoginForm({ onSubmit, error, loading }) {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-surface-2 px-4">
       <form
         onSubmit={(e) => {
           e.preventDefault()
@@ -122,7 +123,7 @@ function LoginForm({ onSubmit, error, loading }) {
         }}
         className="card w-full max-w-sm p-6 space-y-4"
       >
-        <div className="flex items-center gap-2 text-gray-800">
+        <div className="flex items-center gap-2 text-ink">
           <Lock size={18} />
           <h1 className="font-semibold text-lg">{t('adminStats.adminKeyTitle')}</h1>
         </div>
@@ -147,13 +148,13 @@ function LoginForm({ onSubmit, error, loading }) {
           <button
             type="button"
             onClick={() => setShowPassword((p) => !p)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-2 hover:text-ink"
             tabIndex={-1}
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
-        {error && <p className="text-sm text-red-600">{t('adminStats.invalidCredentials')}</p>}
+        {error && <p className="text-sm text-warn">{t('adminStats.invalidCredentials')}</p>}
         <button type="submit" disabled={loading || !username || !password} className="btn-primary w-full">
           {loading ? <Loader2 size={16} className="animate-spin" /> : t('adminStats.login')}
         </button>
@@ -262,10 +263,10 @@ function LineChart({ data, keys, colors, labels }) {
               x2={width - padding.right}
               y1={y(v)}
               y2={y(v)}
-              stroke="#e1e0d9"
+              style={{ stroke: 'var(--line)' }}
               strokeWidth="1"
             />
-            <text x={padding.left - 8} y={y(v) + 3} textAnchor="end" fontSize="10" fill="#898781">
+            <text x={padding.left - 8} y={y(v) + 3} textAnchor="end" fontSize="10" style={{ fill: 'var(--ink-2)' }}>
               {v}
             </text>
           </g>
@@ -279,7 +280,7 @@ function LineChart({ data, keys, colors, labels }) {
               y={height - padding.bottom + 14}
               textAnchor="end"
               fontSize="8.5"
-              fill="#898781"
+              style={{ fill: 'var(--ink-2)' }}
               transform={`rotate(-45 ${x(i)} ${height - padding.bottom + 14})`}
             >
               {fmtDateLabel(d.date)}
@@ -310,7 +311,7 @@ function LineChart({ data, keys, colors, labels }) {
               x2={x(hoverIdx)}
               y1={padding.top}
               y2={padding.top + plotH}
-              stroke="#c3c2b7"
+              style={{ stroke: 'var(--line-strong)' }}
               strokeWidth="1"
               strokeDasharray="3,3"
             />
@@ -323,13 +324,13 @@ function LineChart({ data, keys, colors, labels }) {
 
       {hoverIdx !== null && (
         <div
-          className="absolute top-0 bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2 text-xs pointer-events-none"
+          className="absolute top-0 bg-surface border border-line rounded-lg shadow-md px-3 py-2 text-[13px] pointer-events-none"
           style={{
             left: `${(x(hoverIdx) / width) * 100}%`,
             transform: hoverIdx > data.length / 2 ? 'translateX(-105%)' : 'translateX(5%)',
           }}
         >
-          <p className="font-semibold text-gray-700 mb-1">{fmtDateLabel(data[hoverIdx].date)}</p>
+          <p className="font-semibold text-ink mb-1">{fmtDateLabel(data[hoverIdx].date)}</p>
           {keys.map((k) => (
             <p key={k} style={{ color: colors[k] }}>
               {labels[k]}: {data[hoverIdx][k]}
@@ -343,7 +344,7 @@ function LineChart({ data, keys, colors, labels }) {
 
 function Legend({ keys, colors, labels }) {
   return (
-    <div className="flex items-center gap-4 text-xs text-gray-600">
+    <div className="flex items-center gap-4 text-[13px] text-ink-2">
       {keys.map((k) => (
         <div key={k} className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors[k] }} />
@@ -359,7 +360,7 @@ function DataTable({ data, keys, labels, t }) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-left text-gray-500 border-b border-gray-100">
+          <tr className="text-left text-ink-2 border-b border-line">
             <th className="py-2 pr-4 font-medium">{t('adminStats.dateCol')}</th>
             {keys.map((k) => (
               <th key={k} className="py-2 pr-4 font-medium">
@@ -370,8 +371,8 @@ function DataTable({ data, keys, labels, t }) {
         </thead>
         <tbody>
           {[...data].reverse().map((d) => (
-            <tr key={d.date} className="border-b border-gray-50">
-              <td className="py-2 pr-4 text-gray-700 tabular-nums">{fmtDateLabel(d.date)}</td>
+            <tr key={d.date} className="border-b border-line">
+              <td className="py-2 pr-4 text-ink tabular-nums">{fmtDateLabel(d.date)}</td>
               {keys.map((k) => (
                 <td key={k} className="py-2 pr-4 tabular-nums">
                   {d[k]}
@@ -460,18 +461,18 @@ const activityUser = (r) =>
 // so nothing needs horizontal scrolling.
 function ActivityList({ t, rows }) {
   return (
-    <div className="overflow-y-auto max-h-[480px] divide-y divide-gray-100">
+    <div className="overflow-y-auto max-h-[480px] divide-y divide-line">
       {rows.map((r, i) => (
         <div key={i} className="py-2.5 flex flex-col gap-0.5">
           <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="inline-flex items-center gap-1.5 font-medium text-gray-800">
+            <span className="inline-flex items-center gap-1.5 font-medium text-ink">
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ACTIVITY_COLORS[r.type] }} />
               {t(`adminStats.activityTypes.${r.type}`)}
             </span>
-            <span className="text-xs text-gray-500 tabular-nums whitespace-nowrap">{fmtTashkentDateTime(r.createdAt)}</span>
+            <span className="text-[13px] text-ink-2 tabular-nums whitespace-nowrap">{fmtTashkentDateTime(r.createdAt)}</span>
           </div>
-          <div className="text-xs text-gray-500 pl-3.5 break-all">
-            {activitySource(r)} · <span className="text-gray-700 tabular-nums">{activityUser(r)}</span>
+          <div className="text-[13px] text-ink-2 pl-3.5 break-all">
+            {activitySource(r)} · <span className="text-ink tabular-nums">{activityUser(r)}</span>
           </div>
         </div>
       ))}
@@ -484,7 +485,7 @@ function ActivityList({ t, rows }) {
 // IPs were stored have neither, shown as "—".
 function ActivityTable({ t, activity, compact }) {
   if (activity.rows.length === 0) {
-    return <p className="text-sm text-gray-500">{t('adminStats.activityEmpty')}</p>
+    return <p className="text-sm text-ink-2">{t('adminStats.activityEmpty')}</p>
   }
 
   const counts = Object.fromEntries(ACTIVITY_TYPES.map((k) => [k, 0]))
@@ -494,7 +495,7 @@ function ActivityTable({ t, activity, compact }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-4 flex-wrap text-xs text-gray-600">
+      <div className="flex items-center gap-4 flex-wrap text-[13px] text-ink-2">
         {ACTIVITY_TYPES.map((k) => (
           <div key={k} className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ACTIVITY_COLORS[k] }} />
@@ -507,8 +508,8 @@ function ActivityTable({ t, activity, compact }) {
       ) : (
         <div className="overflow-auto max-h-[480px]">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-white">
-              <tr className="text-left text-gray-500 border-b border-gray-100">
+            <thead className="sticky top-0 bg-surface">
+              <tr className="text-left text-ink-2 border-b border-line">
                 <th className="py-2 pr-4 font-medium">{t('adminStats.activityTime')}</th>
                 <th className="py-2 pr-4 font-medium">{t('adminStats.activityType')}</th>
                 <th className="py-2 pr-4 font-medium">{t('adminStats.activitySource')}</th>
@@ -517,23 +518,23 @@ function ActivityTable({ t, activity, compact }) {
             </thead>
             <tbody>
               {activity.rows.map((r, i) => (
-                <tr key={i} className="border-b border-gray-50">
-                  <td className="py-2 pr-4 text-gray-700 tabular-nums whitespace-nowrap">{fmtTashkentDateTime(r.createdAt)}</td>
+                <tr key={i} className="border-b border-line">
+                  <td className="py-2 pr-4 text-ink tabular-nums whitespace-nowrap">{fmtTashkentDateTime(r.createdAt)}</td>
                   <td className="py-2 pr-4 whitespace-nowrap">
                     <span className="inline-flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ACTIVITY_COLORS[r.type] }} />
                       {t(`adminStats.activityTypes.${r.type}`)}
                     </span>
                   </td>
-                  <td className="py-2 pr-4 text-gray-600">{activitySource(r)}</td>
-                  <td className="py-2 pr-4 text-gray-700 tabular-nums">{activityUser(r)}</td>
+                  <td className="py-2 pr-4 text-ink-2">{activitySource(r)}</td>
+                  <td className="py-2 pr-4 text-ink tabular-nums">{activityUser(r)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-      {activity.truncated && <p className="text-xs text-gray-400">{t('adminStats.activityTruncated')}</p>}
+      {activity.truncated && <p className="text-[13px] text-ink-2">{t('adminStats.activityTruncated')}</p>}
     </div>
   )
 }
@@ -618,16 +619,18 @@ function DaySection({ theme, t, onUnauthorized }) {
             {loading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
             {t('adminStats.exportDay')}
           </button>
-          {!date && <span className="text-xs text-gray-400">{t('adminStats.exportPickDay')}</span>}
+          {!date && <span className="text-[13px] text-ink-2">{t('adminStats.exportPickDay')}</span>}
         </div>
-        {message && <p className="text-sm text-gray-500">{message}</p>}
+        {message && <p className="text-sm text-ink-2">{message}</p>}
         {activityError ? (
-          <p className="text-sm text-red-600">{t('adminStats.loadError')}</p>
+          <p className="text-sm text-warn">{t('adminStats.loadError')}</p>
         ) : activity ? (
           <ActivityTable t={t} activity={activity} compact={theme.compactActivity} />
         ) : (
-          <div className="flex justify-center py-6">
-            <Loader2 className="animate-spin text-gray-400" />
+          <div className="flex flex-col gap-2 py-2" aria-busy="true">
+            <Skeleton className="h-6" />
+            <Skeleton className="h-6" />
+            <Skeleton className="h-6 w-2/3" />
           </div>
         )}
       </div>
@@ -648,13 +651,18 @@ function MetricSection({ theme, t, title, days, data, today, periodTotals, keys,
 function StatsBody({ theme, t, days, setDays, rows, error, data, today, periodTotals, trafficLabels, entryLabels, onLogout }) {
   if (!rows) {
     return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="animate-spin text-gray-400" />
+      <div className="flex flex-col gap-4" aria-busy="true">
+        <Skeleton className="h-5 w-40" />
+        <div className="flex gap-3">
+          <Skeleton className="h-24 flex-1 !rounded-card" />
+          <Skeleton className="h-24 flex-1 !rounded-card" />
+        </div>
+        <Skeleton className="h-64 !rounded-card" />
       </div>
     )
   }
   if (error) {
-    return <p className="text-sm text-red-600">{t('adminStats.loadError')}</p>
+    return <p className="text-sm text-warn">{t('adminStats.loadError')}</p>
   }
   return (
     <>
@@ -691,14 +699,14 @@ function MobileLayout(props) {
   const { t, days, setDays, onBack, onLogout } = props
   const theme = THEMES.mobile
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center">
-      <div className="w-full max-w-[500px] min-h-screen bg-white relative pb-8">
+    <div className="min-h-screen bg-surface-2 flex justify-center">
+      <div className="w-full max-w-[500px] min-h-screen bg-surface relative pb-8">
         <div className="flex items-center gap-3 px-4 pt-12 pb-4">
-          <button onClick={() => onBack()} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
+          <button onClick={() => onBack()} aria-label={t('common.back')} className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-surface-2 transition-colors">
             <ArrowLeft size={20} />
           </button>
           <h1 className="text-lg font-bold flex-1">{t('adminStats.title')}</h1>
-          <button onClick={onLogout} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors" title={t('adminStats.logout')}>
+          <button onClick={onLogout} className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-surface-2 transition-colors" aria-label={t('adminStats.logout')} title={t('adminStats.logout')}>
             <LogOut size={18} />
           </button>
         </div>
@@ -717,7 +725,7 @@ function DesktopLayout(props) {
   const theme = THEMES.desktop
 
   return (
-    <div className="h-screen flex bg-desktop-content overflow-hidden">
+    <div className="h-screen flex bg-bg overflow-hidden">
       <Sidebar active={null} onNavigate={(screen) => onBack(screen)} onNewBill={onNewBill} onOpenLogin={onOpenLogin} statsActive />
 
       <div className="flex-1 min-w-0 overflow-y-auto">
@@ -728,7 +736,8 @@ function DesktopLayout(props) {
               <RangeToggle theme={theme} days={days} setDays={setDays} t={t} />
               <button
                 onClick={onLogout}
-                className="w-9 h-9 flex items-center justify-center rounded-xl border border-desktop-cardBorder hover:bg-desktop-content transition-colors"
+                className="w-11 h-11 flex items-center justify-center rounded-xl border border-line hover:bg-surface-2 transition-colors"
+                aria-label={t('adminStats.logout')}
                 title={t('adminStats.logout')}
               >
                 <LogOut size={16} />

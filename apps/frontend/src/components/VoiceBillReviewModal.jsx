@@ -39,18 +39,18 @@ function PersonalItemCard({ item, members, onChange, onDelete, nameSuspicious })
   }
 
   return (
-    <div className="border border-gray-100 rounded-xl p-3 flex flex-col gap-2">
+    <div className="border border-line rounded-xl p-3 flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <input
           type="text"
           value={item.name}
           onChange={(e) => onChange({ ...item, name: e.target.value })}
-          className={`flex-1 min-w-0 border rounded-lg px-2 py-1.5 text-sm font-medium focus:outline-none focus:border-indigo-400 ${nameSuspicious ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}
+          className={`flex-1 min-w-0 border rounded-lg px-2 py-1.5 text-sm font-medium focus:outline-none focus:border-accent ${nameSuspicious ? 'border-warn bg-warn-tint' : 'border-line'}`}
         />
         <div className="flex flex-col items-end flex-shrink-0">
           <div className="flex items-center gap-1">
-            <div className={`flex items-center border rounded-lg overflow-hidden ${item.unitPriceUncertain ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}>
-              <span className="pl-2 text-gray-400 text-xs whitespace-nowrap">{symbol}</span>
+            <div className={`flex items-center border rounded-lg overflow-hidden ${item.unitPriceUncertain ? 'border-warn bg-warn-tint' : 'border-line'}`}>
+              <span className="pl-2 text-ink-2 text-[13px] whitespace-nowrap">{symbol}</span>
               <input
                 type="number"
                 min="0"
@@ -62,19 +62,19 @@ function PersonalItemCard({ item, members, onChange, onDelete, nameSuspicious })
             </div>
             <AmountMicButton onResult={(amount) => setUnitPrice(amount.toString())} />
           </div>
-          <span className="text-[10px] text-gray-400 mt-0.5">{t('voiceReview.perUnitPrice')}</span>
+          <span className="text-[13px] text-ink-2 mt-0.5">{t('voiceReview.perUnitPrice')}</span>
         </div>
-        <button onClick={onDelete} className="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
+        <button onClick={onDelete} aria-label={t('common.delete')} className="w-11 h-11 -my-2 flex items-center justify-center rounded-full text-ink-2 hover:text-warn hover:bg-surface-2 transition-colors flex-shrink-0">
           <Trash2 size={14} />
         </button>
       </div>
       {item.unitPriceUncertain && (
-        <p className="text-[11px] text-amber-600 flex items-center gap-1 -mt-1">
+        <p className="text-[13px] text-warn flex items-center gap-1 -mt-1">
           <AlertTriangle size={11} /> {unitPrice > 0 ? t('voiceReview.priceUncertain') : t('voiceReview.priceUnknown')}
         </p>
       )}
       {nameSuspicious && (
-        <p className="text-[11px] text-amber-600 flex items-center gap-1 -mt-1">
+        <p className="text-[13px] text-warn flex items-center gap-1 -mt-1">
           <AlertTriangle size={11} /> {t('voiceReview.itemNameWarningShort')}
         </p>
       )}
@@ -82,16 +82,16 @@ function PersonalItemCard({ item, members, onChange, onDelete, nameSuspicious })
         {Object.entries(item.shares).map(([memberId, qty]) => {
           const member = members.find((m) => m.id === memberId)
           return (
-            <div key={memberId} className="flex items-center gap-1 bg-indigo-50 rounded-lg px-2 py-1">
-              <span className="text-xs text-indigo-700 font-medium truncate max-w-[80px]">{member?.name || '?'}</span>
+            <div key={memberId} className="flex items-center gap-1 bg-accent-tint rounded-lg px-2 py-1">
+              <span className="text-[13px] text-link font-medium truncate max-w-[80px]">{member?.name || '?'}</span>
               <input
                 type="number"
                 min="0"
                 value={qty}
                 onChange={(e) => setShare(memberId, Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-10 text-xs text-center bg-white rounded border border-indigo-200 py-0.5"
+                className="w-10 text-[13px] text-center bg-surface rounded border border-accent-line py-0.5"
               />
-              <button onClick={() => setShare(memberId, 0)} className="text-indigo-300 hover:text-red-400">
+              <button onClick={() => setShare(memberId, 0)} aria-label={t('common.delete')} className="w-9 h-9 -my-2 -mr-1 inline-flex items-center justify-center rounded-full text-accent-ink hover:text-warn">
                 <X size={12} />
               </button>
             </div>
@@ -103,7 +103,7 @@ function PersonalItemCard({ item, members, onChange, onDelete, nameSuspicious })
           <select
             value={addMemberId}
             onChange={(e) => setAddMemberId(e.target.value)}
-            className="flex-1 min-w-0 text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:border-indigo-400"
+            className="flex-1 min-w-0 text-[13px] border border-line rounded-lg px-2 py-1.5 bg-surface focus:outline-none focus:border-accent"
           >
             <option value="">{t('voiceReview.addPersonToItem')}</option>
             {availableMembers.map((m) => (
@@ -115,18 +115,19 @@ function PersonalItemCard({ item, members, onChange, onDelete, nameSuspicious })
             min="1"
             value={addQty}
             onChange={(e) => setAddQty(e.target.value)}
-            className="w-12 text-xs text-center border border-gray-200 rounded-lg py-1.5 flex-shrink-0"
+            className="w-12 text-[13px] text-center border border-line rounded-lg py-1.5 flex-shrink-0"
           />
           <button
             onClick={addMemberShare}
             disabled={!addMemberId}
-            className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center disabled:opacity-40 flex-shrink-0"
+            aria-label={t('itemDetail.increaseShare')}
+            className="w-11 h-11 rounded-lg bg-accent-tint text-link flex items-center justify-center disabled:opacity-40 flex-shrink-0"
           >
             <Plus size={14} />
           </button>
         </div>
       )}
-      <p className="text-xs text-gray-400 text-right">{t('voiceReview.itemLineTotal', { amount: fmt(unitPrice * totalQty) })}</p>
+      <p className="text-[13px] text-ink-2 text-right">{t('voiceReview.itemLineTotal', { amount: fmt(unitPrice * totalQty) })}</p>
     </div>
   )
 }
@@ -161,33 +162,33 @@ function SharedItemRow({ item, members, onChange, onDelete, nameSuspicious }) {
   }
 
   return (
-    <div className="flex flex-col gap-1.5 py-2 border-b border-gray-100 last:border-0">
+    <div className="flex flex-col gap-1.5 py-2 border-b border-line last:border-0">
       <div className="flex items-center gap-2">
         <input
           type="number"
           min="1"
           value={item.quantity}
           onChange={(e) => onChange({ ...item, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
-          className="w-12 flex-shrink-0 text-center border border-gray-200 rounded-lg py-1.5 text-sm font-semibold focus:outline-none focus:border-indigo-400"
+          className="w-12 flex-shrink-0 text-center border border-line rounded-lg py-1.5 text-sm font-semibold focus:outline-none focus:border-accent"
         />
         <input
           type="text"
           value={item.name}
           onChange={(e) => onChange({ ...item, name: e.target.value })}
-          className={`flex-1 min-w-0 border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-indigo-400 ${nameSuspicious ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}
+          className={`flex-1 min-w-0 border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-accent ${nameSuspicious ? 'border-warn bg-warn-tint' : 'border-line'}`}
         />
-        <button onClick={onDelete} className="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
+        <button onClick={onDelete} aria-label={t('common.delete')} className="w-11 h-11 -my-2 flex items-center justify-center rounded-full text-ink-2 hover:text-warn hover:bg-surface-2 transition-colors flex-shrink-0">
           <Trash2 size={14} />
         </button>
       </div>
       {nameSuspicious && (
-        <p className="text-[11px] text-amber-600 flex items-center gap-1 -mt-1">
+        <p className="text-[13px] text-warn flex items-center gap-1 -mt-1">
           <AlertTriangle size={11} /> {t('voiceReview.itemNameWarningShort')}
         </p>
       )}
       <div className="flex items-center justify-end gap-2">
-        <div className="flex items-center flex-shrink-0 border border-gray-200 rounded-lg overflow-hidden">
-          <span className="pl-2 text-gray-400 text-xs whitespace-nowrap">{symbol}</span>
+        <div className="flex items-center flex-shrink-0 border border-line rounded-lg overflow-hidden">
+          <span className="pl-2 text-ink-2 text-[13px] whitespace-nowrap">{symbol}</span>
           <input
             type="number"
             min="0"
@@ -197,11 +198,11 @@ function SharedItemRow({ item, members, onChange, onDelete, nameSuspicious }) {
             className="w-20 px-1 py-1.5 text-sm focus:outline-none bg-transparent"
           />
         </div>
-        <span className="text-xs text-gray-400 flex-shrink-0">{fmt(totalPrice)}</span>
+        <span className="text-[13px] text-ink-2 flex-shrink-0">{fmt(totalPrice)}</span>
       </div>
       {members.length > 1 && (
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Users size={12} className="text-gray-400 flex-shrink-0" />
+          <Users size={12} className="text-ink-2 flex-shrink-0" />
           {members.map((m) => {
             const on = selectedIds.includes(m.id)
             return (
@@ -209,8 +210,8 @@ function SharedItemRow({ item, members, onChange, onDelete, nameSuspicious }) {
                 key={m.id}
                 type="button"
                 onClick={() => toggleMember(m.id)}
-                className={`px-2 py-0.5 rounded-full text-[11px] font-medium border transition-colors max-w-[100px] truncate ${
-                  on ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-gray-300 border-gray-200'
+                className={`px-2 py-0.5 rounded-full text-[13px] font-medium border transition-colors max-w-[100px] truncate ${
+                  on ? 'bg-accent-tint text-link border-accent-line' : 'bg-surface text-ink-2 border-line'
                 }`}
               >
                 {m.name || '?'}
@@ -218,7 +219,7 @@ function SharedItemRow({ item, members, onChange, onDelete, nameSuspicious }) {
             )
           })}
           {selectedIds.length > 0 && (
-            <span className="text-[11px] text-gray-400 ml-auto">
+            <span className="text-[13px] text-ink-2 ml-auto">
               {t('splitGroup.summary', { count: selectedIds.length, amount: fmt(totalPrice / selectedIds.length) })}
             </span>
           )}
@@ -387,33 +388,33 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 60, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="bg-white rounded-2xl w-full max-w-md sm:max-w-lg lg:max-w-2xl max-h-[85vh] flex flex-col shadow-xl"
+          className="bg-surface rounded-2xl w-full max-w-md sm:max-w-lg lg:max-w-2xl max-h-[85vh] flex flex-col shadow-xl"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+          <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-line">
             <div>
               <h2 className="text-base font-bold">{t('voiceReview.title')}</h2>
-              <p className="text-xs text-gray-400 mt-0.5">{t('voiceReview.subtitle')}</p>
+              <p className="text-[13px] text-ink-2 mt-0.5">{t('voiceReview.subtitle')}</p>
             </div>
-            <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+            <button onClick={onCancel} aria-label={t('common.close')} className="w-11 h-11 -mr-2 flex items-center justify-center rounded-full hover:bg-surface-2">
               <X size={16} />
             </button>
           </div>
 
           <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-4">
             {unresolvedNames.size > 0 && (
-              <div className="flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-                <AlertTriangle size={13} className="text-amber-500 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-amber-700">
+              <div className="flex items-start gap-1.5 bg-warn-tint border border-warn rounded-xl px-3 py-2">
+                <AlertTriangle size={13} className="text-warn mt-0.5 flex-shrink-0" />
+                <p className="text-[13px] text-warn">
                   {t('voiceReview.unresolvedNameWarning', { names: [...unresolvedNames].join(', ') })}
                 </p>
               </div>
             )}
 
             {itemNameWarnings.size > 0 && (
-              <div className="flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-                <AlertTriangle size={13} className="text-amber-500 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-amber-700">
+              <div className="flex items-start gap-1.5 bg-warn-tint border border-warn rounded-xl px-3 py-2">
+                <AlertTriangle size={13} className="text-warn mt-0.5 flex-shrink-0" />
+                <p className="text-[13px] text-warn">
                   {t('voiceReview.itemNameWarning', { names: [...itemNameWarnings].join(', ') })}
                 </p>
               </div>
@@ -421,21 +422,21 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
 
             {/* Members */}
             <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
+              <label className="text-[13px] font-semibold text-ink-2 uppercase tracking-wider block mb-1.5">
                 {t('voiceReview.membersHeader')}
               </label>
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {members.map((m) => (
-                  <div key={m.id} className={`flex items-center gap-1 rounded-lg px-2 py-1 ${unresolvedNames.has(m.name) ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50'}`}>
+                  <div key={m.id} className={`flex items-center gap-1 rounded-lg px-2 py-1 ${unresolvedNames.has(m.name) ? 'bg-warn-tint border border-warn' : 'bg-surface-2'}`}>
                     <input
                       type="text"
                       value={m.name}
                       onChange={(e) => updateMemberName(m.id, e.target.value)}
                       maxLength={25}
-                      className="w-20 text-xs font-medium bg-transparent outline-none"
+                      className="w-20 text-[13px] font-medium bg-transparent outline-none"
                     />
                     {!m.isMe && (
-                      <button onClick={() => removeMember(m.id)} className="text-gray-300 hover:text-red-400">
+                      <button onClick={() => removeMember(m.id)} aria-label={t('crews.removeMember', { name: m.name })} className="w-9 h-9 -my-2 -mr-1 inline-flex items-center justify-center rounded-full text-ink-2 hover:text-warn">
                         <X size={12} />
                       </button>
                     )}
@@ -450,9 +451,9 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
                   onKeyDown={(e) => e.key === 'Enter' && addMember()}
                   placeholder={t('voiceReview.addMissingMember')}
                   maxLength={25}
-                  className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-indigo-400"
+                  className="flex-1 border border-line rounded-lg px-2 py-1.5 text-[13px] focus:outline-none focus:border-accent"
                 />
-                <button onClick={addMember} disabled={!newMemberName.trim()} className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center disabled:opacity-40 flex-shrink-0">
+                <button onClick={addMember} disabled={!newMemberName.trim()} aria-label={t('crews.addMember')} className="w-11 h-11 rounded-lg bg-accent-tint text-link flex items-center justify-center disabled:opacity-40 flex-shrink-0">
                   <UserPlus size={14} />
                 </button>
               </div>
@@ -461,7 +462,7 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
             {/* Personal items */}
             {personalItems.length > 0 && (
               <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
+                <label className="text-[13px] font-semibold text-ink-2 uppercase tracking-wider block mb-1.5">
                   {t('voiceReview.personalItemsHeader')}
                 </label>
                 <div className="flex flex-col gap-2">
@@ -482,10 +483,10 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
             {/* Shared items */}
             {sharedItems.length > 0 && (
               <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
+                <label className="text-[13px] font-semibold text-ink-2 uppercase tracking-wider block mb-1.5">
                   {t('voiceReview.sharedItemsHeader')}
                 </label>
-                <div className="border border-gray-100 rounded-xl px-3 py-1">
+                <div className="border border-line rounded-xl px-3 py-1">
                   {sharedItems.map((item) => (
                     <SharedItemRow
                       key={item.id}
@@ -501,9 +502,9 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
             )}
 
             {showMismatch && (
-              <div className="flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-                <AlertTriangle size={13} className="text-amber-500 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-amber-700">
+              <div className="flex items-start gap-1.5 bg-warn-tint border border-warn rounded-xl px-3 py-2">
+                <AlertTriangle size={13} className="text-warn mt-0.5 flex-shrink-0" />
+                <p className="text-[13px] text-warn">
                   {t('voiceReview.mismatchWarning', { itemsTotal: fmt(itemsTotal), foodBudget: fmt(foodBudget) })}
                 </p>
               </div>
@@ -511,10 +512,10 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
 
             {/* Totals */}
             <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">{t('ocrReview.grandTotal')}</label>
+              <label className="text-[13px] font-semibold text-ink-2 uppercase tracking-wider block mb-1.5">{t('ocrReview.grandTotal')}</label>
               <div className="flex items-center gap-1.5">
-                <div className={`flex-1 flex items-center border-2 rounded-xl ${!grandTotal ? 'border-amber-400 bg-amber-50' : 'border-gray-200'} focus-within:border-indigo-500 focus-within:bg-white transition-colors`}>
-                  <span className="pl-4 text-gray-400 font-medium whitespace-nowrap">{symbol}</span>
+                <div className={`flex-1 flex items-center border-2 rounded-xl ${!grandTotal ? 'border-warn bg-warn-tint' : 'border-line'} focus-within:border-accent focus-within:bg-surface transition-colors`}>
+                  <span className="pl-4 text-ink-2 font-medium whitespace-nowrap">{symbol}</span>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -529,10 +530,10 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">{t('ocrReview.tip')}</label>
+              <label className="text-[13px] font-semibold text-ink-2 uppercase tracking-wider block mb-1.5">{t('ocrReview.tip')}</label>
               <div className="flex gap-2">
-                <div className="flex items-center border border-gray-200 rounded-xl flex-1 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent">
-                  <span className="pl-3 text-gray-400 text-xs font-medium whitespace-nowrap">{symbol}</span>
+                <div className="flex items-center border border-line rounded-xl flex-1 focus-within:ring-2 focus-within:ring-accent focus-within:border-transparent">
+                  <span className="pl-3 text-ink-2 text-[13px] font-medium whitespace-nowrap">{symbol}</span>
                   <input
                     type="number" inputMode="decimal" placeholder="0.00" min="0" step="0.01"
                     value={tipAmount}
@@ -540,23 +541,23 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
                     className="flex-1 px-2 py-2.5 text-sm bg-transparent outline-none"
                   />
                 </div>
-                <div className="flex items-center border border-gray-200 rounded-xl flex-1 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent">
+                <div className="flex items-center border border-line rounded-xl flex-1 focus-within:ring-2 focus-within:ring-accent focus-within:border-transparent">
                   <input
                     type="number" inputMode="decimal" placeholder="0" min="0" max="100"
                     value={tipPercent}
                     onChange={(e) => setTipPercent(e.target.value)}
                     className="flex-1 px-3 py-2.5 text-sm bg-transparent outline-none"
                   />
-                  <span className="pr-3 text-gray-400 text-xs font-medium">%</span>
+                  <span className="pr-3 text-ink-2 text-[13px] font-medium">%</span>
                 </div>
               </div>
             </div>
 
             {voiceData.discountAmount > 0 && (
               <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">{t('ocrReview.discount')}</label>
-                <div className="flex items-center border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-red-400 focus-within:border-transparent">
-                  <span className="pl-4 text-red-400 font-medium whitespace-nowrap">-{symbol}</span>
+                <label className="text-[13px] font-semibold text-ink-2 uppercase tracking-wider block mb-1.5">{t('ocrReview.discount')}</label>
+                <div className="flex items-center border border-line rounded-xl focus-within:ring-2 focus-within:ring-warn focus-within:border-transparent">
+                  <span className="pl-4 text-warn font-medium whitespace-nowrap">-{symbol}</span>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -573,17 +574,17 @@ export default function VoiceBillReviewModal({ voiceData, onConfirm, onCancel })
           </div>
 
           {/* Footer */}
-          <div className="flex gap-3 px-5 py-4 border-t border-gray-100">
+          <div className="flex gap-3 px-5 py-4 border-t border-line">
             <button
               onClick={onCancel}
-              className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+              className="flex-1 py-3 rounded-xl border-2 border-line text-sm font-semibold text-ink-2 hover:bg-surface-2 transition-colors"
             >
               {t('voiceReview.cancel')}
             </button>
             <button
               onClick={handleConfirm}
               disabled={!grandNum || members.filter((m) => m.name.trim()).length === 0}
-              className="flex-1 py-3 rounded-xl bg-indigo-500 text-white text-sm font-semibold disabled:opacity-40 hover:bg-indigo-600 transition-colors"
+              className="flex-1 py-3 rounded-xl bg-accent text-on-accent text-sm font-semibold disabled:opacity-40 hover:bg-accent transition-colors"
             >
               {t('voiceReview.confirm')}
             </button>

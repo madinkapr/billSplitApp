@@ -155,9 +155,9 @@ export default function Crews({ crews, setCrews, onStartBillWithCrew, startWithN
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-8 lg:items-start">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px] xl:gap-8 xl:items-start">
         {editorTarget && (
-          <div className="lg:order-2 lg:sticky lg:top-10">
+          <div className="xl:order-2 xl:sticky xl:top-10">
             <CrewEditor
               key={editorTarget === 'new' ? 'new' : editorTarget.id}
               crew={editorTarget === 'new' ? null : editorTarget}
@@ -167,7 +167,7 @@ export default function Crews({ crews, setCrews, onStartBillWithCrew, startWithN
           </div>
         )}
 
-        <div className="lg:order-1 min-w-0">
+        <div className="xl:order-1 min-w-0">
           {crews.length === 0 ? (
             !editorTarget || isDesktop ? (
               <Card className="items-center text-center py-10">
@@ -186,21 +186,23 @@ export default function Crews({ crews, setCrews, onStartBillWithCrew, startWithN
           ) : (
             <List as="ul">
               {crews.map((crew) => (
-                <li key={crew.id} className="flex items-center gap-3 min-h-[68px] px-4 py-3">
+                <li key={crew.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 min-h-[68px] px-4 py-3">
                   <Avatar square size="lg" id={crew.id} name={crew.name} className="text-[20px]">{crew.emoji || undefined}</Avatar>
-                  <span className="flex-1 min-w-0">
+                  <span className="flex-1 min-w-[9rem]">
                     <b className="block text-[16px] font-semibold truncate">{crew.name}</b>
                     <small className="block text-[14px] text-ink-2 truncate">{crew.members.map((m) => m.name).join(', ')}</small>
                   </span>
-                  <Button icon variant="secondary" className="!border-transparent" onClick={() => setEditing(crew)} aria-label={t('crews.editAria', { name: crew.name })}>
-                    <Pencil size={18} aria-hidden="true" />
-                  </Button>
-                  <Button icon variant="secondary" className="!border-transparent" onClick={() => deleteCrew(crew.id)} aria-label={t('crews.deleteAria', { name: crew.name })}>
-                    <Trash2 size={18} aria-hidden="true" />
-                  </Button>
-                  <Button size="sm" variant="primary" onClick={() => onStartBillWithCrew(crew)}>
-                    {t('crews.start')}
-                  </Button>
+                  <span className="flex items-center gap-1 ml-auto">
+                    <Button icon variant="secondary" className="!border-transparent" onClick={() => setEditing(crew)} aria-label={t('crews.editAria', { name: crew.name })}>
+                      <Pencil size={18} aria-hidden="true" />
+                    </Button>
+                    <Button icon variant="secondary" className="!border-transparent" onClick={() => deleteCrew(crew.id)} aria-label={t('crews.deleteAria', { name: crew.name })}>
+                      <Trash2 size={18} aria-hidden="true" />
+                    </Button>
+                    <Button size="sm" variant="primary" onClick={() => onStartBillWithCrew(crew)}>
+                      {t('crews.start')}
+                    </Button>
+                  </span>
                 </li>
               ))}
             </List>

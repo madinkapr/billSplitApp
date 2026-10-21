@@ -154,12 +154,12 @@ export default function Split({ bill, onBack, onEdit }) {
             title={t('split.eachPays')}
             action={
               <div className="hidden lg:flex gap-2">
-                <Button size="sm" onClick={copySummary}>
+                <Button size="sm" className="whitespace-nowrap" onClick={copySummary}>
                   {copied ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}
                   {copyButtonLabel}
                 </Button>
                 {share.canShare && (
-                  <Button size="sm" variant="primary" onClick={share.open}>
+                  <Button size="sm" variant="primary" className="whitespace-nowrap" onClick={share.open}>
                     <Send size={18} aria-hidden="true" />
                     {shareLabel}
                   </Button>

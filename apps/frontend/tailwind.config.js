@@ -18,23 +18,16 @@ export default {
         line: {
           DEFAULT: token('line'),
           strong: token('line-strong'),
-          // Legacy, remove once nothing uses it.
-          dashed: '#D8D8E2',
         },
         ink: {
           DEFAULT: token('ink'),
           2: token('ink-2'),
-          // Legacy, remove once nothing uses them.
-          muted: '#8D8D97',
-          faint: '#B7B7C1',
         },
         accent: {
           DEFAULT: token('accent'),
           ink: token('accent-ink'),
           tint: token('accent-tint'),
           line: token('accent-line'),
-          // Legacy, remove once nothing uses it.
-          grip: '#9DC2ED',
         },
         'on-accent': token('on-accent'),
         link: token('link'),
@@ -46,40 +39,6 @@ export default {
         a3: { DEFAULT: token('a3-bg'), fg: token('a3-fg') },
         a4: { DEFAULT: token('a4-bg'), fg: token('a4-fg') },
         a5: { DEFAULT: token('a5-bg'), fg: token('a5-fg') },
-
-        // Legacy palettes, removed once the old screens are rebuilt on the tokens above.
-        indigo: {
-          50: '#eef4fc',
-          100: '#d6e6fa',
-          500: '#2b7fde',
-          600: '#1669d3',
-          700: '#114f9e',
-        },
-        success: '#2FAE66',
-        canvas: { DEFAULT: '#F4F4F7', track: '#EDEDF2' },
-        desktop: {
-          sidebar: '#1c1533',
-          primary: '#1669d3',
-          gradFrom: '#3e8ee8',
-          gradTo: '#114f9e',
-          content: '#f6f5fb',
-          card: '#ffffff',
-          cardBorder: '#e7e4f3',
-          divider: '#f1effa',
-          text: '#181225',
-          textSecondary: '#4d4761',
-          textMuted: '#726d85',
-          textMuted2: '#8b85a0',
-          textMuted3: '#9891ac',
-          placeholder: '#b3aec3',
-          tileHome: '#dcebfb',
-          tileQuick: '#dce9fa',
-          tileAccent: '#e7f0fc',
-          successText: '#1a8f5c',
-          successText2: '#1fa971',
-          successBg: '#e9f7ef',
-          chipBg: '#e9f1fc',
-        },
       },
       fontFamily: {
         sans: ['Onest', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],

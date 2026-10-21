@@ -30,7 +30,7 @@ export default function Segmented({ options, value, onChange, labelledBy, classN
             tabIndex={checked || (selectedIndex === -1 && i === 0) ? 0 : -1}
             onClick={() => onChange(o.value)}
             onKeyDown={(e) => onKeyDown(e, i)}
-            className={`min-h-[48px] min-w-0 px-1 rounded-ctl text-[15px] truncate ${
+            className={`min-h-[48px] min-w-0 px-0.5 rounded-ctl text-[14px] sm:text-[15px] truncate ${
               checked ? 'border-2 border-accent bg-accent-tint text-accent-ink font-bold' : 'border border-line-strong bg-surface font-semibold hover:bg-surface-2'
             }`}
           >

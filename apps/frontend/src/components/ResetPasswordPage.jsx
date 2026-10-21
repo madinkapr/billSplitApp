@@ -35,10 +35,10 @@ export default function ResetPasswordPage({ token, onDone, onForgotAgain }) {
     return (
       <AuthShell title={t('auth.resetTitle')}>
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-warn-tint text-warn flex items-center justify-center">
             <AlertCircle size={22} />
           </div>
-          <p className="text-sm text-gray-600">{t('auth.resetInvalid')}</p>
+          <p className="text-sm text-ink-2">{t('auth.resetInvalid')}</p>
           <button onClick={onForgotAgain} className="btn-primary w-full mt-1">
             {t('auth.resetRequestNew')}
           </button>
@@ -52,8 +52,8 @@ export default function ResetPasswordPage({ token, onDone, onForgotAgain }) {
       <form onSubmit={submit} className="flex flex-col gap-3">
         <PasswordInput value={password} onChange={setPassword} autoComplete="new-password" placeholder={t('auth.passwordNew')} />
         <PasswordInput value={confirm} onChange={setConfirm} autoComplete="new-password" placeholder={t('auth.passwordConfirm')} />
-        {mismatch && <p className="text-sm text-red-600">{t('auth.passwordMismatch')}</p>}
-        {error && <p className="text-sm text-red-600">{authErrorText(t, error)}</p>}
+        {mismatch && <p className="text-sm text-warn">{t('auth.passwordMismatch')}</p>}
+        {error && <p className="text-sm text-warn">{authErrorText(t, error)}</p>}
         <button type="submit" disabled={!canSubmit} className="btn-primary w-full disabled:opacity-50">
           {busy ? <Loader2 size={16} className="animate-spin" /> : t('auth.resetButton')}
         </button>

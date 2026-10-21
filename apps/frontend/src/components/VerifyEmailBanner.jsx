@@ -23,14 +23,14 @@ export default function VerifyEmailBanner({ className = '' }) {
 
   const days = daysLeft(user.deleteAt)
   const urgent = days !== null && days <= URGENT_DAYS
-  const tone = urgent ? 'border-red-200 bg-red-50 text-red-900' : 'border-amber-200 bg-amber-50 text-amber-900'
+  const tone = urgent ? 'border-warn bg-warn-tint text-warn' : 'border-warn bg-warn-tint text-warn'
 
   return (
     <div className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 ${tone} ${className}`}>
       <MailWarning size={18} className="mt-0.5 flex-shrink-0" />
       <div className="flex-1 min-w-0 text-sm">
         <p className="font-semibold">{t('auth.verifyBannerTitle')}</p>
-        <p className={`mt-0.5 break-words ${urgent ? 'text-red-800' : 'text-amber-800'}`}>
+        <p className={`mt-0.5 break-words ${urgent ? 'text-warn' : 'text-warn'}`}>
           {t('auth.verifyBannerBody', { email: user.email })}
           {days !== null && (
             <>

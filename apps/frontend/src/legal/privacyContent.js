@@ -1,7 +1,7 @@
 // Privacy policy text (uz/ru/en). Kept here rather than in the i18n JSON because it's
 // long-form prose. It must describe what the app really does — update it whenever data
 // collection changes (new tables, new third-party services, new uploads).
-export const PRIVACY_UPDATED = '2026-10-13'
+export const PRIVACY_UPDATED = '2026-10-21'
 export const PRIVACY_CONTACT_EMAIL = 'support@schet.uz'
 
 export const PRIVACY = {
@@ -52,6 +52,7 @@ export const PRIVACY = {
           "Akkauntga kirgan bo'lsangiz, hisoblar tarixi (oxirgi 100 ta) va guruhlaringiz serverimizda akkauntingizga bog'lab saqlanadi, shuning uchun boshqa qurilmadan kirganda ham ko'rinadi.",
           "Kirmagan bo'lsangiz, tarix va guruhlar faqat brauzeringizda (localStorage) saqlanadi. Akkauntga kirganingizda ular akkauntingizga qo'shiladi va brauzerdan o'chiriladi.",
           "Til va valyuta sozlamalari brauzeringizda saqlanadi va serverga yuborilmaydi.",
+          "To'lov havolalarini yuborsangiz, o'sha hisobning serverdagi raqami brauzeringizda saqlanadi, shunda ilova kim to'laganini ko'rsata oladi. U faqat shu brauzerda qoladi.",
         ],
       },
       {
@@ -131,6 +132,7 @@ export const PRIVACY = {
           'Если вы вошли в аккаунт, история счетов (последние 100) и ваши группы хранятся на нашем сервере в привязке к аккаунту, поэтому они доступны и с других устройств.',
           'Если вы не вошли, история и группы хранятся только в вашем браузере (localStorage). При входе в аккаунт они добавляются в аккаунт и удаляются из браузера.',
           'Настройки языка и валюты хранятся в вашем браузере и не отправляются на сервер.',
+          'Если вы отправляете ссылки на оплату, номер этого счёта на сервере сохраняется в браузере, чтобы приложение показывало, кто уже оплатил. Он остаётся только в этом браузере.',
         ],
       },
       {
@@ -210,6 +212,7 @@ export const PRIVACY = {
           'If you are signed in, your bill history (the latest 100) and groups are stored on our server under your account, so they are available on other devices too.',
           'If you are not signed in, history and groups are stored only in your browser (localStorage). When you sign in, they are added to your account and removed from the browser.',
           'Language and currency settings are stored in your browser and are not sent to the server.',
+          "When you send payment links, that bill's server ID is kept in your browser so the app can show who has paid. It stays in this browser only.",
         ],
       },
       {

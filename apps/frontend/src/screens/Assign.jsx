@@ -139,7 +139,7 @@ function DishRow({ item, persons, onOpen }) {
 
   return (
     <button type="button" aria-expanded={false} onClick={onOpen} className="w-full flex items-center gap-3 min-h-[60px] px-4 py-2 text-left text-ink hover:bg-surface-2">
-      <span className="flex-1 min-w-0 text-[16px] font-medium truncate">
+      <span className="flex-1 min-w-0 text-[16px] font-medium line-clamp-2 break-words">
         {item.name || t('itemChip.item')}
         {total > 1 && <em className="not-italic text-ink-2"> ×{total}</em>}
       </span>
@@ -375,7 +375,7 @@ export default function Assign({ bill, onBack, onNext }) {
       />
       <Stepper current={2} />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8 lg:items-start">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_340px] lg:gap-8 lg:items-start">
         <div className="flex flex-col gap-4 min-w-0">
           {items.length > 0 && (
             <Card className="!gap-2 !py-3.5">

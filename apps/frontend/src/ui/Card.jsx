@@ -22,7 +22,7 @@ export function List({ as: Tag = 'div', className = '', children, ...rest }) {
 // Section title with an optional link/button on the right.
 export function SectionHead({ id, title, action, as: H = 'h2' }) {
   return (
-    <div className="flex items-center justify-between gap-3 min-h-[44px]">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 min-h-[44px]">
       <H id={id} className="text-[18px] font-semibold tracking-[-0.01em]">{title}</H>
       {action}
     </div>

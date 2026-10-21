@@ -32,11 +32,8 @@
   color-scheme: light;
 }
 
-/* Dark tokens. `data-legacy-light` (set in index.html) keeps the old screens,
-   which still hardcode white surfaces, in light mode until they are rebuilt.
-   TODO(redesign): drop the attribute once every screen uses the tokens. */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-legacy-light]) {
+  :root {
     --bg: #0E1116;
     --surface: #161A21;
     --surface-2: #1F242D;
@@ -103,19 +100,20 @@
     min-height: 44px;
     min-width: 44px;
   }
+  /* Form helpers kept for the auth, privacy and admin pages. */
   .card {
-    @apply bg-white rounded-2xl shadow-sm border border-gray-100;
+    @apply bg-surface rounded-card border border-line;
   }
   .input-field {
-    @apply w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white;
+    @apply w-full min-h-[48px] rounded-ctl border border-line-strong bg-surface px-3.5 text-[16px] text-ink placeholder:text-ink-2 focus:outline focus:outline-2 focus:outline-accent focus:border-transparent;
   }
   .btn-primary {
-    @apply bg-indigo-600 text-white rounded-xl font-semibold px-5 py-3 touch-btn flex items-center justify-center gap-2 active:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply min-h-[48px] rounded-ctl bg-accent px-5 font-semibold text-on-accent flex items-center justify-center gap-2 hover:bg-accent-ink transition-colors disabled:bg-surface-2 disabled:text-ink-2 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply bg-gray-100 text-gray-700 rounded-xl font-semibold px-5 py-3 touch-btn flex items-center justify-center gap-2 active:bg-gray-200 transition-colors;
+    @apply min-h-[48px] rounded-ctl border border-line bg-surface px-5 font-semibold text-ink flex items-center justify-center gap-2 hover:bg-surface-2 transition-colors;
   }
   .btn-ghost {
-    @apply text-indigo-600 rounded-xl font-semibold px-4 py-2 touch-btn flex items-center justify-center gap-1 active:bg-indigo-50 transition-colors text-sm;
+    @apply min-h-[44px] rounded-ctl px-4 text-[15px] font-semibold text-link flex items-center justify-center gap-1 hover:bg-accent-tint transition-colors;
   }
 }

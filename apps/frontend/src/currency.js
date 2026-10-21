@@ -1,5 +1,8 @@
+import { groupDigits } from './utils/money'
+
 export const CURRENCIES = {
-  UZS: { code: 'UZS', symbol: "so'm", decimals: 0, format: (n) => `${Math.round(n).toLocaleString('en-US')} so'm` },
+  // "1 232 000 so'm": digits grouped by (non-breaking) spaces, as people write it here.
+  UZS: { code: 'UZS', symbol: "so'm", decimals: 0, format: (n) => `${groupDigits(String(Math.round(n)))} so'm` },
   RUB: { code: 'RUB', symbol: '₽', decimals: 2, format: (n) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB' }).format(n) },
   USD: { code: 'USD', symbol: '$', decimals: 2, format: (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n) },
 }

@@ -416,7 +416,7 @@ export default function Setup({ bill, crews, onBack, onNext }) {
             {otherOpen && (
               <div className="flex gap-2">
                 {tipMode === 'percent' ? (
-                  <div className="flex-1 flex items-center gap-2 min-h-[48px] px-3.5 rounded-ctl border border-line-strong bg-surface focus-within:outline focus-within:outline-2 focus-within:outline-accent focus-within:border-transparent">
+                  <div className="flex-1 min-w-0 flex items-center gap-2 min-h-[48px] px-3.5 rounded-ctl border border-line-strong bg-surface focus-within:outline focus-within:outline-2 focus-within:outline-accent focus-within:border-transparent">
                     <label htmlFor="service-custom" className="sr-only">{t('setup.servicePercent')}</label>
                     <input
                       id="service-custom"
@@ -434,10 +434,10 @@ export default function Setup({ bill, crews, onBack, onNext }) {
                     <span aria-hidden="true" className="text-[15px] font-medium text-ink-2">%</span>
                   </div>
                 ) : (
-                  <MoneyInput className="flex-1" value={tipAmountInput} onChange={setTipAmountInput} aria-label={t('setup.serviceAmount')} />
+                  <MoneyInput className="flex-1 min-w-0" value={tipAmountInput} onChange={setTipAmountInput} aria-label={t('setup.serviceAmount')} />
                 )}
                 <Segmented
-                  className="w-[124px] flex-none"
+                  className="w-[120px] flex-none"
                   labelledBy="service-label"
                   value={tipMode}
                   onChange={setTipMode}
