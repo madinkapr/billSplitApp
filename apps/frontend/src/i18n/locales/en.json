@@ -2,7 +2,8 @@
   "common": {
     "back": "Back",
     "cancel": "Cancel",
-    "you": " (You)"
+    "you": " (You)",
+    "close": "Close"
   },
   "nav": {
     "home": "Home",
@@ -37,7 +38,23 @@
     "viewAll": "View All",
     "quickSplit": "Quick Split",
     "emptyTitle": "Ready to split?",
-    "emptyBody": "Start a new bill or create a crew for your regular lunch group."
+    "emptyBody": "Start a new bill or create a crew for your regular lunch group.",
+    "startTitle": "Split a bill",
+    "startSubtitle": "Start with whatever you have in hand.",
+    "scanTile": "Scan receipt",
+    "scanTileHint": "Camera or gallery",
+    "voiceTile": "Say it",
+    "voiceTileHint": "Who ate what, out loud",
+    "voiceRecording": "Tap to stop",
+    "typeTile": "Type it",
+    "typeTileHint": "Enter dishes by hand",
+    "yourCrews": "Your crews",
+    "manage": "Manage",
+    "newCrew": "New crew",
+    "newCrewHint": "Save a group",
+    "seeAll": "See all",
+    "usageLine": "Free today: {{scan}} of {{scanLimit}} scans · {{voice}} of {{voiceLimit}} voice",
+    "usageSignUp": "Sign up for unlimited"
   },
   "crews": {
     "title": "My Crews",
@@ -52,7 +69,12 @@
     "createFirstCrew": "Create First Crew",
     "start": "Start",
     "subtitleCount_one": "{{count}} crew saved",
-    "subtitleCount_other": "{{count}} crews saved"
+    "subtitleCount_other": "{{count}} crews saved",
+    "chooseIcon": "Choose an icon",
+    "removeMember": "Remove {{name}}",
+    "addMember": "Add member",
+    "editAria": "Edit {{name}}",
+    "deleteAria": "Delete {{name}}"
   },
   "billSetup": {
     "title": "Bill Setup",
@@ -399,5 +421,14 @@
       "history": "History",
       "cafes": "Cafés"
     }
+  },
+  "status": {
+    "notSent": "Not sent",
+    "allPaid": "All paid",
+    "paidOf": "{{paid}} of {{total}} paid",
+    "paid": "Paid",
+    "reminded": "Reminded",
+    "notPaid": "Not paid",
+    "payer": "Paid the bill"
   }
 }

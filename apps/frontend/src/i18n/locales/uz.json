@@ -2,7 +2,8 @@
   "common": {
     "back": "Orqaga",
     "cancel": "Bekor qilish",
-    "you": " (Siz)"
+    "you": " (Siz)",
+    "close": "Yopish"
   },
   "nav": {
     "home": "Bosh sahifa",
@@ -37,7 +38,23 @@
     "viewAll": "Barchasini ko'rish",
     "quickSplit": "Tezkor bo'lish",
     "emptyTitle": "Bo'lishga tayyormisiz?",
-    "emptyBody": "Yangi hisob boshlang yoki doimiy tushlik guruhingiz uchun guruh yarating."
+    "emptyBody": "Yangi hisob boshlang yoki doimiy tushlik guruhingiz uchun guruh yarating.",
+    "startTitle": "Hisobni bo'lish",
+    "startSubtitle": "Qo'lingizda nima bo'lsa, shundan boshlang.",
+    "scanTile": "Chekni skanerlash",
+    "scanTileHint": "Kamera yoki galereya",
+    "voiceTile": "Ovoz bilan",
+    "voiceTileHint": "Kim nima yeganini ayting",
+    "voiceRecording": "To'xtatish uchun bosing",
+    "typeTile": "Qo'lda",
+    "typeTileHint": "Taomlarni o'zingiz kiriting",
+    "yourCrews": "Guruhlaringiz",
+    "manage": "Boshqarish",
+    "newCrew": "Yangi guruh",
+    "newCrewHint": "Guruhni saqlash",
+    "seeAll": "Barchasi",
+    "usageLine": "Bugun bepul: scan {{scan}}/{{scanLimit}} · ovoz {{voice}}/{{voiceLimit}}",
+    "usageSignUp": "Cheksiz — ro'yxatdan o'ting"
   },
   "crews": {
     "title": "Mening guruhlarim",
@@ -52,7 +69,12 @@
     "createFirstCrew": "Birinchi guruhni yaratish",
     "start": "Boshlash",
     "subtitleCount_one": "{{count}} guruh saqlangan",
-    "subtitleCount_other": "{{count}} guruh saqlangan"
+    "subtitleCount_other": "{{count}} guruh saqlangan",
+    "chooseIcon": "Belgini tanlash",
+    "removeMember": "Olib tashlash: {{name}}",
+    "addMember": "A'zo qo'shish",
+    "editAria": "Tahrirlash: {{name}}",
+    "deleteAria": "O'chirish: {{name}}"
   },
   "billSetup": {
     "title": "Hisobni sozlash",
@@ -399,5 +421,14 @@
       "history": "Tarix",
       "cafes": "Kafelar"
     }
+  },
+  "status": {
+    "notSent": "Yuborilmagan",
+    "allPaid": "Hammasi to'landi",
+    "paidOf": "{{total}} tadan {{paid}} tasi to'ladi",
+    "paid": "To'ladi",
+    "reminded": "Eslatildi",
+    "notPaid": "To'lamadi",
+    "payer": "Hisobni to'ladi"
   }
 }

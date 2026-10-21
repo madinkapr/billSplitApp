@@ -1,23 +1,20 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { SCREENS } from '../hooks/useBillApp'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import TabBar from './TabBar'
-import HomeScreen from '../components/HomeScreen'
-import DesktopHome from '../desktop/components/DesktopHome'
-import CrewManager from '../components/CrewManager'
-import DesktopCrews from '../desktop/components/DesktopCrews'
-import BillHistory from '../components/BillHistory'
-import DesktopHistory from '../desktop/components/DesktopHistory'
+import Home from '../screens/Home'
+import Crews from '../screens/Crews'
+import History from '../screens/History'
+import Cafes from '../screens/Cafes'
 import BillSetup from '../components/BillSetup'
 import DesktopBillSetup from '../desktop/components/DesktopBillSetup'
 import Itemizer from '../components/Itemizer'
 import DesktopItemizer from '../desktop/components/DesktopItemizer'
 import Report from '../components/Report'
 import DesktopSummary from '../desktop/components/DesktopSummary'
-import CafesMap from '../components/CafesMap'
 
 // Screens inside a bill: no tab bar (they have their own bottom action bar) and no
 // highlighted nav item.
@@ -34,6 +31,13 @@ const fade = {
 export default function AppShell({ crews, setCrews, recentBills, screen, bill, setBill, direction, navigate, startNewBill, startNewBillWithCrew, saveBillToRecent, onOpenStats, onOpenLogin }) {
   const isDesktop = useIsDesktop()
   const inFlow = FLOW_SCREENS.includes(screen)
+  // Home's "New crew" opens the crews screen with the editor ready.
+  const [crewsStartNew, setCrewsStartNew] = useState(false)
+
+  function openCrews(startNew) {
+    setCrewsStartNew(startNew)
+    navigate(SCREENS.CREWS)
+  }
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -41,31 +45,28 @@ export default function AppShell({ crews, setCrews, recentBills, screen, bill, s
 
   function renderScreen() {
     switch (screen) {
-      case SCREENS.HOME: {
-        const props = {
-          crews,
-          recentBills,
-          onStartNewBill: () => startNewBill(),
-          onSelectCrew: startNewBillWithCrew,
-          onManageCrews: () => navigate(SCREENS.CREWS),
-          onViewBill: (b) => navigate(SCREENS.REPORT, b),
-          onViewAllBills: () => navigate(SCREENS.HISTORY),
-          onOpenCafes: () => navigate(SCREENS.CAFES),
-          onOpenStats,
-          onOpenLogin,
-        }
-        return isDesktop ? <DesktopHome {...props} /> : <HomeScreen {...props} />
-      }
-      case SCREENS.CREWS: {
-        const props = { crews, setCrews, onBack: () => navigate(SCREENS.HOME), onStartBillWithCrew: startNewBillWithCrew }
-        return isDesktop ? <DesktopCrews {...props} /> : <CrewManager {...props} />
-      }
-      case SCREENS.HISTORY: {
-        const props = { recentBills, onBack: () => navigate(SCREENS.HOME), onViewBill: (b) => navigate(SCREENS.REPORT, b) }
-        return isDesktop ? <DesktopHistory {...props} /> : <BillHistory {...props} />
-      }
+      case SCREENS.HOME:
+        return (
+          <Home
+            crews={crews}
+            recentBills={recentBills}
+            onScanFile={(file) => startNewBill({ _pendingScan: file })}
+            onVoiceResult={(data) => startNewBill({ _voiceData: data })}
+            onStartNewBill={() => startNewBill()}
+            onSelectCrew={startNewBillWithCrew}
+            onManageCrews={() => openCrews(false)}
+            onNewCrew={() => openCrews(true)}
+            onViewBill={(b) => navigate(SCREENS.REPORT, b)}
+            onViewAllBills={() => navigate(SCREENS.HISTORY)}
+            onOpenStats={onOpenStats}
+          />
+        )
+      case SCREENS.CREWS:
+        return <Crews crews={crews} setCrews={setCrews} onStartBillWithCrew={startNewBillWithCrew} startWithNew={crewsStartNew} />
+      case SCREENS.HISTORY:
+        return <History recentBills={recentBills} onViewBill={(b) => navigate(SCREENS.REPORT, b)} onNewBill={() => startNewBill()} />
       case SCREENS.CAFES:
-        return <CafesMap className="flex-1 min-h-[360px] block" />
+        return <Cafes />
       case SCREENS.SETUP: {
         const props = { bill, crews, onBack: () => navigate(SCREENS.HOME), onNext: (b) => navigate(SCREENS.ITEMS, b) }
         return isDesktop ? <DesktopBillSetup {...props} /> : <BillSetup {...props} />
@@ -90,7 +91,7 @@ export default function AppShell({ crews, setCrews, recentBills, screen, bill, s
     <div className="min-h-screen flex bg-bg text-ink">
       <Sidebar
         active={inFlow ? null : screen}
-        onNavigate={navigate}
+        onNavigate={(to) => (to === SCREENS.CREWS ? openCrews(false) : navigate(to))}
         onNewBill={() => startNewBill()}
         onOpenStats={onOpenStats}
         onOpenLogin={onOpenLogin}
@@ -105,7 +106,7 @@ export default function AppShell({ crews, setCrews, recentBills, screen, bill, s
           </motion.main>
         </AnimatePresence>
 
-        {!inFlow && <TabBar active={screen} onNavigate={navigate} onNewBill={() => startNewBill()} />}
+        {!inFlow && <TabBar active={screen} onNavigate={(to) => (to === SCREENS.CREWS ? openCrews(false) : navigate(to))} onNewBill={() => startNewBill()} />}
       </div>
     </div>
   )
