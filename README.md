@@ -4,20 +4,41 @@ A mobile-first web app for splitting restaurant bills fairly among friends and c
 
 ## 📱 Demos & Features in Action
 
-| 1. Receipt OCR Scan | 2. Voice Dictation |
-| :---: | :---: |
-| ![Receipt OCR Scan](./assets/demo/01-receipt-scan.gif) | ![Voice Dictation](./assets/demo/02-voice-dictation.gif) |
-| *Scan a receipt photo and auto-fill items via Gemini*<br>[🎥 Original Video](./assets/demo/videos/01-receipt-scan.mp4) | *Dictate the whole bill out loud — dishes & total*<br>[🎥 Original Video](./assets/demo/videos/02-voice-dictation.mp4) |
+<p align="center">
+  <img src="assets/demo/01-receipt-scan.gif" width="340" alt="Receipt OCR Scan" />
+  <br>
+  <b>1. Receipt OCR Scan</b> — <i>Scan a receipt photo and auto-fill items via Gemini</i>
+</p>
 
-| 3. Manual Entry & Itemizer | 4. Guest Mode & Authentication |
-| :---: | :---: |
-| ![Manual Entry](./assets/demo/03-manual-entry.gif) | ![Guest or Auth](./assets/demo/04-auth-or-guest.gif) |
-| *Add dishes manually and assign them to people*<br>[🎥 Original Video](./assets/demo/videos/03-manual-entry.mp4) | *Start instantly as guest or sign in to sync*<br>[🎥 Original Video](./assets/demo/videos/04-auth-or-guest.mp4) |
+<p align="center">
+  <img src="assets/demo/02-voice-dictation.gif" width="340" alt="Voice Dictation" />
+  <br>
+  <b>2. Voice Dictation</b> — <i>Dictate the whole bill out loud — dishes, participants & total</i>
+</p>
 
-| 5. Settings & Customization | 6. Telegram Bot (`/newbill`) |
-| :---: | :---: |
-| ![Settings](./assets/demo/05-settings.gif) | ![Telegram Bot](./assets/demo/06-telegram-bot.gif) |
-| *Configure tips, appearance & preferences*<br>[🎥 Original Video](./assets/demo/videos/05-settings.mp4) | *Create bills from Telegram & track payments*<br>[🎥 Original Video](./assets/demo/videos/06-telegram-bot.mp4) |
+<p align="center">
+  <img src="assets/demo/03-manual-entry.gif" width="340" alt="Manual Entry" />
+  <br>
+  <b>3. Manual Entry & Itemizer</b> — <i>Add dishes manually and assign them to people with ease</i>
+</p>
+
+<p align="center">
+  <img src="assets/demo/04-auth-or-guest.gif" width="340" alt="Guest Mode" />
+  <br>
+  <b>4. Guest Mode & Authentication</b> — <i>Start instantly as guest or sign in to sync across devices</i>
+</p>
+
+<p align="center">
+  <img src="assets/demo/05-settings.gif" width="340" alt="Settings" />
+  <br>
+  <b>5. Settings & Customization</b> — <i>Configure tips, currency, appearance & default crews</i>
+</p>
+
+<p align="center">
+  <img src="assets/demo/06-telegram-bot.gif" width="340" alt="Telegram Bot" />
+  <br>
+  <b>6. Telegram Bot (`/newbill`)</b> — <i>Create bills from Telegram & track payments with Settle Up</i>
+</p>
 
 ## Features
 
