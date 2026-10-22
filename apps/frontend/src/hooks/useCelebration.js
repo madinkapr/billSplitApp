@@ -45,9 +45,10 @@ export function celebrate() {
 const celebrated = new Set()
 
 // Fires once when the itemizer goes from "still assigning" to "all dishes assigned and
-// the sums match". A bill that is already complete when the screen opens doesn't fire.
-export function useCelebrateWhenDone(done, billId) {
-  const wasDone = useRef(done)
+// the sums match". A bill that is already complete when the screen opens doesn't fire,
+// unless `onOpen` is set (a freshly dictated bill arrives complete).
+export function useCelebrateWhenDone(done, billId, onOpen = false) {
+  const wasDone = useRef(onOpen ? false : done)
   useEffect(() => {
     if (done && !wasDone.current && !celebrated.has(billId)) {
       celebrated.add(billId)

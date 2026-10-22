@@ -266,8 +266,9 @@ export default function Assign({ bill, onBack, onNext }) {
     setItems((prev) => [...prev, newItem])
   }
 
-  // Fireworks the moment the last dish is placed and the sums check out.
-  useCelebrateWhenDone(complete, bill.id)
+  // Fireworks the moment the last dish is placed and the sums check out. A dictated bill
+  // arrives already split, so it gets them as soon as the screen opens.
+  useCelebrateWhenDone(complete, bill.id, bill._fromVoice)
 
   // ...and then straight on to the split. A bill that was already complete when this screen
   // opened (editing a saved one) waits for the "See the split" button instead.
@@ -276,12 +277,14 @@ export default function Assign({ bill, onBack, onNext }) {
     const becameComplete = complete && !wasComplete.current
     wasComplete.current = complete
     if (!becameComplete) return
-    const timer = setTimeout(() => onNext({ ...bill, items }), 600)
+    const timer = setTimeout(() => onNext(currentBill()), 600)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [complete])
 
-  const finish = () => onNext({ ...bill, items })
+  // The voice flag only means "just dictated": drop it before the bill is saved or edited.
+  const currentBill = () => ({ ...bill, items, _fromVoice: undefined })
+  const finish = () => onNext(currentBill())
 
   const blockedLabel = items.length === 0
     ? t('assign.addDishesFirst')
@@ -296,7 +299,7 @@ export default function Assign({ bill, onBack, onNext }) {
       <PageHeader
         title={t('assign.title')}
         meta={`${title} · ${t('assign.dishCount', { count: items.length })}`}
-        onBack={() => onBack({ ...bill, items })}
+        onBack={() => onBack(currentBill())}
         backLabel={t('common.back')}
         actions={
           !addOpen && (

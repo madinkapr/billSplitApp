@@ -302,6 +302,7 @@ export default function Setup({ bill, crews, onBack, onNext }) {
       _voiceData: undefined,
       _adhocMembers: nextAdhoc,
       _manualEntry: false,
+      _fromVoice: true,
       activeMembers: nextActive,
       grandTotal: confirmed.grandTotal,
       tipMode: confirmed.tipAmount > 0 ? 'amount' : 'percent',
