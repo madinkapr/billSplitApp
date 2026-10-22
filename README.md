@@ -2,6 +2,23 @@
 
 A mobile-first web app for splitting restaurant bills fairly among friends and colleagues. Instead of dividing everything equally, schet.uz uses a proportional split — tip is distributed based on what each person actually ordered.
 
+## 📱 Demos & Features in Action
+
+| 1. Receipt OCR Scan | 2. Voice Dictation |
+| :---: | :---: |
+| ![Receipt OCR Scan](./assets/demo/01-receipt-scan.gif) | ![Voice Dictation](./assets/demo/02-voice-dictation.gif) |
+| *Scan a receipt photo and auto-fill items via Gemini*<br>[🎥 Original Video](./assets/demo/videos/01-receipt-scan.mp4) | *Dictate the whole bill out loud — dishes & total*<br>[🎥 Original Video](./assets/demo/videos/02-voice-dictation.mp4) |
+
+| 3. Manual Entry & Itemizer | 4. Guest Mode & Authentication |
+| :---: | :---: |
+| ![Manual Entry](./assets/demo/03-manual-entry.gif) | ![Guest or Auth](./assets/demo/04-auth-or-guest.gif) |
+| *Add dishes manually and assign them to people*<br>[🎥 Original Video](./assets/demo/videos/03-manual-entry.mp4) | *Start instantly as guest or sign in to sync*<br>[🎥 Original Video](./assets/demo/videos/04-auth-or-guest.mp4) |
+
+| 5. Settings & Customization | 6. Telegram Bot (`/newbill`) |
+| :---: | :---: |
+| ![Settings](./assets/demo/05-settings.gif) | ![Telegram Bot](./assets/demo/06-telegram-bot.gif) |
+| *Configure tips, appearance & preferences*<br>[🎥 Original Video](./assets/demo/videos/05-settings.mp4) | *Create bills from Telegram & track payments*<br>[🎥 Original Video](./assets/demo/videos/06-telegram-bot.mp4) |
+
 ## Features
 
 - **Crews** — save recurring groups (Office, Family, etc.) for one-tap bill starts
